@@ -79,7 +79,7 @@ const SignUp = () => {
         <div className="signup-container">
             <div className="signup-card">
                 {/* Logo and Title */}
-                <div className="header">
+                <div className="SIGNUPheader">
                     <div className="logo">
                         <img src={logoImage} alt="Local Volunteer Radar Logo" />
                     </div>
