@@ -20,8 +20,8 @@ function HomePage() {
                         <span className="logo-text">Local Volunteer Radar</span>
                     </div>
                     <div className="header-actions">
-                        <button className="btn-secondary" onClick={() => navigate('/LoginPage.jsx')}>Sign In</button>
-                        <button className="btn-primary" onClick={() => navigate('/SignUp')}>Get Started</button>
+                        <button className="btn-secondary" onClick={() => navigate('/login')}>Sign In</button>
+                        <button className="btn-primary" onClick={() => navigate('/signup')}>Get Started</button>
                     </div>
                 </div>
             </header>
