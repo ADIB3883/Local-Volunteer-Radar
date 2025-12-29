@@ -12,28 +12,29 @@
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
 }
 
-/* Main Content Wrapper - CHANGE BACKGROUND COLOR HERE */
 .main-content {
     background: linear-gradient(111.75deg, rgba(0, 77, 221, 0.38) 4.51%, rgba(0, 173, 75, 0.14) 97.36%);
 }
 
-/* Header */
 .header {
+    display: flex;
     background: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    min-width: 100vw;
-    max-height: 15vh;
-    z-index: 10;
+    width: 100%;
+    height: 10vh;
     position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10;
 }
 
 .header-container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 1rem 2rem;
+    width: 100%;
+
+    padding: 0 2rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 }
 
 .logo-section {
@@ -41,7 +42,6 @@
     align-items: center;
     gap: 0.5rem;
 }
-
 .logo-icon {
     width: 40px;
     height: 40px;
@@ -54,7 +54,6 @@
 }
 
 .logo-text {
-    /* Local Volunteer Radar */
 
     width: 280px;
     height: 28px;
@@ -69,8 +68,6 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-
-
 
 }
 

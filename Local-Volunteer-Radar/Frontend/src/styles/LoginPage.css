@@ -13,7 +13,7 @@
     border: 2px solid #38bdf8;
 }
 
-.header {
+.LOGINheader {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -317,7 +317,7 @@ form {
         padding: 40px 30px;
     }
 
-    .header {
+    .LOGINheader {
         flex-direction: column;
         gap: 10px;
     }

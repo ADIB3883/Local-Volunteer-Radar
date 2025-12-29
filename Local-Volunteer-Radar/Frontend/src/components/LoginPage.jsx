@@ -56,7 +56,7 @@ const LoginPage = () => {
     return (
         <div className="login-container">
             <div className="login-card">
-                <div className="header">
+                <div className="LOGINheader">
                     <div className="logo">
                         <img src={logoImage} alt="Local Volunteer Radar Logo" />
                     </div>
