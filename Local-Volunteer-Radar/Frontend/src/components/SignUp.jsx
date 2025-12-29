@@ -80,10 +80,10 @@ const SignUp = () => {
             <div className="signup-card">
                 {/* Logo and Title */}
                 <div className="SIGNUPheader">
-                    <div className="logo">
+                    <div className="SIGNUPlogo">
                         <img src={logoImage} alt="Local Volunteer Radar Logo" />
                     </div>
-                    <h1 className="title">
+                    <h1 className="SIGNUPtitle">
                         <span className="title-local">Local Volunteer</span>
                         <span className="title-radar"> Radar</span>
                     </h1>
