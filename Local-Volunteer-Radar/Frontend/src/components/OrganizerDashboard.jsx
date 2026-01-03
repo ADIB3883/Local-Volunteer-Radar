@@ -1,7 +1,209 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X, Clock } from 'lucide-react';
 import logo from "../assets/logo.png";
+
+// Custom Time Picker Component
+const CustomTimePicker = ({ label, value, onChange, name, required = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [tempHour, setTempHour] = useState('12');
+    const [tempMinute, setTempMinute] = useState('00');
+    const [tempPeriod, setTempPeriod] = useState('AM');
+    const [inputValue, setInputValue] = useState('');
+    const inputRef = React.useRef(null);
+    // Function to open the time picker modal
+    const openPicker = () => {
+        if (value) {
+            const [h, m] = value.split(':');
+            const hour = parseInt(h);
+            // Convert 24-hour format to 12-hour format for display
+            if (hour === 0) {
+                setTempHour('12');
+                setTempPeriod('AM');
+            } else if (hour < 12) {
+                setTempHour(hour.toString());
+                setTempPeriod('AM');
+            } else if (hour === 12) {
+                setTempHour('12');
+                setTempPeriod('PM');
+            } else {
+                setTempHour((hour - 12).toString());
+                setTempPeriod('PM');
+            }
+            setTempMinute(m);
+        }
+        setIsOpen(true)// Open the modal;
+    };
+// Converts 12-hour format back to 24-hour format before saving
+    const handleConfirm = () => {
+        let hour = parseInt(tempHour);
+
+        if (tempPeriod === 'AM') {
+            if (hour === 12) hour = 0;
+        } else {
+            if (hour !== 12) hour += 12;
+        }
+        // Format the time as HH:MM in 24-hour format
+        const formattedTime = `${hour.toString().padStart(2, '0')}:${tempMinute}`;
+        onChange({ target: { name, value: formattedTime } });
+        setIsOpen(false);
+    };
+    // Function to handle manual time input
+    const handleInputChange = (e) => {
+        const val = e.target.value;
+        setInputValue(val);
+
+        // Parse manual input (format: HH:MM AM/PM or HH:MM)
+        const timeRegex = /^(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)?$/;
+        const match = val.match(timeRegex);
+
+        if (match) {
+            let hour = parseInt(match[1]);
+            const minute = match[2];
+            const period = match[3] ? match[3].toUpperCase() : null;
+            // Validate time values
+            if (hour >= 0 && hour <= 23 && parseInt(minute) >= 0 && parseInt(minute) <= 59) {
+                let finalHour = hour;
+
+                if (period) {
+                    // 12-hour format with AM/PM
+                    if (period === 'AM' && hour === 12) finalHour = 0;
+                    else if (period === 'PM' && hour !== 12) finalHour = hour + 12;
+                } else if (hour >= 0 && hour <= 23) {
+                    // 24-hour format
+                    finalHour = hour;
+                }
+                 // Format and save the time
+                const formattedTime = `${finalHour.toString().padStart(2, '0')}:${minute}`;
+                onChange({ target: { name, value: formattedTime } });
+            }
+        }
+    };
+// Function to display the time value in 12-hour format with AM/PM
+    const displayValue = value ? (() => {
+        const [h, m] = value.split(':');
+        const hour = parseInt(h);
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const period = hour < 12 ? 'AM' : 'PM';
+        return `${displayHour}:${m} ${period}`;
+    })() : '';
+// Generate arrays for dropdown options
+    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+    const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+
+    // Calculate modal position based on name (endTime should appear to the right)
+    const modalPositionClass = name === 'endTime'
+        ? 'fixed top-1/2 left-1/2 transform -translate-x-1/4 -translate-y-1/2'
+        : 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2';
+
+    return (
+        <div className="relative">
+            {/* Label for the time input */}
+            <label className="block text-base font-semibold text-gray-700 mb-2">
+                {label} {required && '*'}
+            </label>
+            {/* Time input field with clock icon */}
+            <div className="relative">
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue || displayValue}
+                    onChange={handleInputChange}
+                    onFocus={() => setInputValue('')}
+                    onBlur={() => setInputValue('')}
+                    placeholder="HH:MM AM/PM"
+                    className="w-full h-10 px-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    style={{ marginBottom: '16px' }}
+                />
+                {/* Clock icon button to open modal */}
+                <button
+                    type="button"
+                    onClick={openPicker}
+                    className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
+                >
+                    <Clock className="w-5 h-5 text-gray-600" />
+                </button>
+            </div>
+            {/* Time picker modal */}
+            {isOpen && (
+                <>
+                    <div
+                        className="fixed inset-0  bg-opacity-50 z-50"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    {/* Modal content */}
+                    <div className={`${modalPositionClass} bg-white rounded-lg shadow-xl z-50 p-6 w-70 `}>
+                        <h3 className="text-lg font-semibold mb-4 text-gray-800 " style={{marginBottom: '4px'}}>Select Time</h3>
+                        {/* Dropdown selectors for hour, minute, and period */}
+                        <div className="flex gap-2 mb-6">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-2"style={{marginBottom: '4px'}}>Hour</label>
+                                <select
+                                    value={tempHour}
+                                    onChange={(e) => setTempHour(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    {hours.map(hour => (
+                                        <option key={hour} value={hour}>{hour}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-2"style={{marginBottom: '4px'}}>Minute</label>
+                                <select
+                                    value={tempMinute}
+                                    onChange={(e) => setTempMinute(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    {minutes.map(minute => (
+                                        <option key={minute} value={minute}>{minute}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-2"style={{marginBottom: '4px'}}>Period</label>
+                                <select
+                                    value={tempPeriod}
+                                    onChange={(e) => setTempPeriod(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        {/* Preview of selected time */}
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg text-center">
+                            <span className="text-2xl font-semibold text-blue-700"style={{marginBottom: '4px'}}>
+                                {tempHour}:{tempMinute} {tempPeriod}
+                            </span>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsOpen(false)}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirm}
+                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+// MAIN ORGANIZER DASHBOARD COMPONENT
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
@@ -18,7 +220,7 @@ const OrganizerDashboard = () => {
         endTime:'',
         requirements: ''
     });
-
+// Handler for form input changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -26,7 +228,7 @@ const OrganizerDashboard = () => {
             [name]: value
         }));
     };
-
+// Handler for form submission
     const handleSubmit = () => {
         const newEvent = {
             id: Date.now(),
@@ -50,23 +252,24 @@ const OrganizerDashboard = () => {
             requirements: ''
         });
     };
-
+// Navigation handlers
     const handleLogout = () => {
         navigate('/login');
     };
 
     const handleAnnouncements = () => {
-        console.log('Navigating to announcements...');
+        console.log('Navigating to announcements...');// Placeholder for announcements feature
     };
+    // Helper function to convert date to readable format (e.g., "Friday, January 3")
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     };
-
+    // Filter events based on the active tab
     const getFilteredEvents = () => {
         return events.filter(event => event.status === activeTab);
     };
-
+// Calculate statistics for the dashboard cards
     const getStats = () => {
         const activeEvents = events.filter(e => e.status === 'active').length;
         const totalVolunteers = events.reduce((sum, e) => sum + e.volunteersRegistered, 0);
@@ -74,7 +277,7 @@ const OrganizerDashboard = () => {
 
         return { activeEvents, totalVolunteers, totalEvents };
     };
-
+    // Get appropriate empty state content based on active tab
     const getEmptyStateContent = () => {
         switch(activeTab) {
             case 'pending':
@@ -94,6 +297,7 @@ const OrganizerDashboard = () => {
                 };
         }
     };
+    // Get calculated values for rendering
     const stats = getStats();
     const filteredEvents = getFilteredEvents();
     const emptyState = getEmptyStateContent();
@@ -178,30 +382,30 @@ const OrganizerDashboard = () => {
 
                 {/* Manage Events Section */}
 
-                    {/* Header */}
-                    <div className="px-8 py-6  flex items-center justify-between">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900" style={{marginBottom: '2px'}}>Manage Events</h2>
-                            <p className="text-sm text-gray-500 "  style={{marginBottom: '32px'}}>Create and track your volunteer opportunities</p>
-                        </div>
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setShowCreateModal(true);
-                            }}
-                            className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold shadow-md"style={{paddingRight: '10px'}}
-                        >
-                            <Plus className="w-6 h-6" />
-                            Create Event
-                        </button>
-
+                {/* Header */}
+                <div className="px-8 py-6  flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900" style={{marginBottom: '2px'}}>Manage Events</h2>
+                        <p className="text-sm text-gray-500 "  style={{marginBottom: '32px'}}>Create and track your volunteer opportunities</p>
                     </div>
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowCreateModal(true);
+                        }}
+                        className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold shadow-md"style={{paddingRight: '10px'}}
+                    >
+                        <Plus className="w-6 h-6" />
+                        Create Event
+                    </button>
+
+                </div>
 
 
-                    {/* Tabs */}
-                    <div className="flex gap-8 px-8 " style={{paddingLeft: '48px', marginTop: '32px',marginBottom: '12px'}} >
-                        <div className="inline-flex gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
+                {/* Tabs */}
+                <div className="flex gap-8 px-8 " style={{paddingLeft: '48px', marginTop: '32px',marginBottom: '12px'}} >
+                    <div className="inline-flex gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
                         {['active', 'pending', 'completed'].map((tab) => (
                             <button
                                 key={tab}
@@ -219,7 +423,7 @@ const OrganizerDashboard = () => {
                             </button>
                         ))}
                     </div>
-                        </div>
+                </div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 " >
                     {/* Event Cards or Empty State */}
                     <div className="h-60 px-8 py-8">
@@ -330,13 +534,13 @@ const OrganizerDashboard = () => {
                     <div className="bg-white rounded-xl shadow-2xl max-w-4xl  h-[95vh] overflow-y-auto" style={{paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px'}} onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-8 border-b border-gray-200 sticky top-0 bg-white" style={{marginBottom: '20px'}}>
                             <div className="flex items-center gap-2">
-                            <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <Calendar
-                                    className="w-12 h-12 rounded-xl
+                                <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <Calendar
+                                        className="w-12 h-12 rounded-xl
                                      bg-gradient-to-r from-[#0072c5] to-[#00c57b]"
-                                />
+                                    />
 
-                            </div>
+                                </div>
                                 <div className="flex flex-col">
                                     <h2 className="text-2xl font-bold text-gray-900 leading-tight">
                                         Create New Event
@@ -397,73 +601,21 @@ const OrganizerDashboard = () => {
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        Start Time *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            id="startTimeInput"
-                                            type="time"
-                                            name="startTime"
-                                            value={formData.startTime}
-                                            onChange={handleInputChange}
-                                            className="w-full h-10 px-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            style={{marginBottom: '16px'}}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const input = document.getElementById('startTimeInput');
-                                                if (input.showPicker) {
-                                                    input.showPicker(); // Chrome / Edge
-                                                } else {
-                                                    input.focus(); // Fallback for Safari & others
-                                                }
-                                            }}
-                                            className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
-                                        >
-                                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
+                                <CustomTimePicker
+                                    label="Start Time"
+                                    name="startTime"
+                                    value={formData.startTime}
+                                    onChange={handleInputChange}
+                                    required
+                                />
 
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        End Time *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            id="endTimeInput"
-                                            type="time"
-                                            name="endTime"
-                                            value={formData.endTime}
-                                            onChange={handleInputChange}
-                                            className="w-full h-10 px-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            style={{marginBottom: '16px'}}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const input = document.getElementById('endTimeInput');
-                                                if (input.showPicker) {
-                                                    input.showPicker(); // Chrome / Edge
-                                                } else {
-                                                    input.focus(); // Fallback for Safari & others
-                                                }
-                                            }}
-                                            className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
-                                        >
-                                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
+                                <CustomTimePicker
+                                    label="End Time"
+                                    name="endTime"
+                                    value={formData.endTime}
+                                    onChange={handleInputChange}
+                                    required
+                                />
                             </div>
                             <div>
                                 <label className="block text-base font-semibold text-gray-700 mb-2">
@@ -504,6 +656,17 @@ const OrganizerDashboard = () => {
                                     <label className="block text-base font-semibold text-gray-700 mb-2">
                                         Volunteers Needed *
                                     </label>
+                                    <style>
+                                        {`
+                                            input[type="number"]::-webkit-inner-spin-button,
+                                            input[type="number"]::-webkit-outer-spin-button {
+                                                opacity: 1;
+                                                height: 68px;
+                                                width: 20px;
+                                                 cursor: pointer;
+                                            }
+                                        `}
+                                    </style>
                                     <input
                                         type="number"
                                         name="volunteersNeeded"
