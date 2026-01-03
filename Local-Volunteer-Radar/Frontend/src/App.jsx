@@ -6,6 +6,7 @@ import OrganizerDashboard from './components/OrganizerDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import './App.css';
 import EventDetails from "./components/EventDetails/EventDetails.jsx";
+import VolunteerProfile from "./components/VolunteerProfile.jsx";
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                     <Route path="/" element={<EventDetails />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
+                    <Route path="/volunteer-profile" element={<VolunteerProfile />} />
                     <Route path="/organizer-dashboard" element={<OrganizerDashboard />} />
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 </Routes>
