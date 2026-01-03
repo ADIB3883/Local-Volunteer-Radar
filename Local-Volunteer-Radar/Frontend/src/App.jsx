@@ -5,13 +5,14 @@ import VolunteerDashboard from './components/VolunteerDashboard';
 import OrganizerDashboard from './components/OrganizerDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import './App.css';
+import EventDetails from "./components/EventDetails/EventDetails.jsx";
 
 function App() {
     return (
         <Router>
             <div className="App">
                 <Routes>
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<EventDetails />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
                     <Route path="/organizer-dashboard" element={<OrganizerDashboard />} />
