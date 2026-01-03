@@ -1,0 +1,537 @@
+import React, { useState } from 'react';
+import { ArrowLeft, LogOut, Camera, X, Plus } from 'lucide-react';
+import {useNavigate} from "react-router-dom";
+import logo from "../assets/logo.png";
+
+const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
+
+    const navigate = useNavigate();
+
+    const handleBackToProfile = () => {
+        navigate('/volunteer-profile');
+    };
+
+    const handleLogout = () => {
+        navigate('/login');
+    };
+
+    const [formData, setFormData] = useState({
+        fullName: 'Joel Miller',
+        email: 'joelmiller@gmail.com',
+        phone: '+8801992002430',
+        address: '716, Kafrul, Noakhali',
+        bio: ''
+    });
+
+    const [skills, setSkills] = useState(['Teaching', 'Technical Support']);
+    const [availabilitySlots, setAvailabilitySlots] = useState([
+        { id: 1, day: 'Monday', startTime: '09:00 AM', endTime: '05:00 PM' },
+        { id: 2, day: 'Monday', startTime: '09:00 AM', endTime: '05:00 PM' }
+    ]);
+
+    const handleInputChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const removeSkill = (skillToRemove) => {
+        setSkills(skills.filter(skill => skill !== skillToRemove));
+    };
+
+    const [newSkill, setNewSkill] = useState('');
+
+    const addSkill = () => {
+        if (newSkill && !skills.includes(newSkill)) {
+            setSkills([...skills, newSkill]);
+            setNewSkill('');
+        }
+    };
+
+    const addAvailabilitySlot = () => {
+        setAvailabilitySlots([
+            ...availabilitySlots,
+            { id: Date.now(), day: 'Monday', startTime: '09:00 AM', endTime: '05:00 PM' }
+        ]);
+    };
+
+    const removeAvailabilitySlot = (id) => {
+        setAvailabilitySlots(availabilitySlots.filter(slot => slot.id !== id));
+    };
+
+    const handleSave = () => {
+        console.log('Saving changes:', formData, skills, availabilitySlots);
+        if (onSave) onSave();
+    };
+
+    return (
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+            {/* Header/Navbar */}
+            <nav style={{ background: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '4rem' }}>
+                        {/* Left side - Logo and Title */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.5rem', height: '2.5rem' }}>
+                                <img
+                                    src={logo}
+                                    alt="Logo"
+                                    style={{ width: '2.5rem', height: '2.5rem', objectFit: 'contain' }}
+                                />
+                            </div>
+                            <div>
+                                <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                                    Edit Profile
+                                </h1>
+                                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
+                                    Update your volunteer information
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Right side - Back and Logout */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <button
+                                onClick={handleBackToProfile}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', color: '#374151', background: 'transparent', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'background-color 0.2s' }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <ArrowLeft size={20} />
+                                <span>Back to Profile</span>
+                            </button>
+
+                            <button
+                                onClick={handleLogout}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', color: '#374151', background: 'transparent', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'background-color 0.2s' }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <LogOut size={20} />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            {/* Main Content */}
+            <div style={{ maxWidth: '60rem', margin: '0 auto', padding: '2rem 1rem' }}>
+                {/* Basic Information Section */}
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                        Basic Information
+                    </h2>
+                    <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 2rem 0' }}>
+                        Update your personal details
+                    </p>
+
+                    {/* Profile Picture */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                            Profile Picture
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <button
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.5rem 1rem',
+                                    background: 'white',
+                                    color: '#374151',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '0.5rem',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                            >
+                                <Camera size={18} />
+                                <span>Upload Photo</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Full Name */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                            Full Name
+                        </label>
+                        <input
+                            type="text"
+                            name="fullName"
+                            value={formData.fullName}
+                            onChange={handleInputChange}
+                            disabled
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                background: '#f9fafb',
+                                color: '#6b7280',
+                                outline: 'none'
+                            }}
+                        />
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.25rem 0 0 0' }}>
+                            Name cannot be changed
+                        </p>
+                    </div>
+
+                    {/* Email Address */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            disabled
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                background: '#f9fafb',
+                                color: '#6b7280',
+                                outline: 'none'
+                            }}
+                        />
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.25rem 0 0 0' }}>
+                            Email cannot be changed
+                        </p>
+                    </div>
+
+                    {/* Phone Number */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                            Phone Number
+                        </label>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
+
+                    {/* Address */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                            Address
+                        </label>
+                        <input
+                            type="text"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s'
+                            }}
+                            onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
+
+                    {/* Bio */}
+                    <div>
+                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
+                            Bio
+                        </label>
+                        <textarea
+                            name="bio"
+                            value={formData.bio}
+                            onChange={handleInputChange}
+                            placeholder="Tell us about yourself and why you want to volunteer..."
+                            rows={4}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                outline: 'none',
+                                transition: 'border-color 0.2s',
+                                resize: 'vertical',
+                                fontFamily: 'inherit'
+                            }}
+                            onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                            onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                        />
+                    </div>
+                </div>
+
+                {/* Skills & Expertise Section */}
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                        Skills & Expertise
+                    </h2>
+                    <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 1.5rem 0' }}>
+                        Select the skills you can offer as a volunteer
+                    </p>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+                        {skills.map((skill, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    padding: '0.5rem 1rem',
+                                    background: '#3b82f6',
+                                    color: 'white',
+                                    borderRadius: '9999px',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <span>{skill}</span>
+                                <button
+                                    onClick={() => removeSkill(skill)}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <select
+                            value={newSkill}
+                            onChange={(e) => setNewSkill(e.target.value)}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                cursor: 'pointer',
+                                outline: 'none',
+                                background: 'white',
+                                flex: 0.25
+                                //minWidth: '180px'
+                            }}
+                        >
+                            <option value="">Select skill</option>
+                            <option value="Communication">Communication</option>
+                            <option value="Leadership">Leadership</option>
+                            <option value="Organization">Organization</option>
+                            <option value="Other">Other</option>
+                        </select>
+
+                        <button
+                            onClick={addSkill}
+                            style={{
+                                padding: '0.5rem 1rem',
+                                background: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '9999px',
+                                fontSize: '0.875rem',
+                                fontWeight: '500',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Add
+                        </button>
+                    </div>
+
+                </div>
+
+                {/* Availability Schedule Section */}
+                <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                        Availability Schedule
+                    </h2>
+                    <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 1.5rem 0' }}>
+                        Set your regular volunteer availability
+                    </p>
+
+                    {availabilitySlots.map((slot) => (
+                        <div key={slot.id} style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select
+                                value={slot.day}
+                                style={{
+                                    flex: '1',
+                                    minWidth: '150px',
+                                    padding: '0.75rem',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    cursor: 'pointer',
+                                    outline: 'none'
+                                }}
+                            >
+                                <option>Monday</option>
+                                <option>Tuesday</option>
+                                <option>Wednesday</option>
+                                <option>Thursday</option>
+                                <option>Friday</option>
+                                <option>Saturday</option>
+                                <option>Sunday</option>
+                            </select>
+
+                            <input
+                                type="text"
+                                value={slot.startTime}
+                                style={{
+                                    flex: '1',
+                                    minWidth: '120px',
+                                    padding: '0.75rem',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    outline: 'none'
+                                }}
+                            />
+
+                            <input
+                                type="text"
+                                value={slot.endTime}
+                                style={{
+                                    flex: '1',
+                                    minWidth: '120px',
+                                    padding: '0.75rem',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    outline: 'none'
+                                }}
+                            />
+
+                            <button
+                                onClick={() => removeAvailabilitySlot(slot.id)}
+                                style={{
+                                    padding: '0.75rem',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: '#6b7280',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    ))}
+
+                    <button
+                        onClick={addAvailabilitySlot}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem 1.5rem',
+                            background: 'white',
+                            color: '#374151',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '0.5rem',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '500',
+                            transition: 'all 0.2s',
+                            width: '100%',
+                            justifyContent: 'center'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                    >
+                        <Plus size={18} />
+                        <span>Add Availability Slot</span>
+                    </button>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <button
+                        onClick={handleBackToProfile}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            background: 'white',
+                            color: '#374151',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '9999px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        onClick={handleSave}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem 1.5rem',
+                            background: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            transition: 'background-color 0.2s',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                        onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default VolunteerEditProfile;
