@@ -1,23 +1,17 @@
 /* General Styles */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-.homepage {
+.copa-homepage {
     min-height: 100vh;
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
 }
 
-.main-content {
+.copa-main-content {
     background: linear-gradient(111.75deg, rgba(0, 77, 221, 0.38) 4.51%, rgba(0, 173, 75, 0.14) 97.36%);
 
 }
 
-.header {
+.copa-header {
     display: flex;
     background: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -29,7 +23,7 @@
     z-index: 10;
 }
 
-.header-container {
+.copa-header-container {
     width: 100%;
 
     padding: 0 2rem;
@@ -38,12 +32,12 @@
     justify-content: space-between;
 }
 
-.logo-section {
+.copa-logo-section {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
-.logo-icon {
+.copa-logo-icon {
     width: 40px;
     height: 40px;
     background: #3b82f6;
@@ -54,7 +48,7 @@
     color: white;
 }
 
-.logo-text {
+.copa-logo-text {
 
     width: 280px;
     height: 28px;
@@ -72,13 +66,13 @@
 
 }
 
-.header-actions {
+.copa-header-actions {
     display: flex;
     align-items: center;
     gap: 1rem;
 }
 
-.btn-secondary {
+.copa-btn-secondary {
     color: #000000;
     background: transparent;
     border: none;
@@ -91,14 +85,14 @@
 }
 
 
-.btn-secondary:hover {
+.copa-btn-secondary:hover {
     color: #1f2937;
 }
 /* Rectangle 38 */
 
 
 
-.btn-primary {
+.copa-btn-primary {
     background: linear-gradient(90deg, #0067DD 0%, #00AD4B 100%);
     color: white;
     border: none;
@@ -110,12 +104,12 @@
     transition: background 0.3s;
 }
 
-.btn-primary:hover {
+.copa-btn-primary:hover {
 
 }
 
 /* Hero Section */
-.hero-section {
+.copa-hero-section {
     min-height: 100vh;
     max-width: 1280px;
     margin: 0 auto;
@@ -127,7 +121,7 @@
     justify-content: center;
 }
 
-.hero-title {
+.copa-hero-title {
     width: 80%;
     margin: 0 auto 1rem auto;
     text-align: center;
@@ -136,14 +130,14 @@
     font-weight: 700;
     color: #000000;
 }
-.hero-title .got1 {
+.copa-hero-title .got1 {
     background: linear-gradient(90deg, #0066DD, #009282);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     color: transparent;
 }
-.hero-title .highlight1 {
+.copa-hero-title .highlight1 {
     background: linear-gradient(90deg, #0066DD, #009282);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -151,7 +145,7 @@
     color: transparent;
 }
 
-.hero-title .highlight2 {
+.copa-hero-title .highlight2 {
     background: linear-gradient(90deg, #00947E, #00AF46);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -160,7 +154,7 @@
 }
 
 
-.hero-description {
+.copa-hero-description {
 
     font-size: 1.25rem;
     color: #404040;
@@ -172,14 +166,14 @@
 
 }
 
-.hero-buttons {
+.copa-hero-buttons {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 1rem;
 }
 
-.btn-hero-primary {
+.copa-btn-hero-primary {
     background: linear-gradient(90deg, #0067DD 0%, #00AD4B 100%);
     color: white;
     border: none;
@@ -192,11 +186,11 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.btn-hero-primary:hover {
+.copa-btn-hero-primary:hover {
 
 }
 
-.btn-hero-secondary {
+.copa-btn-hero-secondary {
     background: white;
     color: #1f2937;
     border: 2px solid #A9A9A9;
@@ -210,18 +204,18 @@
 
 }
 
-.btn-hero-secondary:hover {
+.copa-btn-hero-secondary:hover {
     background: #f9fafb;
 }
 
 /* About Section */
-.about-section {
+.copa-about-section {
     padding: 5rem 2rem;
     max-width: 100vw;
     min-height: 100vh;
 }
 
-.about-container {
+.copa-about-container {
     max-width: 1280px;
     margin: 0 auto;
     display: grid;
@@ -230,33 +224,33 @@
     align-items: center;
 }
 
-.about-content {
+.copa-about-content {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-.about-title {
+.copa-about-title {
     font-size: 2.5rem;
     font-weight: 700;
     color: #000000;
     line-height: 1.2;
 }
 
-.about-text {
+.copa-about-text {
     font-size: 1rem;
     color: #000000;
     line-height: 1.7;
     font-weight: 400;
 }
 
-.about-image {
+.copa-about-image {
     border-radius: 1.5rem;
     overflow: hidden;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
-.about-image img {
+.copa-about-image img {
     width: 100%;
     height: auto;
     display: block;
@@ -264,19 +258,19 @@
 }
 
 /* Features Section */
-.features-section {
+.copa-features-section {
     max-width: 1280px;
     margin: 0 auto;
     padding: 5rem 2rem;
 }
 
-.features-header {
+.copa-features-header {
     text-align: center;
     margin-bottom: 4rem;
 }
 
 
-.features-title {
+.copa-features-title {
     width: 80%;
     margin: 0 auto 1rem auto;
     text-align: center;
@@ -287,7 +281,7 @@
 }
 
 
-.features-description {
+.copa-features-description {
     font-size: 1.125rem;
     color: #404040;
     max-width: 42rem;
@@ -295,13 +289,13 @@
     line-height: 1.6;
 }
 
-.features-grid {
+.copa-features-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 2rem;
 }
 
-.feature-card {
+.copa-feature-card {
     background: white;
     border-radius: 1rem;
     padding: 2rem;
@@ -309,11 +303,11 @@
     transition: box-shadow 0.3s;
 }
 
-.feature-card:hover {
+.copa-feature-card:hover {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-.feature-icon {
+.copa-feature-icon {
     width: 64px;
     height: 64px;
     border-radius: 1rem;
@@ -323,27 +317,27 @@
     margin-bottom: 1.5rem;
 }
 
-.feature-icon.blue {
+.copa-feature-icon.blue {
     background: linear-gradient(133.42deg, #0067DD 9.58%, #00AD4B 93.98%);
     color: #ffffff;
 }
 
-.feature-icon.teal {
+.copa-feature-icon.teal {
     background: linear-gradient(133.42deg, #0067DD 9.58%, #00AD4B 93.98%);
     color: #ffffff;
 }
 
-.feature-icon.green {
+.copa-feature-icon.green {
     background: linear-gradient(133.42deg, #0067DD 9.58%, #00AD4B 93.98%);
     color: #FFFFFF;
 }
 
-.feature-icon.purple {
+.copa-feature-icon.purple {
     background: linear-gradient(133.42deg, #0067DD 9.58%, #00AD4B 93.98%);
     color: #ffffff;
 }
 
-.feature-title {
+.copa-feature-title {
     width: 100%;
     font-size: 1.25rem;
     font-weight: 700;
@@ -351,14 +345,14 @@
     margin-bottom: 0.75rem;
 }
 
-.feature-description {
+.copa-feature-description {
     font-size: 1rem;
     color: #404040;
     line-height: 1.5;
 }
 
 /* Impact Section */
-.impact-section {
+.copa-impact-section {
     min-height: 100vh;
     width: 100vw;
     background-image:
@@ -373,7 +367,7 @@
 }
 
 
-.impact-overlay {
+.copa-impact-overlay {
 
     padding: 2rem 2rem;
     border-radius: 1rem;
@@ -382,20 +376,20 @@
     text-align: center;
 }
 
-.impact-title {
+.copa-impact-title {
     font-size: 2.5rem;
     font-weight: 700;
     color: white;
     margin-bottom: 1rem;
 }
 
-.impact-subtitle {
+.copa-impact-subtitle {
     font-size: 1.125rem;
     color: #e5e7eb;
     margin-bottom: 3rem;
 }
 
-.stats-grid {
+.copa-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 3rem;
@@ -403,25 +397,25 @@
     margin: 0 auto;
 }
 
-.stat-item {
+.copa-stat-item {
     text-align: center;
 }
 
-.stat-number {
+.copa-stat-number {
     font-size: 3rem;
     font-weight: 700;
     color: white;
     margin-bottom: 0.5rem;
 }
 
-.stat-label {
+.copa-stat-label {
     font-size: 1rem;
     color: #d1d5db;
     font-weight: 500;
 }
 
 /* Contact Section */
-.contact-section {
+.copa-contact-section {
     min-height: 100vh;
     width: 100vw;
     padding: 5rem 2rem;
@@ -432,14 +426,14 @@
     flex-direction: column;
 }
 
-.contact-title {
+.copa-contact-title {
     font-size: 3rem;
     font-weight: 700;
     color: #000000;
     margin-bottom: 1rem;
 }
 
-.contact-title .highlight {
+.copa-contact-title .highlight {
     background: linear-gradient(90deg, #0066DD, #009282);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -447,7 +441,7 @@
     color: transparent;
 }
 
-.contact-subtitle {
+.copa-contact-subtitle {
     font-size: 1.125rem;
     color: #404040;
     margin-bottom: 3rem;
@@ -456,7 +450,7 @@
     margin-right: auto;
 }
 
-.contact-grid {
+.copa-contact-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
@@ -464,7 +458,7 @@
     margin: 0 auto;
 }
 
-.contact-card {
+.copa-contact-card {
     background: transparent;
     border-radius: 1rem;
     padding: 2rem;
@@ -475,12 +469,12 @@
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.contact-card:hover {
+.copa-contact-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
 }
 
-.contact-icon {
+.copa-contact-icon {
     width: 48px;
     height: 48px;
     background: linear-gradient(90deg, #0067DD 0%, #009282);
@@ -492,45 +486,45 @@
     color: white;
 }
 
-.contact-info {
+.copa-contact-info {
     text-align: left;
     flex: 1;
 }
 
-.contact-label {
+.copa-contact-label {
     font-size: 0.875rem;
     font-weight: 600;
     color: #111827;
     margin-bottom: 0.25rem;
 }
 
-.contact-value {
+.copa-contact-value {
     font-size: 0.875rem;
     color: #000000;
     line-height: 1.5;
 }
 
 /* Testimonials Section */
-.testimonials-section {
+.copa-testimonials-section {
     min-height: 100vh;
     padding: 5rem 2rem;
     text-align: center;
 }
 
-.testimonials-title {
+.copa-testimonials-title {
     font-size: 2.5rem;
     font-weight: 700;
     color: #111827;
     margin-bottom: 1rem;
 }
 
-.testimonials-subtitle {
+.copa-testimonials-subtitle {
     font-size: 1.125rem;
     color: #1f2937;
     margin-bottom: 3rem;
 }
 
-.testimonials-grid {
+.copa-testimonials-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 2rem;
@@ -538,7 +532,7 @@
     margin: 0 auto 3rem;
 }
 
-.testimonial-card {
+.copa-testimonial-card {
     background: white;
     border-radius: 1rem;
     padding: 2rem;
@@ -547,19 +541,19 @@
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.testimonial-card:hover {
+.copa-testimonial-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
 }
 
-.testimonial-header {
+.copa-testimonial-header {
     display: flex;
     align-items: center;
     gap: 1rem;
     margin-bottom: 1rem;
 }
 
-.testimonial-avatar {
+.copa-testimonial-avatar {
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -567,29 +561,29 @@
     flex-shrink: 0;
 }
 
-.testimonial-avatar img {
+.copa-testimonial-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.testimonial-info {
+.copa-testimonial-info {
     flex: 1;
 }
 
-.testimonial-name {
+.copa-testimonial-name {
     font-size: 1rem;
     font-weight: 600;
     color: #111827;
     margin-bottom: 0.25rem;
 }
 
-.testimonial-role {
+.copa-testimonial-role {
     font-size: 0.875rem;
     color: #6b7280;
 }
 
-.testimonial-text {
+.copa-testimonial-text {
     font-size: 0.95rem;
     color: #374151;
     line-height: 1.6;
@@ -597,7 +591,7 @@
     font-style: italic;
 }
 
-.testimonial-rating {
+.copa-testimonial-rating {
     color: #fbbf24;
     font-size: 1.125rem;
     letter-spacing: 2px;
@@ -605,13 +599,13 @@
 
 
 /* Footer */
-.footer {
+.copa-footer {
     background: #111827;
     color: white;
     padding: 3rem 0;
 }
 
-.footer-container {
+.copa-footer-container {
     max-height: 20vh;
     max-width: 100vw;
     margin: 0 auto;
@@ -622,89 +616,89 @@
     gap: 1rem;
 }
 
-.footer-logo {
+.copa-footer-logo {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.footer-logo .logo-icon {
+.copa-footer-logo .logo-icon {
     background: linear-gradient(133.42deg, #0067DD 9.58%, #00AD4B 93.98%);
 }
 
-.footer-text {
+.copa-footer-text {
     color: #9ca3af;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .hero-title {
+    .copa-hero-title {
         font-size: 2.5rem;
     }
 
-    .hero-description {
+    .copa-hero-description {
         font-size: 1rem;
     }
 
-    .about-container {
+    .copa-about-container {
         grid-template-columns: 1fr;
         gap: 2rem;
     }
 
-    .about-title {
+    .copa-about-title {
         font-size: 2rem;
     }
 
-    .features-grid {
+    .copa-features-grid {
         grid-template-columns: 1fr;
     }
 
-    .stats-grid {
+    .copa-stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 2rem;
     }
 
-    .stat-number {
+    .copa-stat-number {
         font-size: 2.5rem;
     }
 
-    .contact-grid {
+    .copa-contact-grid {
         grid-template-columns: 1fr;
     }
 
-    .contact-title {
+    .copa-contact-title {
         font-size: 2rem;
     }
 
-    .impact-title {
+    .copa-impact-title {
         font-size: 2rem;
     }
 
-    .testimonials-grid {
+    .copa-testimonials-grid {
         grid-template-columns: 1fr;
     }
 
-    .testimonials-title {
+    .copa-testimonials-title {
         font-size: 2rem;
     }
 
-    .header-actions {
+    .copa-header-actions {
         gap: 0.5rem;
     }
 
-    .btn-secondary,
-    .btn-primary {
+    .copa-btn-secondary,
+    .copa-btn-primary {
         font-size: 0.875rem;
         padding: 0.5rem 1rem;
     }
 
-    .footer-container {
+    .copa-footer-container {
         text-align: center;
     }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-    .features-grid {
+    .copa-features-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
