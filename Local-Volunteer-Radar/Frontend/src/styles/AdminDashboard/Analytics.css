@@ -1,0 +1,83 @@
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(541px, 1fr)); /* cards are at least 541px */
+    gap: 24px; /* space between cards */
+    margin: 40px 50px;
+    justify-content: start; /* align cards to left if fewer fit in row */
+}
+
+.chart-card {
+    height: 100px;
+    border-radius: 20px;
+    border: 0.5px solid #a7a7a7;
+    background: linear-gradient(134deg, #ffffff 0%, #eef5fe 100%);
+    box-shadow: 0 4px 4px rgba(0,0,0,0.25);
+    padding: 24px;
+    position: relative;
+    width: 100%; /* now takes full width of its grid cell */
+    box-sizing: border-box; /* ensures padding and border are inside width */
+}
+
+.chart-card.green {
+    background: linear-gradient(134deg, #ffffff 0%, #f0f8f6 100%);
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 400;
+    color: #000;
+}
+
+.chart-card {
+    height: 500px;
+    width: 800px;
+    border-radius: 20px;
+    border: 0.5px solid #a7a7a7;
+    background: linear-gradient(134deg, #ffffff 0%, #eef5fe 100%);
+    box-shadow: 0 4px 4px rgba(0,0,0,0.25);
+    padding: 24px;
+    position: relative;
+}
+
+.chart-card.green {
+    background: linear-gradient(134deg, #ffffff 0%, #f0f8f6 100%);
+}
+
+.chart-title {
+    font-size: 16px;
+    font-weight: 400;
+    color: #000;
+}
+
+.chart-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-top: 32px;
+}
+
+.chart-desc {
+    font-size: 12px;
+    color: #404040;
+    margin-top: 8px;
+}
+
+.chart-text-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chart-text {
+    color: #1E1E1E;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 22.4px;
+}
+
+.chart-photo {
+    margin-top: 16px;
+    max-width: 100%;
+    border-radius: 12px;
+    object-fit: contain;
+}
