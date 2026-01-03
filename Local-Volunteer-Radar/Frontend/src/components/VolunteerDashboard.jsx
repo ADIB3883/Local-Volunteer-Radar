@@ -84,7 +84,7 @@ const VolunteerDashboard = () => {
             ],
             date: 'Friday, December 26',
             time: '10:00 - 16:00',
-            location: '716, Kafrul, Noakhali',
+            location: '716, Pallabi, Dhaka',
             distance: '3.2km away',
             requirements: 'Distribution, crowd management'
         }
@@ -115,11 +115,74 @@ const VolunteerDashboard = () => {
             ],
             date: 'Friday, December 26',
             time: '10:00 - 16:00',
-            location: '716, Kafrul, Noakhali',
+            location: '716, Pallabi, Dhaka',
+            distance: '3.2km away',
+            requirements: 'Distribution, crowd management'
+        },
+        {
+            id: 5,
+            title: 'Relief Distribution',
+            description: 'Help distribute food to families in need',
+            tags: [
+                { name: 'distribution', type: 'skill' },
+                { name: '5 spots left', type: 'spots' }
+            ],
+            date: 'Friday, December 26',
+            time: '10:00 - 16:00',
+            location: '716, Pallabi, Sylhet',
+            distance: '3.2km away',
+            requirements: 'Distribution, crowd management'
+        },
+        {
+            id: 6,
+            title: 'Winter Dress Distribution',
+            description: 'Help distribute winter dress to families in need',
+            tags: [
+                { name: 'distribution', type: 'skill' },
+                { name: '3 spots left', type: 'spots' }
+            ],
+            date: 'Friday, December 26',
+            time: '10:00 - 16:00',
+            location: '716, Pallabi, Barishal',
             distance: '3.2km away',
             requirements: 'Distribution, crowd management'
         }
     ];
+
+    const [filteredEvents, setFilteredEvents] = useState(allEvents);
+
+// Filter function
+    const handleFilter = () => {
+        let filtered = [...allEvents];
+
+        // Filter by search query
+        if (searchQuery.trim() !== '') {
+            filtered = filtered.filter(event =>
+                event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                //
+                // event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                event.requirements.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        // Filter by category
+        if (selectedCategory !== 'All Category') {
+            filtered = filtered.filter(event => {
+                // Check if any tag matches the category
+                return event.tags.some(tag =>
+                    tag.name.toLowerCase().includes(selectedCategory.toLowerCase())
+                ) || event.requirements.toLowerCase().includes(selectedCategory.toLowerCase());
+            });
+        }
+
+        setFilteredEvents(filtered);
+    };
+
+// Call filter when search or category changes
+    React.useEffect(() => {
+        handleFilter();
+    }, [searchQuery, selectedCategory]);
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -344,7 +407,7 @@ const VolunteerDashboard = () => {
                         </div>
 
                         {/* Event Cards - Recommended */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem', maxWidth: '100%' }}>
                             {events.map((event) => (
                                 <EventCard
                                     key={event.id}
@@ -363,7 +426,7 @@ const VolunteerDashboard = () => {
 
                         {/* Search and Filter Section */}
                         <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', alignItems: 'center' }}>
                                 <div style={{ flex: 1, position: 'relative' }}>
                                     <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={20} />
                                     <input
@@ -383,7 +446,7 @@ const VolunteerDashboard = () => {
                                     />
                                 </div>
 
-                                <div style={{ position: 'relative', width: '100%' }}>
+                                <div style={{ position: 'relative', width: '200px', minWidth: '200px' }}>
                                     <select
                                         value={selectedCategory}
                                         onChange={(e) => setSelectedCategory(e.target.value)}
@@ -398,8 +461,8 @@ const VolunteerDashboard = () => {
                                         }}
                                     >
                                         <option>All Category</option>
-                                        <option>Medical</option>
-                                        <option>Food Distribution</option>
+                                        <option>First-Aid</option>
+                                        <option>Distribution</option>
                                         <option>Education</option>
                                         <option>Environment</option>
                                     </select>
@@ -411,12 +474,14 @@ const VolunteerDashboard = () => {
                         {/* All Events Section */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>All Events</h2>
-                            <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>2 opportunities</span>
+                            <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+                                {filteredEvents.length} {filteredEvents.length === 1 ? 'opportunity' : 'opportunities'}
+                            </span>
                         </div>
 
                         {/* Event Cards - All Events */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            {allEvents.map((event) => (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', maxWidth: '100%' }}>
+                            {filteredEvents.map((event) => (
                                 <EventCard
                                     key={event.id}
                                     title={event.title}
@@ -430,6 +495,22 @@ const VolunteerDashboard = () => {
                                     onRegister={() => console.log(`Register for ${event.title}`)}
                                 />
                             ))}
+
+                            {filteredEvents.length === 0 && (
+                                <div style={{
+                                    gridColumn: '1 / -1',
+                                    textAlign: 'center',
+                                    padding: '3rem',
+                                    color: '#6b7280'
+                                }}>
+                                    <p style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem', margin: 0 }}>
+                                        No events found
+                                    </p>
+                                    <p style={{ fontSize: '0.875rem', margin: '0.5rem 0 0 0' }}>
+                                        Try adjusting your search or filter criteria
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
