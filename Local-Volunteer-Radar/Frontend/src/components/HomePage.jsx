@@ -2,6 +2,7 @@ import React from 'react';
 import '../styles/HomePage.css';
 import { useNavigate } from 'react-router-dom';
 import HomeButton from "./HomeButton.jsx";
+import volunteerImage from '../assets/Volunteer.jpg';
 
 function HomePage() {
     const navigate = useNavigate();
@@ -125,7 +126,7 @@ function HomePage() {
                             </p>
                         </div>
                         <div className="copa-about-image">
-                            <img src="../assets/Volunteer.jpg" alt="Volunteer helping community"/>
+                            <img src={volunteerImage} alt="Volunteer helping community"/>
                         </div>
                     </div>
                 </section>
