@@ -8,19 +8,21 @@ import './App.css';
 import EventDetails from "./components/EventDetails/EventDetails.jsx";
 import VolunteerProfile from "./components/VolunteerProfile.jsx";
 import VolunteerEditProfile from "./components/VolunteerEditProfile.jsx";
-
+import AnnouncementPage from "./components/EventDetails/AnnouncementPage.jsx";
 function App() {
     return (
         <Router>
             <div className="App">
                 <Routes>
-                    <Route path="/" element={<EventDetails />} />
+                    <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
                     <Route path="/volunteer-profile" element={<VolunteerProfile />} />
                     <Route path="/volunteer-edit-profile" element={<VolunteerEditProfile />} />
                     <Route path="/organizer-dashboard" element={<OrganizerDashboard />} />
+                    <Route path="/event-details/:evendId" element={<EventDetails />} />
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                    <Route path="/announcements" element={<AnnouncementPage />} />
                 </Routes>
             </div>
         </Router>

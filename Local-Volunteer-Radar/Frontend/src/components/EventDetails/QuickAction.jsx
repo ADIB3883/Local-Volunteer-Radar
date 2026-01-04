@@ -141,7 +141,7 @@ function QuickAction(){
                                 <div className=" relative left-[8px] bottom-[5px]">
                                     <img src={InfoIcon} className="w-[25px] h-auto " alt="Send"/>
                                 </div>
-                                <p className="relative left-2 text-[13px] font-bold font-sans text-[#2C2C2C]">
+                                <p className="relative left-2 w-[95%] text-[13px] font-bold font-sans text-[#2C2C2C]">
                                     This announcement will be sent to all approved volunteers registered for this event.
                                 </p>
                             </div>

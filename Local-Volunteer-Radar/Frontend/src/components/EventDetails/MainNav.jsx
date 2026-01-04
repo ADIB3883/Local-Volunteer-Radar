@@ -2,8 +2,16 @@ import React from "react";
 import LogoIcon from "../../assets/icons/logo.png"
 import BTBButton from "./BTBButton.jsx";
 import LogoutButton from "./LogoutButton.jsx";
+import { useNavigate } from 'react-router-dom';
 
 function MainNav(){
+    const navigate = useNavigate();
+
+    // View Details Navigate
+    const handleBacktoDashboard = () => {
+        navigate(`/organizer-dashboard`);
+    };
+
 
     return (
         <div className="
@@ -20,8 +28,14 @@ function MainNav(){
                 items-center
                 justify-between
             ">
-                <BTBButton text="Back to Dashboard"></BTBButton>
+                <div onClick={handleBacktoDashboard}>
+                    <BTBButton
+                        text="Back to Dashboard"></BTBButton>
+                </div>
+
+
                 <LogoutButton text="Logout"></LogoutButton>
+
             </div>
 
         </div>
