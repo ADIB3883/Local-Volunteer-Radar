@@ -120,11 +120,10 @@ export default function DashboardStats() {
             <section className="charts-grid">
                 <div className="chart-card">
                     <img
-                        src="https://placehold.co/500x500"
+                        src="/4cd6d94c-5390-46d7-b09b-8a206ffd97ba.png"
                         alt="Hours Worked"
                         className="chart-photo"
                     />
-                    <div className="chart-title">Hours Worked</div>
                     <div className="chart-desc">
                         Volunteers, across the country
                     </div>
@@ -240,7 +239,6 @@ export default function DashboardStats() {
                 </div>
             </header>
 
-            {/* Stats */}
             <section className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-title">Total Volunteers</div>
@@ -267,7 +265,6 @@ export default function DashboardStats() {
                 </div>
             </section>
 
-            {/* Segmented control */}
             <div className="segmented" style={{ marginLeft: 52 }}>
                 {segments.map((label, idx) => (
                     <React.Fragment key={idx}>
