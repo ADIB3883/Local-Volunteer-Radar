@@ -1,0 +1,185 @@
+.event-card {
+    width: 1327px;
+    border-radius: 20px;
+    border: 1px solid #c5c5c5;
+    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.25);
+    background: white;
+    padding-left: 20px;
+    font-family: "Inter", sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.event-title {
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.event-status {
+    background: #faddcc;
+    border-radius: 10px;
+    border: 1px solid #d85500;
+    color: #d85500;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 2px 10px;
+    display: flex;
+    align-items: center;
+}
+
+.card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-icon {
+    width: 31px;
+    height: 32px;
+    border-radius: 10px;
+    opacity: 0.14;
+}
+
+.blue-bg {
+    background: #0065e0;
+}
+
+.green-bg {
+    background: #00af44;
+}
+
+.info-icon-img {
+    width: 17px;
+    height: 17px;
+}
+
+.info-text {
+    font-size: 16px;
+    font-weight: 400;
+    color: black;
+}
+
+.info-label {
+    font-size: 11px;
+    color: #686868;
+}
+
+.card-requirements {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #c5c5c5;
+    border-radius: 20px;
+    padding: 15px;
+    background: linear-gradient(180deg, #eef5fe 0%, white 100%);
+}
+
+.volunteers-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volunteers-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: black;
+}
+
+.volunteers-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0065e0;
+}
+
+.volunteers-capacity {
+    font-size: 14px;
+    color: #404040;
+}
+
+.volunteers-total {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0065e0;
+}
+
+.requirements-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.requirement-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #939393;
+}
+
+.requirement-text {
+    font-size: 13px;
+    font-weight: 400;
+    color: black;
+}
+
+.btn-container {
+    display: flex;
+    gap: 20px;
+    position: relative;
+}
+
+.btn {
+    height: 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.approve-btn {
+    background: #00a63e;
+    color: white;
+    width: 180px;
+}
+
+.reject-btn {
+    background: #f5f9fb;
+    border: 1px solid #ffcece;
+    color: #db004b;
+    width: 172px;
+}
+
+.expanded {
+    width: 376px;
+}
+
+.create-event {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #0065e0;
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 5px 15px;
+    cursor: pointer;
+}
+
+.create-event-icon {
+    width: 15px;
+    height: 15px;
+}
