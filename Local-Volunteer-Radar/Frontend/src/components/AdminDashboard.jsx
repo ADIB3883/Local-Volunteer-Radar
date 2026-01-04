@@ -228,7 +228,13 @@ export default function DashboardStats() {
         <div className="dashboard">
             {/* Header */}
             <header className="header">
-                <img src="https://placehold.co/61x71" alt="Logo" />
+                <img
+                    src="/logo.png"
+                    alt="Logo"
+                    width="61"
+                    height="71"
+                />
+
                 <div>
                     <div className="header-title">Admin Dashboard</div>
                     <div className="header-subtitle">Adib</div>
