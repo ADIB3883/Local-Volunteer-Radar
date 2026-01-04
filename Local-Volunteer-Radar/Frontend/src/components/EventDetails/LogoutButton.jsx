@@ -1,10 +1,16 @@
 import LogoutIcon from "../../assets/icons/logout.png";
+import {useNavigate} from "react-router-dom";
 
 
 const LogoutButton = ({ text }) => {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        navigate(`/login`);
+    };
     return (
-        <button className="
-          box-border
+        <button onClick={handleLogout} className="
+          cursor-pointer
           absolute
           w-[115px] h-[36px]
           right-[5%]
