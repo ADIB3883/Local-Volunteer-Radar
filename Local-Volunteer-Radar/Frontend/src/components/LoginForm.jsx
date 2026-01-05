@@ -25,6 +25,10 @@ const LoginForm = () => {
         navigate(dashboardRoutes[userType] || '/volunteer-dashboard');
     };
 
+    const handleForgotPassword = () => {
+        navigate('/forgot-password');
+    };
+
     return (
         <form
             onSubmit={handleSignIn}
@@ -124,7 +128,8 @@ const LoginForm = () => {
                     <div className="grid justify-end">
                         <button
                             type="button"
-                            className="text-teal-500 hover:text-teal-600 text-sm font-medium"
+                            onClick={handleForgotPassword}
+                            className="text-blue-500 hover:text-teal-600 cursor-pointer text-sm font-medium"
                         >
                             Forgot Password?
                         </button>
