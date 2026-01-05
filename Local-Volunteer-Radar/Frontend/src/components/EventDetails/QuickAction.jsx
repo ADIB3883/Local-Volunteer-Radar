@@ -32,35 +32,35 @@ function QuickAction(){
     return (
         <>
             <div className="
-            relative top-[25vh] left-[5.5vw] w-[90vw] h-[126px]
+            relative top-[25vh] left-[5.5vw] w-[90vw] py-3
             bg-white border border-[#C5C5C5]
             rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)]
             flex flex-col
             ">
                 <div className="relative bg-transparent w-full h-[30px]">
-                    <span className="absolute top-[25%] left-[1.3%]
+                    <span className="absolute left-[1.3%]
                     text-black font-bold font-[16px]">Quick Actions</span>
                 </div>
 
                 {/* buttons */}
-                <div className="relative bg-transparent w-full h-[50px] flex flex-1 items-center justify-evenly">
+                <div className="relative bg-transparent w-full h-[50px] px-2 py-2  flex flex-1 items-center justify-evenly flex-wrap">
                     <button
                         onClick={openPopup}
-                        className="border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px]
+                        className="mb-3 border border-[#C5C5C5]  w-[254px] h-[41px] rounded-[8px]
                         flex items-center justify-evenly hover:bg-gray-50 transition-colors"
                     >
                         <img src={EmailIcon} className="w-[20px] h-[20px]" alt="Email"/>
                         <span className="font-normal text-[16px]">Send Announcement</span>
                     </button>
 
-                    <button className="border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px]
+                    <button className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px]
                     flex items-center justify-evenly hover:bg-gray-50 transition-colors"
                     >
                         <img src={DownloadIcon} className="w-[20px] h-[20px]" alt="Download"/>
                         <span className="font-normal text-[16px]">Export volunteer list</span>
                     </button>
 
-                    <button className="border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px]
+                    <button className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px]
                     flex items-center justify-evenly hover:bg-gray-50 transition-colors"
                     >
                         <img src={MarkIcon} className="w-[20px] h-[20px]" alt="Mark"/>
@@ -131,11 +131,11 @@ function QuickAction(){
                                     value={announcementMessage}
                                     onChange={(e) => setAnnouncementMessage(e.target.value)}
                                     placeholder=" Write your announcement message here..."
-                                    className="w-[90%] border border-[#C9C9C9] rounded-[10px] text-[14px] h-[30px] resize-y focus:outline-none focus:border-[#00A63E]"
+                                    className="w-[90%] max-h-[70px] border border-[#C9C9C9] rounded-[10px] text-[14px] h-[70px] resize-y focus:outline-none focus:border-[#00A63E]"
                                 />
                             </div>
 
-                            <div className="w-[90%] h-[25px]"></div>
+                            <div className="w-[90%] h-[20px]"></div>
                             {/* Info Message */}
                             <div className="w-[90%] h-[56px] flex items-center gap-2 bg-[linear-gradient(90deg,_#DDECF7_41.35%,_#FFFFFF_100%)] border border-[#93D1FF] rounded-[8px] ">
                                 <div className=" relative left-[8px] bottom-[5px]">

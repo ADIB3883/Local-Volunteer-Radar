@@ -22,8 +22,6 @@ function EventDetails() {
             <div className="h-[200px]"></div>
 
 
-
-
         </section>
     );
 }
