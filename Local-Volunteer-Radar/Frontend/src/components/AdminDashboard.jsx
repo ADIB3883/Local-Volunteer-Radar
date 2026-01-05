@@ -5,9 +5,11 @@ import StatCard from './StatCard';
 import EventCard from './EventCard';
 import AdminNavbar from "./AdminNavbar.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
+import UserCard from './UserCard.jsx';
+import UserData from './UserData.jsx';
 
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState('discover');
+    const [activeTab, setActiveTab] = useState('partner');
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Category');
@@ -276,7 +278,7 @@ const AdminDashboard = () => {
                     border: '1px solid rgba(255, 255, 255, 0.4)'
                 }}>
                     <button
-                        onClick={() => setActiveTab('discover')}
+                        onClick={() => setActiveTab('partner')}
                         style={{
                             padding: '0.5rem 1rem',
                             borderRadius: '0.625rem',
@@ -285,19 +287,19 @@ const AdminDashboard = () => {
                             border: 'none',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
-                            background: activeTab === 'discover' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                            color: activeTab === 'discover' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'discover' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            background: activeTab === 'partner' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'partner' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'partner' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
                             whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
-                            if (activeTab !== 'discover') {
+                            if (activeTab !== 'partner') {
                                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
                                 e.currentTarget.style.color = '#374151';
                             }
                         }}
                         onMouseLeave={(e) => {
-                            if (activeTab !== 'discover') {
+                            if (activeTab !== 'partner') {
                                 e.currentTarget.style.background = 'transparent';
                                 e.currentTarget.style.color = '#4b5563';
                             }
@@ -306,7 +308,7 @@ const AdminDashboard = () => {
                         Partners
                     </button>
                     <button
-                        onClick={() => setActiveTab('registrations')}
+                        onClick={() => setActiveTab('analytics')}
                         style={{
                             padding: '0.5rem 1rem',
                             borderRadius: '0.625rem',
@@ -315,19 +317,19 @@ const AdminDashboard = () => {
                             border: 'none',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease',
-                            background: activeTab === 'registrations' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                            color: activeTab === 'registrations' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'registrations' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'analytics' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
                             whiteSpace: 'nowrap'
                         }}
                         onMouseEnter={(e) => {
-                            if (activeTab !== 'registrations') {
+                            if (activeTab !== 'analytics') {
                                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
                                 e.currentTarget.style.color = '#374151';
                             }
                         }}
                         onMouseLeave={(e) => {
-                            if (activeTab !== 'registrations') {
+                            if (activeTab !== 'analytics') {
                                 e.currentTarget.style.background = 'transparent';
                                 e.currentTarget.style.color = '#4b5563';
                             }
@@ -397,18 +399,10 @@ const AdminDashboard = () => {
                     </button>
                 </div>
 
-                {/* Tab Content */}
-                {activeTab === 'registrations' && (
-                    <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '1.5rem',
-                        marginBottom: '2rem' }}>
-                        {stats.map((stat) => (
-                            <AdminAnalytics
-
-                            />
-                        ))}
+                {/* Admin Analytics */}
+                {activeTab === 'analytics' && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <AdminAnalytics />
                     </div>
                 )}
 
@@ -503,10 +497,8 @@ const AdminDashboard = () => {
                     </div>
                 )}
 
-                {/* Show events only on Discover tab */}
-                {activeTab === 'discover' && (
+                {activeTab === 'partner' && (
                     <>
-
                         {/* Search and Filter Section */}
                         <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -941,6 +933,26 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </>
+                )}
+                {activeTab === 'pendingRegistration' && (
+                    <>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                            {UserData.map((stat) => (
+                                <UserCard
+                                    key={user.id}
+                                    profilePic={user.profilePic}
+                                    name={user.name}
+                                    type={user.type}
+                                    status={user.status}
+                                    phone={user.phone}
+                                    email={user.email}
+                                    address={user.address}
+                                    joiningDate={user.joiningDate}
+                                    skills={user.skills}
+                                />
+                            ))}
                         </div>
                     </>
                 )}
