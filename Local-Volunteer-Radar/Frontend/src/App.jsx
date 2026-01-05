@@ -9,6 +9,9 @@ import EventDetails from "./components/EventDetails/EventDetails.jsx";
 import VolunteerProfile from "./components/VolunteerProfile.jsx";
 import VolunteerEditProfile from "./components/VolunteerEditProfile.jsx";
 import AnnouncementPage from "./components/EventDetails/AnnouncementPage.jsx";
+import ForgotPassword from "./components/ForgotPasswordPage.jsx";
+import ResetPassword from "./components/ResetPasswordPage.jsx";
+
 function App() {
     return (
         <Router>
@@ -23,6 +26,8 @@ function App() {
                     <Route path="/event-details/:evendId" element={<EventDetails />} />
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
                     <Route path="/announcements" element={<AnnouncementPage />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                 </Routes>
             </div>
         </Router>
