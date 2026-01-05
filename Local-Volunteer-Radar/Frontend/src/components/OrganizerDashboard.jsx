@@ -2,10 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
 import logo from "../assets/logo.png";
+import Joel from "../assets/icons/joel.jpeg";
+import Ellie from "../assets/icons/ellie.jpeg";
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
-    const [events, setEvents] = useState([]);
+
+    const [events, setEvents] = useState(() => {
+        const stored = localStorage.getItem('events');
+        return stored ? JSON.parse(stored) : [];
+    });
+
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({
         eventName: '',
@@ -28,15 +35,22 @@ const OrganizerDashboard = () => {
     };
 
     const handleSubmit = () => {
+        const organizerId = "org_123";
+
         const newEvent = {
             id: Date.now(),
+            organizerId: organizerId,
             ...formData,
             status: 'pending',
             volunteersRegistered: 0,
             createdAt: new Date().toISOString()
         };
 
-        setEvents(prev => [...prev, newEvent]);
+        const updatedEvents = [...events, newEvent];
+        setEvents(updatedEvents);
+
+        localStorage.setItem('events', JSON.stringify(updatedEvents));
+
         setShowCreateModal(false);
         setFormData({
             eventName: '',
@@ -64,13 +78,19 @@ const OrganizerDashboard = () => {
     };
 
     const getFilteredEvents = () => {
-        return events.filter(event => event.status === activeTab);
+        const organizerId = "org_123";
+        return events.filter(event =>
+            event.organizerId === organizerId && event.status === activeTab
+        );
     };
 
     const getStats = () => {
-        const activeEvents = events.filter(e => e.status === 'active').length;
-        const totalVolunteers = events.reduce((sum, e) => sum + e.volunteersRegistered, 0);
-        const totalEvents = events.length;
+        const organizerId = "org_123"; // Same organizerId
+        const myEvents = events.filter(e => e.organizerId === organizerId);
+
+        const activeEvents = myEvents.filter(e => e.status === 'active').length;
+        const totalVolunteers = myEvents.reduce((sum, e) => sum + e.volunteersRegistered, 0);
+        const totalEvents = myEvents.length;
 
         return { activeEvents, totalVolunteers, totalEvents };
     };
@@ -103,6 +123,23 @@ const OrganizerDashboard = () => {
     const stats = getStats();
     const filteredEvents = getFilteredEvents();
     const emptyState = getEmptyStateContent();
+
+
+
+    //Event Object
+    const eventtData ={
+        title: "",
+        description: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+        Category: "",
+        volunteersNeeded: "",
+        requirements: "",
+    }
+
+
 
     return (
         <div className="min-h-screen bg-gray-50">
