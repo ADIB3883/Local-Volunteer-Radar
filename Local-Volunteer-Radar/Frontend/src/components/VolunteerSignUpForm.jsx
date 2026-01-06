@@ -41,7 +41,35 @@ const VolunteerSignUpForm = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Volunteer Sign Up Data:', formData);
+        //locally store er jnno
+        const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
+
+        const alreadyExists = existingVolunteers.find(
+            (vol) =>vol.email === formData.email
+        )
+        if(alreadyExists){
+            alert("This email is already registered!");
+            return;
+        }
+
+        const newVolunteer = {
+            id: Date.now(),
+            role: "volunteer",
+            ...formData,
+        };
+        //actually storing
+        localStorage.setItem(
+            "allVolunteers",
+            JSON.stringify([...existingVolunteers,newVolunteer])
+        );
+
+        localStorage.setItem(
+            "loggedInUser",
+            JSON.stringify(newVolunteer)
+        )
+
+        alert("Account created successfully!");
+        console.log('Volunteer Sign Up Data:', newVolunteer);
         navigate('/volunteer-dashboard');
     };
 

@@ -24,7 +24,38 @@ const OrganizerSignUpForm = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Organizer Sign Up Data:', formData);
+        //form ta locally store korar jonno
+        const existingOrganizers =
+            JSON.parse(localStorage.getItem("allOrganizers")) || [];
+
+        const alreadyExists = existingOrganizers.find(
+            (org) => org.email === formData.email
+        );
+
+        if (alreadyExists) {
+            alert("This email is already registered!");
+            return;
+        }
+
+        const newOrganizer = {
+            id: Date.now(),
+            role: "organizer",
+            ...formData,
+        };
+        //store hoitese
+        localStorage.setItem(
+            "allOrganizers",
+            JSON.stringify([...existingOrganizers, newOrganizer])
+        );
+
+        //locally session create korar jonne
+        localStorage.setItem(
+            "loggedInUser",
+            JSON.stringify(newOrganizer)
+        );
+
+        console.log('Organizer Sign Up Data:', newOrganizer);
+        alert("Account created successfully!");
         navigate('/organizer-dashboard');
     };
 

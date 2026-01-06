@@ -13,12 +13,23 @@ const VolunteerDashboard = () => {
     const [recommendedEvents, setRecommendedEvents] = useState([]);
 
     const navigate = useNavigate();
+    //login kora volutneer jaate shudhu Volunteer Dashboard e ashte pare
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+
+    React.useEffect(() => {
+        if(!loggedInUser|| loggedInUser.role!= "volunteer"){
+            navigate("/login");
+        }
+    },[]);
+
+
 
     const handleProfileClick = () => {
         navigate('/volunteer-profile');
     };
 
     const handleLogoutClick = () => {
+        localStorage.removeItem("loggedInUser");
         navigate('/login');
     };
 
@@ -61,95 +72,7 @@ const VolunteerDashboard = () => {
         }
     ];
 
-    // const events = [
-    //     {
-    //         id: 1,
-    //         title: 'Emergency Medical Camp Setup',
-    //         description: 'Urgent need for medical volunteers for health camp',
-    //         tags: [
-    //             { name: 'first-aid', type: 'skill' },
-    //             { name: '4 spots left', type: 'spots' }
-    //         ],
-    //         date: 'Wednesday, December 24',
-    //         time: '08:00 - 14:00',
-    //         location: '716, Kafrul, Noakhali',
-    //         distance: '3.2km away',
-    //         requirements: 'First-aid, medical'
-    //     },
-    //     {
-    //         id: 2,
-    //         title: 'Community Food Drive',
-    //         description: 'Help distribute food to families in need',
-    //         tags: [
-    //             { name: 'distribution', type: 'skill' },
-    //             { name: '4 spots left', type: 'spots' }
-    //         ],
-    //         date: 'Friday, December 26',
-    //         time: '10:00 - 16:00',
-    //         location: '716, Pallabi, Dhaka',
-    //         distance: '3.2km away',
-    //         requirements: 'Distribution, crowd management'
-    //     }
-    // ];
-    //
-    // const allEvents = [
-    //     {
-    //         id: 3,
-    //         title: 'Emergency Medical Camp Setup',
-    //         description: 'Urgent need for medical volunteers for health camp',
-    //         tags: [
-    //             { name: 'first-aid', type: 'skill' },
-    //             { name: '4 spots left', type: 'spots' }
-    //         ],
-    //         date: 'Wednesday, December 24',
-    //         time: '08:00 - 14:00',
-    //         location: '716, Kafrul, Noakhali',
-    //         distance: '3.2km away',
-    //         requirements: 'First-aid, medical'
-    //     },
-    //     {
-    //         id: 4,
-    //         title: 'Community Food Drive',
-    //         description: 'Help distribute food to families in need',
-    //         tags: [
-    //             { name: 'distribution', type: 'skill' },
-    //             { name: '4 spots left', type: 'spots' }
-    //         ],
-    //         date: 'Friday, December 26',
-    //         time: '10:00 - 16:00',
-    //         location: '716, Pallabi, Dhaka',
-    //         distance: '3.2km away',
-    //         requirements: 'Distribution, crowd management'
-    //     },
-    //     {
-    //         id: 5,
-    //         title: 'Relief Distribution',
-    //         description: 'Help distribute food to families in need',
-    //         tags: [
-    //             { name: 'distribution', type: 'skill' },
-    //             { name: '5 spots left', type: 'spots' }
-    //         ],
-    //         date: 'Friday, December 26',
-    //         time: '10:00 - 16:00',
-    //         location: '716, Pallabi, Sylhet',
-    //         distance: '3.2km away',
-    //         requirements: 'Distribution, crowd management'
-    //     },
-    //     {
-    //         id: 6,
-    //         title: 'Winter Dress Distribution',
-    //         description: 'Help distribute winter dress to families in need',
-    //         tags: [
-    //             { name: 'distribution', type: 'skill' },
-    //             { name: '3 spots left', type: 'spots' }
-    //         ],
-    //         date: 'Friday, December 26',
-    //         time: '10:00 - 16:00',
-    //         location: '716, Pallabi, Barishal',
-    //         distance: '3.2km away',
-    //         requirements: 'Distribution, crowd management'
-    //     }
-    // ];
+
 
     const [filteredEvents, setFilteredEvents] = useState([]);
     // Load events from localStorage on mount
@@ -207,7 +130,7 @@ const VolunteerDashboard = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Navbar */}
             <Navbar
-                userName="Joel Miller"
+                userName={loggedInUser?.fullName || "Volunteer"}
                 onProfileClick={handleProfileClick}
                 onLogoutClick={handleLogoutClick}
             />
