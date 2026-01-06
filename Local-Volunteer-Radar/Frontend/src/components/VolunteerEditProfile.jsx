@@ -3,9 +3,13 @@ import { ArrowLeft, LogOut, Camera, X, Plus } from 'lucide-react';
 import {useNavigate} from "react-router-dom";
 import logo from "../assets/logo.png";
 
+
 const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
 
     const navigate = useNavigate();
+
+    const [profilePicture, setProfilePicture] = useState(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState(null);
 
     const handleBackToProfile = () => {
         navigate('/volunteer-profile');
@@ -40,6 +44,10 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
             address: volunteer.address || '',
             bio: volunteer.bio || ''
         });
+
+        if (volunteer.profilePicture) {
+            setProfilePicturePreview(volunteer.profilePicture);
+        }
 
         // Convert skills object to array
         const activeSkills = volunteer.skills
@@ -82,6 +90,18 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
         setAvailabilitySlots(availabilitySlots.filter(slot => slot.id !== id));
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfilePicture(file);
+                setProfilePicturePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSave = () => {
         const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
         if (!volunteer) return;
@@ -92,7 +112,8 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
             address: formData.address,
             bio: formData.bio,
             skills: skills.reduce((acc, skill) => ({ ...acc, [skill]: true }), {}),
-            availability: availabilitySlots
+            availability: availabilitySlots,
+            profilePicture: profilePicturePreview || volunteer.profilePicture // ADD THIS LINE
         };
 
         localStorage.setItem('loggedInUser', JSON.stringify(updatedVolunteer));
@@ -167,12 +188,28 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
                             Profile Picture
                         </label>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
+                            <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {profilePicturePreview ? (
+                                    <img
+                                        src={profilePicturePreview}
+                                        alt="Profile"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                )}
                             </div>
+                            <input
+                                type="file"
+                                id="profile-picture-upload"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                style={{ display: 'none' }}
+                            />
                             <button
+                                onClick={() => document.getElementById('profile-picture-upload').click()}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
