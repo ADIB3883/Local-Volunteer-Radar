@@ -1,306 +1,737 @@
 import React, { useState } from 'react';
-import '../styles/AdminDashboard/StatusCards.css';
-import '../styles/AdminDashboard/Analytics.css';
-import '../styles/AdminDashboard/ApproveRegistrations.css';
-import '../styles/AdminDashboard/EventApprovals.css';
+import { useNavigate } from 'react-router-dom';
+import { User, LogOut, Users, HandFist, Building, Dumbbell, Sparkles, MapPin, Radio, Search, ChevronDown, X } from 'lucide-react';
+import StatCard from './StatCard';
+import EventCard from './EventCard';
+import AdminNavbar from "./AdminNavbar.jsx";
+import users from "./AdminUserList.jsx";
+import AdminAnalytics from "./AdminAnalytics.jsx";
+import PendingUserCard from './PendingUserCard.jsx';
+import pendingUserData from './PendingUserData.jsx';
+import PendingEventsCard from "./PendingEventsCard.jsx";
+import pendingEventsData from './PendingEventsData.jsx';
 
-function InfoRow({ iconColor, iconImg, label, text }) {
+const AdminDashboard = () => {
+    const [activeTab, setActiveTab] = useState('partner');
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All Category');
+    const [selectedType, setSelectedType] = useState('');
+    const [selectedStatus, setSelectedStatus] = useState('');
+    const [sortBy, setSortBy] = useState('');
+    //Filtered state needed?
+
+    const navigate = useNavigate();
+
+    const handleLogoutClick = () => {
+        navigate('/login');
+    };
+
+    const stats = [
+        {
+            id: 1,
+            title: 'Total Volunteers',
+            value: '170',
+            subtitle: 'Volunteers across the country',
+            icon: Users,
+            iconColor: '#3b82f6',
+            iconBg: '#dbeafe'
+        },
+        {
+            id: 2,
+            title: 'Active Volunteers',
+            value: '88',
+            subtitle: 'Currently volunteering',
+            icon: HandFist,
+            iconColor: '#10b981',
+            iconBg: '#d1fae5'
+        },
+        {
+            id: 3,
+            title: 'Total Organizers',
+            value: 39,
+            subtitle: 'Organizers registered',
+            icon: Building,
+            iconColor: '#06b6d4',
+            iconBg: '#cffafe'
+        },
+        {
+            id: 4,
+            title: 'Active Organizers',
+            value: '20',
+            subtitle: 'Organizers currently working',
+            icon: Dumbbell,
+            iconColor: '#a855f7',
+            iconBg: '#f3e8ff'
+        }
+    ];
+
+    const getInitials = (name) => {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    };
+
+    const getAvatarColor = (name) => {
+        const colors = ['#7c3aed', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
+        const index = name.charCodeAt(0) % colors.length;
+        return colors[index];
+    };
+
+    const closeModal = () => {
+        setSelectedUser(null);
+    };
+
     return (
-        <div className="info-row">
-            <div className="info-icon" style={{ backgroundColor: iconColor }} />
-            <img className="info-icon-img" src={iconImg} alt="" />
-            <div className="info-text">{text}</div>
-            <div className="info-label">{label}</div>
-        </div>
-    );
-}
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+            {/* Navbar */}
+            <AdminNavbar
+                userName="Adib Hoque"
+                title = "Admin Dashboard"
+                onLogoutClick={handleLogoutClick}
+            />
 
-function ActionCard({ name, role, time, location, fields }) {
-    const [action, setAction] = useState(null);
+            {/* Main Content */}
+            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
+                {/* Stats Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                    {stats.map((stat) => (
+                        <StatCard
+                            key={stat.id}
+                            title={stat.title}
+                            value={stat.value}
+                            subtitle={stat.subtitle}
+                            icon={stat.icon}
+                            iconColor={stat.iconColor}
+                            iconBg={stat.iconBg}
+                        />
+                    ))}
+                </div>
 
-    return (
-        <div className="card">
-            <div className="card-base" />
-            <div className="card-footer-bg" />
+                {/* Tabs */}
+                <div style={{
+                    display: 'inline-flex',
+                    gap: '0',
+                    marginBottom: '1.5rem',
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    padding: '0.25rem',
+                    borderRadius: '0.875rem',
+                    border: '1px solid rgba(255, 255, 255, 0.4)'
+                }}>
+                    <button
+                        onClick={() => setActiveTab('partner')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.625rem',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === 'partner' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'partner' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'partner' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'partner') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#374151';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'partner') {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#4b5563';
+                            }
+                        }}
+                    >
+                        Partners
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('analytics')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.625rem',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'analytics' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'analytics') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#374151';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'analytics') {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#4b5563';
+                            }
+                        }}
+                    >
+                        Analytics
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('pendingRegistrations')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.625rem',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === 'pendingRegistrations' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'pendingRegistrations' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'pendingRegistrations' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'pendingRegistrations') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#374151';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'pendingRegistrations') {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#4b5563';
+                            }
+                        }}
+                    >
+                        Pending Registrations
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('pendingEvents')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.625rem',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === 'pendingEvents' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'pendingEvents' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'pendingEvents' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'pendingEvents') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#374151';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'pendingEvents') {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#4b5563';
+                            }
+                        }}
+                    >
+                        Pending Events
+                    </button>
+                </div>
 
-            <div className="card-title">{name}</div>
-            <div className="card-role">{role}</div>
+                {/* Admin Analytics */}
+                {activeTab === 'analytics' && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <AdminAnalytics />
+                    </div>
+                )}
 
-            <img className="icon time-icon" src="https://placehold.co/16x16" alt="" />
-            <img className="icon location-icon" src="https://placehold.co/16x16" alt="" />
-
-            <div className="card-time">{time}</div>
-            <div className="card-location">{location}</div>
-
-            <div className="divider" />
-
-            <div className="card-fields">
-                <span className="fields-label">Fields: </span>
-                <span className="fields-value">{fields}</span>
-            </div>
-
-            <div className="btn-container" style={{ position: "relative", width: "376px" }}>
-                {!action && (
+                {activeTab === 'partner' && (
                     <>
-                        <button className="btn approve-btn" onClick={() => setAction("approve")}>
-                            Approve
-                        </button>
-                        <button className="btn reject-btn" onClick={() => setAction("reject")}>
-                            Reject
-                        </button>
+                        {/* Search and Filter Section */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                                    <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93' }} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search A Partner..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 0.875rem 0.625rem 2.75rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '160px', minWidth: '160px' }}>
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => setSelectedCategory(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
+                                        }}
+                                    >
+                                        <option value="">All Categories</option>
+                                        <option value="first-aid">First-Aid</option>
+                                        <option value="distribution">Distribution</option>
+                                        <option value="education">Education</option>
+                                        <option value="environment">Environment</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
+                                    <select
+                                        value={selectedType}
+                                        onChange={(e) => setSelectedType(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
+                                        }}
+                                    >
+                                        <option value="">All Types</option>
+                                        <option value="volunteer">Volunteer</option>
+                                        <option value="ngo">NGO</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
+                                    <select
+                                        value={selectedStatus}
+                                        onChange={(e) => setSelectedStatus(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
+                                        }}
+                                    >
+                                        <option value="">All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
+                                        }}
+                                    >
+                                        <option value="">Sort By</option>
+                                        <option value="name-asc">Name (A-Z)</option>
+                                        <option value="name-desc">Name (Z-A)</option>
+                                        <option value="date-asc">Join Date (Oldest)</option>
+                                        <option value="date-desc">Join Date (Newest)</option>
+                                        <option value="email-asc">Email (A-Z)</option>
+                                        <option value="email-desc">Email (Z-A)</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Partners' List Section */}
+                        <div style={{ margin: '0 auto' }}>
+                            <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                                {/* Table Header */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+                                    gap: '1rem',
+                                    padding: '1rem 1.5rem',
+                                    borderBottom: '1px solid #f3f4f6',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600',
+                                    color: '#6b7280',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em'
+                                }}>
+                                    <div>NAME</div>
+                                    <div>EMAIL</div>
+                                    <div>STATUS</div>
+                                    <div>TYPE</div>
+                                    <div>JOINED</div>
+                                </div>
+
+                                {/* Table Rows */}
+                                {users.map((user) => (
+                                    <div
+                                        key={user.id}
+                                        onClick={() => setSelectedUser(user)}
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+                                            gap: '1rem',
+                                            padding: '1rem 1.5rem',
+                                            borderBottom: '1px solid #f3f4f6',
+                                            alignItems: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                        {/* Name with Avatar */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{
+                                                width: '2.5rem',
+                                                height: '2.5rem',
+                                                borderRadius: '50%',
+                                                background: getAvatarColor(user.name),
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontWeight: '600',
+                                                fontSize: '0.875rem'
+                                            }}>
+                                                {getInitials(user.name)}
+                                            </div>
+                                            <span style={{ fontWeight: '500', color: '#111827' }}>{user.name}</span>
+                                        </div>
+
+                                        {/* Email */}
+                                        <div style={{ color: '#2563eb', fontSize: '0.875rem' }}>{user.email}</div>
+
+                                        {/* Status Badge */}
+                                        <div>
+                                          <span style={{
+                                              padding: '0.375rem 0.75rem',
+                                              borderRadius: '1rem',
+                                              fontSize: '0.75rem',
+                                              fontWeight: '500',
+                                              background: user.status === 'Active' ? '#dcfce7' : '#fcdcf1',
+                                              color: user.status === 'Active' ? '#166534' : '#65161f'
+                                          }}>
+                                            {user.status}
+                                          </span>
+                                        </div>
+
+                                        {/* Type Badge */}
+                                        <div>
+                                          <span style={{
+                                              padding: '0.375rem 0.75rem',
+                                              borderRadius: '1rem',
+                                              fontSize: '0.75rem',
+                                              fontWeight: '500',
+                                              background: user.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
+                                              color: user.type === 'Volunteer' ? '#92400e' : '#6b21a8'
+                                          }}>
+                                            {user.type}
+                                          </span>
+                                        </div>
+
+                                        {/* Joined Date */}
+                                        <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{user.joined}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Modal Popup */}
+                            {selectedUser && (
+                                <div
+                                    style={{
+                                        position: 'fixed',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        background: 'rgba(0, 0, 0, 0.5)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        zIndex: 50,
+                                        padding: '1rem'
+                                    }}
+                                    onClick={closeModal}
+                                >
+                                    <div
+                                        style={{
+                                            background: 'white',
+                                            borderRadius: '1rem',
+                                            padding: '2rem',
+                                            maxWidth: '500px',
+                                            width: '100%',
+                                            maxHeight: '90vh',
+                                            overflowY: 'auto',
+                                            position: 'relative'
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {/* Close Button */}
+                                        <button
+                                            onClick={closeModal}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '1rem',
+                                                right: '1rem',
+                                                background: '#f3f4f6',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '2rem',
+                                                height: '2rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                transition: 'background-color 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                        >
+                                            <X size={18} />
+                                        </button>
+
+                                        {/* Avatar and Name */}
+                                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                            <div style={{
+                                                width: '5rem',
+                                                height: '5rem',
+                                                borderRadius: '50%',
+                                                background: getAvatarColor(selectedUser.name),
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontWeight: '600',
+                                                fontSize: '1.5rem',
+                                                margin: '0 auto 1rem'
+                                            }}>
+                                                {getInitials(selectedUser.name)}
+                                            </div>
+                                            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', margin: '0 0 0.25rem 0' }}>
+                                                {selectedUser.name}
+                                            </h2>
+                                            <p style={{ color: '#6b7280', margin: 0 }}>{selectedUser.email}</p>
+                                        </div>
+
+                                        {/* User Details */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Status</span>
+                                                <span style={{
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '1rem',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '500',
+                                                    background: selectedUser.status === 'Active' ? '#dcfce7' : '#fcdcf1',
+                                                    color: selectedUser.status === 'Active' ? '#166534' : '#65161f'
+                                                }}>
+                                                  {selectedUser.status}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Type</span>
+                                                <span style={{
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '1rem',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '500',
+                                                    background: selectedUser.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
+                                                    color: selectedUser.type === 'Volunteer' ? '#92400e' : '#6b21a8'
+                                                }}>
+                                                  {selectedUser.type}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Joined</span>
+                                                <span style={{ fontWeight: '500' }}>{selectedUser.fullJoinDate}</span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
+                                                <span style={{ fontWeight: '500' }}>{selectedUser.phone}</span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
+                                                <span style={{ fontWeight: '500', textAlign: 'right', maxWidth: '60%' }}>{selectedUser.address}</span>
+                                            </div>
+
+                                            {selectedUser.type === 'Volunteer' ? (
+                                                <>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
+                                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
+                                                            {selectedUser.skills.map((skill, index) => (
+                                                                <span key={index} style={{
+                                                                    padding: '0.25rem 0.625rem',
+                                                                    borderRadius: '0.375rem',
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: '500',
+                                                                    background: '#f3f4f6',
+                                                                    color: '#374151'
+                                                                }}>
+                                                                  {skill}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Hours Volunteered</span>
+                                                        <span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedUser.hoursVolunteered}h</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Category</span>
+                                                        <span style={{ fontWeight: '500' }}>{selectedUser.category}</span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Registration No.</span>
+                                                        <span style={{ fontWeight: '500' }}>{selectedUser.registrationNumber}</span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Members</span>
+                                                        <span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedUser.membersCount}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+                {activeTab === 'pendingRegistrations' && (
+                    <>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
+                            columnGap: '11.5rem',
+                            rowGap: '1.5rem',
+                            justifyContent: 'start',
+                        }}>
+                            {pendingUserData.map((userData) => (
+                                <PendingUserCard
+                                    key={userData.id}
+                                    profilePic={userData.profilePic}
+                                    name={userData.name}
+                                    type={userData.type}
+                                    phone={userData.phone}
+                                    email={userData.email}
+                                    address={userData.address}
+                                    joiningDate={userData.joiningDate}
+                                    skills={userData.skills}
+                                />
+                            ))}
+                        </div>
                     </>
                 )}
 
-                {action === "approve" && (
-                    <button className="btn approve-btn expanded">Approved!</button>
-                )}
-
-                {action === "reject" && (
-                    <button className="btn reject-btn expanded">Rejected!</button>
+                {activeTab === 'pendingEvents' && (
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1.5rem',
+                            marginBottom: '2rem',
+                        }}
+                    >
+                        {pendingEventsData.map((event) => (
+                            <PendingEventsCard
+                                key={event.id}
+                                event={event}
+                            />
+                        ))}
+                    </div>
                 )}
             </div>
         </div>
     );
-}
+};
 
-export default function DashboardStats() {
-    const [selectedSegment, setSelectedSegment] = useState(0);
-    const [action, setAction] = useState(null);
-    const segments = [
-        'Partners',
-        'Analytics',
-        'Pending Registrations',
-        'Pending Events',
-    ];
-
-    let content;
-
-    if (selectedSegment === 0) {
-        content = (
-            <div className="table-wrapper">
-                <div className="table-row table-header">
-                    <div>Name</div>
-                    <div>Email</div>
-                    <div>Status</div>
-                    <div>Type</div>
-                    <div>Joined</div>
-                </div>
-
-                <div className="table-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                            className="avatar"
-                            style={{ backgroundImage: 'url(https://placehold.co/24x24)' }}
-                        />
-                        Buzz Osborne
-                    </div>
-                    <div>buzz@example.com</div>
-                    <div><span className="badge active">Active</span></div>
-                    <div><span className="badge volunteer">Volunteer</span></div>
-                    <div>25 Jun</div>
-                </div>
-
-                <div className="table-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                            className="avatar"
-                            style={{ backgroundImage: 'url(https://placehold.co/24x24)' }}
-                        />
-                        Lucas Harrington
-                    </div>
-                    <div>lucas@example.com</div>
-                    <div><span className="badge active">Active</span></div>
-                    <div><span className="badge ngo">NGO</span></div>
-                    <div>1 Jun</div>
-                </div>
-            </div>
-        );
-    } else if (selectedSegment === 1) {
-        content = (
-            <section className="charts-grid">
-                <div className="chart-card">
-                    <img
-                        src="/4cd6d94c-5390-46d7-b09b-8a206ffd97ba.png"
-                        alt="Hours Worked"
-                        className="chart-photo"
-                    />
-                    <div className="chart-desc">
-                        Volunteers, across the country
-                    </div>
-                </div>
-            </section>
-        );
-    } else if (selectedSegment === 2) {
-        content = (
-            <div className="cards-grid">
-                <ActionCard
-                    name="Shihab Ahmed"
-                    role="Volunteer"
-                    time="Friday, December 2, 10:00 p.m."
-                    location="716, Kafrul, Noakhali"
-                    fields="Distribution, Event logistics"
-                />
-            </div>
-        );
-    } else if (selectedSegment === 3) {
-        content = (
-            <div className="event-card">
-                <div className="card-header">
-                    <div className="event-title">Relief Distribution</div>
-                    <div className="event-status">pending</div>
-                </div>
-
-                <div className="card-info">
-                    <div className="info-row">
-                        <div className="info-icon blue-bg" />
-                        <img className="info-icon-img" src="https://placehold.co/17x17" alt="" />
-                        <div className="info-text">Saturday, November 26, 08:00</div>
-                        <div className="info-label">Submitted on</div>
-                    </div>
-
-                    <div className="info-row">
-                        <div className="info-icon blue-bg" />
-                        <img className="info-icon-img" src="https://placehold.co/17x17" alt="" />
-                        <div className="info-text">Swapno</div>
-                        <div className="info-label">Submitted by</div>
-                    </div>
-
-                    <div className="info-row">
-                        <div className="info-icon blue-bg" />
-                        <div className="info-text">Monday, December 25</div>
-                        <div className="info-label">Date</div>
-                    </div>
-
-                    <div className="info-row">
-                        <div className="info-icon green-bg" />
-                        <div className="info-text">18:00 - 21:00</div>
-                        <div className="info-label">Time</div>
-                    </div>
-
-                    <div className="info-row">
-                        <div className="info-icon green-bg" />
-                        <div className="info-text">716, Kafrul, Noakhali</div>
-                        <div className="info-label">Location</div>
-                    </div>
-                </div>
-
-                <div className="card-requirements">
-                    <div className="volunteers-section">
-                        <img className="volunteers-icon" src="https://placehold.co/23x23" alt="" />
-                        <div>
-                            <div className="volunteers-label">Volunteers</div>
-                            <div className="volunteers-count">0</div>
-                            <div className="volunteers-capacity">0% capacity filled</div>
-                            <div className="volunteers-total">0 / 5</div>
-                        </div>
-                    </div>
-
-                    <div className="requirements-section">
-                        <div className="requirement-title">Requirments</div>
-                        <div className="requirement-text">Distribution</div>
-                    </div>
-                </div>
-
-                <div className="btn-container">
-                    {!action && (
-                        <>
-                            <button className="btn approve-btn" onClick={() => setAction("approve")}>
-                                Approve
-                            </button>
-                            <button className="btn reject-btn" onClick={() => setAction("reject")}>
-                                Reject
-                            </button>
-                        </>
-                    )}
-                    {action === "approve" && <button className="btn approve-btn expanded">Approved!</button>}
-                    {action === "reject" && <button className="btn reject-btn expanded">Rejected!</button>}
-                </div>
-
-                <div className="create-event">
-                    Create Event
-                    <img className="create-event-icon" src="https://placehold.co/15x15" alt="" />
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="dashboard">
-            {/* Header */}
-            <header className="header">
-                <img
-                    src="/logo.png"
-                    alt="Logo"
-                    width="61"
-                    height="71"
-                />
-
-                <div>
-                    <div className="header-title">Admin Dashboard</div>
-                    <div className="header-subtitle">Adib</div>
-                </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 12 }}>
-                    <img src="https://placehold.co/22x22" alt="Logout icon" />
-                    <span>Logout</span>
-                </div>
-            </header>
-
-            <section className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-title">Total Volunteers</div>
-                    <div className="stat-value" style={{ color: '#0065E0' }}>170</div>
-                    <div className="stat-desc">Volunteers across the country</div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-title">Active Volunteers</div>
-                    <div className="stat-value" style={{ color: '#0065E0' }}>88</div>
-                    <div className="stat-desc">Currently volunteering</div>
-                </div>
-
-                <div className="stat-card green">
-                    <div className="stat-title">Total Organizers</div>
-                    <div className="stat-value" style={{ color: '#00AF44' }}>39</div>
-                    <div className="stat-desc">Organizers registered</div>
-                </div>
-
-                <div className="stat-card green">
-                    <div className="stat-title">Active Organizers</div>
-                    <div className="stat-value" style={{ color: '#00AF44' }}>20</div>
-                    <div className="stat-desc">Organizers currently working</div>
-                </div>
-            </section>
-
-            <div className="segmented" style={{ marginLeft: 52 }}>
-                {segments.map((label, idx) => (
-                    <React.Fragment key={idx}>
-                        <div
-                            className={`segment ${selectedSegment === idx ? 'active' : ''}`}
-                            onClick={() => setSelectedSegment(idx)}
-                        >
-                            {label}
-                        </div>
-                        {idx < segments.length - 1 && (
-                            <div className="segment-divider" />
-                        )}
-                    </React.Fragment>
-                ))}
-            </div>
-
-            <div className="section-bar">
-                <div className="section-title">
-                    {
-                        [
-                            'Manage Partners.',
-                            'Insights and Data Visualization.',
-                            'Review and Approve Volunteering Opportunities.',
-                            'Review and Approve Event Requests.',
-                        ][selectedSegment]
-                    }
-                </div>
-            </div>
-
-            {content}
-        </div>
-    );
-}
+export default AdminDashboard;
