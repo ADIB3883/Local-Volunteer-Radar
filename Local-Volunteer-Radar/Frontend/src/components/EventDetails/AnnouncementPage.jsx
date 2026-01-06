@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 import { Megaphone, X } from 'lucide-react';
 import MainNav from './MainNav';
 
 
 const Announcements = () => {
-    const [announcements] = useState([
+    const [announcements, setAnnouncements] = useState([]);
 
-        {
-            id: 1,
-            title: 'Relief Distribution',
-            message: 'Volunteer capacity increased to 10',
-            timestamp: 'Dec 23, 06:34 PM'
-        }
-    ]);
+    useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem("announcements") || "[]");
+        const sorted = stored.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+        setAnnouncements(sorted);
+    }, []);
 
     return (
 
