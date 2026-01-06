@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, {useMemo, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Users, HandFist, Building, Dumbbell, Sparkles, MapPin, Radio, Search, ChevronDown, X } from 'lucide-react';
-import StatCard from './StatCard';
-import EventCard from './EventCard';
+import { Users, HandFist, Building, Dumbbell, Search, ChevronDown, X } from 'lucide-react';
+import StatCard from '../StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
@@ -15,11 +14,59 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('All Category');
     const [selectedType, setSelectedType] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
     //Filtered state needed?
+
+    const filteredAndSortedUsers = useMemo(() => {
+        if (!users || users.length === 0) return [];
+
+        let filtered = [...users];
+
+        if (searchQuery.trim()) {
+            filtered = filtered.filter(user =>
+                user.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        if (selectedType) {
+            const typeValue = selectedType.charAt(0).toUpperCase() + selectedType.slice(1);
+            filtered = filtered.filter(user =>
+                user.type === typeValue
+            );
+        }
+
+        if (selectedStatus) {
+            const statusValue = selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1);
+            filtered = filtered.filter(user =>
+                user.status === statusValue
+            );
+        }
+
+        if (sortBy) {
+            filtered.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name-asc':
+                        return a.name.localeCompare(b.name);
+                    case 'name-desc':
+                        return b.name.localeCompare(a.name);
+                    case 'date-asc':
+                        return new Date(a.joined) - new Date(b.joined);
+                    case 'date-desc':
+                        return new Date(b.joined) - new Date(a.joined);
+                    case 'email-asc':
+                        return a.email.localeCompare(b.email);
+                    case 'email-desc':
+                        return b.email.localeCompare(a.email);
+                    default:
+                        return 0;
+                }
+            });
+        }
+
+        return filtered;
+    }, [searchQuery, selectedType, selectedStatus, sortBy]);
 
     const navigate = useNavigate();
 
@@ -271,47 +318,7 @@ const AdminDashboard = () => {
                                             outline: 'none',
                                             transition: 'all 0.2s ease'
                                         }}
-                                        onFocus={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
-                                        }}
                                     />
-                                </div>
-
-                                <div style={{ position: 'relative', width: '160px', minWidth: '160px' }}>
-                                    <select
-                                        value={selectedCategory}
-                                        onChange={(e) => setSelectedCategory(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
-                                            border: 'none',
-                                            borderRadius: '0.625rem',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: '400',
-                                            background: 'rgba(142, 142, 147, 0.12)',
-                                            color: '#000',
-                                            cursor: 'pointer',
-                                            appearance: 'none',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                        onFocus={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
-                                        }}
-                                    >
-                                        <option value="">All Categories</option>
-                                        <option value="first-aid">First-Aid</option>
-                                        <option value="distribution">Distribution</option>
-                                        <option value="education">Education</option>
-                                        <option value="environment">Environment</option>
-                                    </select>
-                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
                                 </div>
 
                                 <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
@@ -331,12 +338,6 @@ const AdminDashboard = () => {
                                             appearance: 'none',
                                             outline: 'none',
                                             transition: 'all 0.2s ease'
-                                        }}
-                                        onFocus={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
                                         }}
                                     >
                                         <option value="">All Types</option>
@@ -364,12 +365,6 @@ const AdminDashboard = () => {
                                             outline: 'none',
                                             transition: 'all 0.2s ease'
                                         }}
-                                        onFocus={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
-                                        }}
                                     >
                                         <option value="">All Status</option>
                                         <option value="active">Active</option>
@@ -395,12 +390,6 @@ const AdminDashboard = () => {
                                             appearance: 'none',
                                             outline: 'none',
                                             transition: 'all 0.2s ease'
-                                        }}
-                                        onFocus={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.18)';
-                                        }}
-                                        onBlur={(e) => {
-                                            e.currentTarget.style.background = 'rgba(142, 142, 147, 0.12)';
                                         }}
                                     >
                                         <option value="">Sort By</option>
@@ -440,7 +429,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Table Rows */}
-                                {users.map((user) => (
+                                {filteredAndSortedUsers.map((user) => (
                                     <div
                                         key={user.id}
                                         onClick={() => setSelectedUser(user)}
@@ -477,7 +466,7 @@ const AdminDashboard = () => {
                                         </div>
 
                                         {/* Email */}
-                                        <div style={{ color: '#2563eb', fontSize: '0.875rem' }}>{user.email}</div>
+                                        <div style={{ color: '#00000', fontSize: '0.875rem' }}>{user.email}</div>
 
                                         {/* Status Badge */}
                                         <div>
@@ -511,6 +500,15 @@ const AdminDashboard = () => {
                                         <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{user.joined}</div>
                                     </div>
                                 ))}
+                                {filteredAndSortedUsers.length === 0 && (
+                                    <div style={{
+                                        padding: '3rem',
+                                        textAlign: 'center',
+                                        color: '#6b7280'
+                                    }}>
+                                        No partners found
+                                    </div>
+                                )}
                             </div>
 
                             {/* Modal Popup */}
@@ -622,6 +620,11 @@ const AdminDashboard = () => {
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email Address</span>
+                                                <span style={{ fontWeight: '500' }}>{selectedUser.email}</span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
                                                 <span style={{ color: '#6b7280', fontWeight: '500' }}>Joined</span>
                                                 <span style={{ fontWeight: '500' }}>{selectedUser.fullJoinDate}</span>
                                             </div>
@@ -688,46 +691,70 @@ const AdminDashboard = () => {
                 )}
                 {activeTab === 'pendingRegistrations' && (
                     <>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
-                            columnGap: '11.5rem',
-                            rowGap: '1.5rem',
-                            justifyContent: 'start',
-                        }}>
-                            {pendingUserData.map((userData) => (
-                                <PendingUserCard
-                                    key={userData.id}
-                                    profilePic={userData.profilePic}
-                                    name={userData.name}
-                                    type={userData.type}
-                                    phone={userData.phone}
-                                    email={userData.email}
-                                    address={userData.address}
-                                    joiningDate={userData.joiningDate}
-                                    skills={userData.skills}
-                                />
-                            ))}
-                        </div>
+                        {pendingUserData.length > 0 ? (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
+                                columnGap: '11.5rem',
+                                rowGap: '1.5rem',
+                                justifyContent: 'start',
+                            }}>
+                                {pendingUserData.map((userData) => (
+                                    <PendingUserCard
+                                        key={userData.id}
+                                        profilePic={userData.profilePic}
+                                        name={userData.name}
+                                        type={userData.type}
+                                        phone={userData.phone}
+                                        email={userData.email}
+                                        address={userData.address}
+                                        joiningDate={userData.joiningDate}
+                                        skills={userData.skills}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{
+                                padding: '3rem',
+                                textAlign: 'center',
+                                color: '#6b7280',
+                                fontSize: '1rem'
+                            }}>
+                                No pending registrations found
+                            </div>
+                        )}
                     </>
                 )}
 
                 {activeTab === 'pendingEvents' && (
-                    <div
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '1.5rem',
-                            marginBottom: '2rem',
-                        }}
-                    >
-                        {pendingEventsData.map((event) => (
-                            <PendingEventsCard
-                                key={event.id}
-                                event={event}
-                            />
-                        ))}
-                    </div>
+                    <>
+                        {pendingEventsData.length > 0 ? (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1.5rem',
+                                    marginBottom: '2rem',
+                                }}
+                            >
+                                {pendingEventsData.map((event) => (
+                                    <PendingEventsCard
+                                        key={event.id}
+                                        event={event}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{
+                                padding: '3rem',
+                                textAlign: 'center',
+                                color: '#6b7280',
+                                fontSize: '1rem'
+                            }}>
+                                No pending events found
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

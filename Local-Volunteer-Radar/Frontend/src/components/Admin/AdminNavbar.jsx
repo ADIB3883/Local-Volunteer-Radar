@@ -1,6 +1,6 @@
 import React from 'react';
-import { User, LogOut } from 'lucide-react';
-import logo from '../assets/logo.png';
+import {User, LogOut, Megaphone} from 'lucide-react';
+import logo from '../../assets/logo.png';
 
 const AdminNavbar = ({ userName = "Default Username", title = "Default Dashboard", onLogoutClick }) => {
     return (
