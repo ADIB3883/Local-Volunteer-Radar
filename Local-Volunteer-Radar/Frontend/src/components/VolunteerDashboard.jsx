@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
+import { CheckCircle, Clock, Calendar, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Calendar, TrendingUp, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
+import { User, LogOut, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
 import Navbar from './Navbar';
 import StatCard from './StatCard';
 import EventCard from './EventCard';
 import MyRegistrations from "./MyRegistrations.jsx";
+import Modal from './Modal';
+import EventsCompletedModal from './EventsCompletedModal';
+import HoursVolunteeredModal from './HoursVolunteeredModal';
+import ActiveRegistrationModal from './ActiveRegistrationModal';
+import SkillsUtilizedModal from './SkillsUtilizedModal';
+
 
 const VolunteerDashboard = () => {
     const [activeTab, setActiveTab] = useState('discover');
@@ -12,6 +19,7 @@ const VolunteerDashboard = () => {
     const [selectedCategory, setSelectedCategory] = useState('All Category');
     const [allEvents, setAllEvents] = useState([]);
     const [recommendedEvents, setRecommendedEvents] = useState([]);
+    const [modalOpen, setModalOpen] = useState(null);
 
     const navigate = useNavigate();
     //login kora volutneer jaate shudhu Volunteer Dashboard e ashte pare
@@ -36,40 +44,48 @@ const VolunteerDashboard = () => {
 
     const stats = [
         {
-            id: 1,
+            id: 'events',
             title: 'Events Completed',
             value: '12',
             subtitle: 'Successfully completed',
             icon: CheckCircle,
             iconColor: '#3b82f6',
-            iconBg: '#dbeafe'
+            iconBg: '#dbeafe',
+            modalTitle: 'Completed Events',
+            modalContent: <EventsCompletedModal />
         },
         {
-            id: 2,
+            id: 'hours',
             title: 'Hours Volunteered',
             value: '40',
             subtitle: 'Hours contributed',
             icon: Clock,
             iconColor: '#10b981',
-            iconBg: '#d1fae5'
+            iconBg: '#d1fae5',
+            modalTitle: 'Volunteer Hours',
+            modalContent: <HoursVolunteeredModal />
         },
         {
-            id: 3,
+            id: 'registration',
             title: 'Active Registration',
             value: '0',
             subtitle: 'Upcoming events',
             icon: Calendar,
             iconColor: '#06b6d4',
-            iconBg: '#cffafe'
+            iconBg: '#cffafe',
+            modalTitle: 'Active Registrations',
+            modalContent: <ActiveRegistrationModal />
         },
         {
-            id: 4,
+            id: 'skills',
             title: 'Skills Utilized',
             value: '2',
             subtitle: 'Active skill categories',
             icon: TrendingUp,
             iconColor: '#a855f7',
-            iconBg: '#f3e8ff'
+            iconBg: '#f3e8ff',
+            modalTitle: 'Skills Utilized',
+            modalContent: <SkillsUtilizedModal />
         }
     ];
 
@@ -123,9 +139,9 @@ const VolunteerDashboard = () => {
     };
 
 // Call filter when search or category changes
-        React.useEffect(() => {
-            handleFilter();
-        }, [searchQuery, selectedCategory, allEvents]);
+    React.useEffect(() => {
+        handleFilter();
+    }, [searchQuery, selectedCategory, allEvents]);
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -149,9 +165,22 @@ const VolunteerDashboard = () => {
                             icon={stat.icon}
                             iconColor={stat.iconColor}
                             iconBg={stat.iconBg}
+                            onClick={() => setModalOpen(stat.id)}
                         />
                     ))}
                 </div>
+
+                {/* Modals */}
+                {stats.map((stat) => (
+                    <Modal
+                        key={stat.id}
+                        isOpen={modalOpen === stat.id}
+                        onClose={() => setModalOpen(null)}
+                        title={stat.modalTitle}
+                    >
+                        {stat.modalContent}
+                    </Modal>
+                ))}
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
