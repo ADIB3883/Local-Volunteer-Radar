@@ -4,9 +4,12 @@ import { User, LogOut, Users, HandFist, Building, Dumbbell, Sparkles, MapPin, Ra
 import StatCard from './StatCard';
 import EventCard from './EventCard';
 import AdminNavbar from "./AdminNavbar.jsx";
+import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
-import UserCard from './UserCard.jsx';
-import UserData from './UserData.jsx';
+import PendingUserCard from './PendingUserCard.jsx';
+import pendingUserData from './PendingUserData.jsx';
+import PendingEventsCard from "./PendingEventsCard.jsx";
+import pendingEventsData from './PendingEventsData.jsx';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
@@ -16,6 +19,7 @@ const AdminDashboard = () => {
     const [selectedType, setSelectedType] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
+    //Filtered state needed?
 
     const navigate = useNavigate();
 
@@ -62,75 +66,6 @@ const AdminDashboard = () => {
         }
     ];
 
-    const users = [
-        {
-            id: 1,
-            name: 'Buzz Osborne',
-            email: 'buzz@example.com',
-            status: 'Active',
-            type: 'Volunteer',
-            joined: '25 Jun 2025',
-            fullJoinDate: 'June 25, 2024',
-            phone: '+1 (555) 123-4567',
-            address: '123 Main St, New York, NY 10001',
-            skills: ['First-Aid', 'Distribution'],
-            hoursVolunteered: 45
-        },
-        {
-            id: 2,
-            name: 'Lucas Harrington',
-            email: 'lucas@example.com',
-            status: 'Active',
-            type: 'Volunteer',
-            joined: '1 Jun 2025',
-            fullJoinDate: 'June 1, 2024',
-            phone: '+1 (555) 234-5678',
-            address: '456 Oak Ave, Boston, MA 02101',
-            skills: ['Education', 'Environment'],
-            hoursVolunteered: 32
-        },
-        {
-            id: 3,
-            name: 'ABC Charity',
-            email: 'abcch@example.com',
-            status: 'Active',
-            type: 'NGO',
-            joined: '24 Apr 2025',
-            fullJoinDate: 'April 24, 2024',
-            phone: '+1 (555) 345-6789',
-            address: '789 Charity Lane, Chicago, IL 60601',
-            category: 'Education',
-            registrationNumber: 'NGO-2024-001',
-            membersCount: 150
-        },
-        {
-            id: 4,
-            name: 'Zara Patel',
-            email: 'zpatel@example.com',
-            status: 'Inactive',
-            type: 'Volunteer',
-            joined: '30 Jan 2025',
-            fullJoinDate: 'January 30, 2024',
-            phone: '+1 (555) 456-7890',
-            address: '321 Elm St, Seattle, WA 98101',
-            skills: ['First-Aid', 'Education'],
-            hoursVolunteered: 78
-        },
-        {
-            id: 5,
-            name: 'T. Park',
-            email: 'theop@example.com',
-            status: 'Active',
-            type: 'Volunteer',
-            joined: '2 Dec 2025',
-            fullJoinDate: 'December 2, 2023',
-            phone: '+1 (555) 567-8901',
-            address: '654 Pine Rd, Austin, TX 73301',
-            skills: ['Distribution', 'Environment'],
-            hoursVolunteered: 120
-        }
-    ];
-
     const getInitials = (name) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
     };
@@ -144,100 +79,6 @@ const AdminDashboard = () => {
     const closeModal = () => {
         setSelectedUser(null);
     };
-
-    const allEvents = [
-        {
-            id: 3,
-            title: 'Emergency Medical Camp Setup',
-            description: 'Urgent need for medical volunteers for health camp',
-            tags: [
-                { name: 'first-aid', type: 'skill' },
-                { name: '4 spots left', type: 'spots' }
-            ],
-            date: 'Wednesday, December 24',
-            time: '08:00 - 14:00',
-            location: '716, Kafrul, Noakhali',
-            distance: '3.2km away',
-            requirements: 'First-aid, medical'
-        },
-        {
-            id: 4,
-            title: 'Community Food Drive',
-            description: 'Help distribute food to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '4 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Dhaka',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        },
-        {
-            id: 5,
-            title: 'Relief Distribution',
-            description: 'Help distribute food to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '5 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Sylhet',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        },
-        {
-            id: 6,
-            title: 'Winter Dress Distribution',
-            description: 'Help distribute winter dress to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '3 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Barishal',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        }
-    ];
-
-    const [, setFilteredEvents] = useState(allEvents);
-
-    // Filter function
-    const handleFilter = () => {
-        let filtered = [...allEvents];
-
-        // Filter by search query
-        if (searchQuery.trim() !== '') {
-            filtered = filtered.filter(event =>
-                event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                //
-                // event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                event.requirements.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        // Filter by category
-        if (selectedCategory !== 'All Category') {
-            filtered = filtered.filter(event => {
-                // Check if any tag matches the category
-                return event.tags.some(tag =>
-                    tag.name.toLowerCase().includes(selectedCategory.toLowerCase())
-                ) || event.requirements.toLowerCase().includes(selectedCategory.toLowerCase());
-            });
-        }
-
-        setFilteredEvents(filtered);
-    };
-
-// Call filter when search or category changes
-    React.useEffect(() => {
-        handleFilter();
-    }, [searchQuery, selectedCategory]);
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -403,97 +244,6 @@ const AdminDashboard = () => {
                 {activeTab === 'analytics' && (
                     <div style={{ marginBottom: '1.5rem' }}>
                         <AdminAnalytics />
-                    </div>
-                )}
-
-                {activeTab === 'notifications' && (
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '1rem',
-                        padding: '2rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        marginBottom: '2rem'
-                    }}>
-                        {/* Header with icon */}
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            marginBottom: '0.5rem'
-                        }}>
-                            <div style={{
-                                width: '2.5rem',
-                                height: '2.5rem',
-                                background: '#14b8a6',
-                                borderRadius: '0.5rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h2 style={{
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold',
-                                    color: '#111827',
-                                    margin: 0
-                                }}>
-                                    Notifications
-                                </h2>
-                                <p style={{
-                                    fontSize: '0.75rem',
-                                    color: '#6b7280',
-                                    margin: 0
-                                }}>
-                                    0 unread notification
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Empty state */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '3rem 0',
-                            textAlign: 'center'
-                        }}>
-                            <svg
-                                width="48"
-                                height="48"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#9ca3af"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                style={{ marginBottom: '1rem' }}
-                            >
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                            <p style={{
-                                fontSize: '0.875rem',
-                                color: '#6b7280',
-                                margin: 0
-                            }}>
-                                No notifications yet
-                            </p>
-                        </div>
                     </div>
                 )}
 
@@ -867,8 +617,8 @@ const AdminDashboard = () => {
                                                     background: selectedUser.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
                                                     color: selectedUser.type === 'Volunteer' ? '#92400e' : '#6b21a8'
                                                 }}>
-                  {selectedUser.type}
-                </span>
+                                                  {selectedUser.type}
+                                                </span>
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
@@ -900,8 +650,8 @@ const AdminDashboard = () => {
                                                                     background: '#f3f4f6',
                                                                     color: '#374151'
                                                                 }}>
-                          {skill}
-                        </span>
+                                                                  {skill}
+                                                                </span>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -936,25 +686,48 @@ const AdminDashboard = () => {
                         </div>
                     </>
                 )}
-                {activeTab === 'pendingRegistration' && (
+                {activeTab === 'pendingRegistrations' && (
                     <>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                            {UserData.map((stat) => (
-                                <UserCard
-                                    key={user.id}
-                                    profilePic={user.profilePic}
-                                    name={user.name}
-                                    type={user.type}
-                                    status={user.status}
-                                    phone={user.phone}
-                                    email={user.email}
-                                    address={user.address}
-                                    joiningDate={user.joiningDate}
-                                    skills={user.skills}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
+                            columnGap: '11.5rem',
+                            rowGap: '1.5rem',
+                            justifyContent: 'start',
+                        }}>
+                            {pendingUserData.map((userData) => (
+                                <PendingUserCard
+                                    key={userData.id}
+                                    profilePic={userData.profilePic}
+                                    name={userData.name}
+                                    type={userData.type}
+                                    phone={userData.phone}
+                                    email={userData.email}
+                                    address={userData.address}
+                                    joiningDate={userData.joiningDate}
+                                    skills={userData.skills}
                                 />
                             ))}
                         </div>
                     </>
+                )}
+
+                {activeTab === 'pendingEvents' && (
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1.5rem',
+                            marginBottom: '2rem',
+                        }}
+                    >
+                        {pendingEventsData.map((event) => (
+                            <PendingEventsCard
+                                key={event.id}
+                                event={event}
+                            />
+                        ))}
+                    </div>
                 )}
             </div>
         </div>

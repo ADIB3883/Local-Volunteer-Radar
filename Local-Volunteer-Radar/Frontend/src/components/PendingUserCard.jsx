@@ -1,4 +1,6 @@
-const UserCard = ({
+import {useState} from "react";
+
+const PendingUserCard = ({
                       profilePic,
                       name,
                       type,          // "Volunteer" | "NGO"
@@ -9,29 +11,23 @@ const UserCard = ({
                       joiningDate,
                       skills = []
                   }) => {
+    const [action, setAction] = useState(null);
+
     const badgeStyles = {
         Volunteer: {
-            background: '#dcfce7',
-            color: '#166534',
+            background: '#fef3c7',
+            color: '#92400e',
         },
         NGO: {
-            background: '#fcdcf1',
-            color: '#9d174d',
-        },
-        Active: {
-            background: '#dcfce7',
-            color: '#166534',
-        },
-        Inactive: {
-            background: '#fcdcf1',
-            color: '#9d174d',
-        },
+            background: '#e9d5ff',
+            color: '#6b21a8',
+        }
     };
 
     return (
         <div
             style={{
-                width: '420px',
+                width: '410px',
                 background: '#fff',
                 borderRadius: '1rem',
                 padding: '1.25rem',
@@ -56,12 +52,10 @@ const UserCard = ({
                     <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
                         {name}
                     </h2>
-
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
             <span style={{ ...badgeStyles[type], padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem' }}>
               {type}
             </span>
-
                         <span style={{ ...badgeStyles[status], padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem' }}>
               {status}
             </span>
@@ -95,13 +89,61 @@ const UserCard = ({
                                 fontSize: '0.75rem',
                             }}
                         >
-              {skill}
-            </span>
+                          {skill}
+                        </span>
                     ))}
                 </div>
             </div>
+
+            {/* Accept/Reject */}
+            <div
+                style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    marginTop: '1rem',
+                }}
+            >
+                {(action === null || action === 'accept') && (
+                    <button
+                        onClick={() => setAction('accept')}
+                        style={{
+                            flex: action === 'accept' ? 2 : 1,
+                            padding: '0.6rem',
+                            borderRadius: '0.5rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: '#22c55e',
+                            color: '#ffffff',
+                            fontWeight: 600,
+                            transition: 'all 0.3s ease',
+                        }}
+                    >
+                        {action === 'accept' ? 'Accepted!' : 'Accept'}
+                    </button>
+                )}
+
+                {(action === null || action === 'reject') && (
+                    <button
+                        onClick={() => setAction('reject')}
+                        style={{
+                            flex: action === 'reject' ? 2 : 1,
+                            padding: '0.6rem',
+                            borderRadius: '0.5rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: '#ef4444',
+                            color: '#ffffff',
+                            fontWeight: 600,
+                            transition: 'all 0.3s ease',
+                        }}
+                    >
+                        {action === 'reject' ? 'Rejected!' : 'Reject'}
+                    </button>
+                )}
+            </div>
+
         </div>
     );
 };
 
-export default UserCard;
+export default PendingUserCard;
