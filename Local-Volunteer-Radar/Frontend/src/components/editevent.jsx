@@ -110,7 +110,7 @@ const CustomTimePicker = ({ label, value, onChange, name, required = false }) =>
             {isOpen && (
                 <>
                     <div
-                        className="fixed inset-0 bg-black bg-opacity-50 z-50"
+                        className="fixed inset-0 bg-pink-400 bg-opacity-50 z-50"
                         onClick={() => setIsOpen(false)}
                     />
                     <div className={`${modalPositionClass} bg-white rounded-lg shadow-xl z-50 p-6 w-70`}>
