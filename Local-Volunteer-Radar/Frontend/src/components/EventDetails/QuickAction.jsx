@@ -10,9 +10,21 @@ const QuickAction = () => {
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [announcementTitle, setAnnouncementTitle] = useState("");
     const [announcementMessage, setAnnouncementMessage] = useState("");
+    const [eventStatus, setEventStatus] = useState("");
 
     // Get current event from URL
     const eventId = window.location.pathname.split('/').pop();
+
+    useEffect(() => {
+        const events = JSON.parse(localStorage.getItem("events") || "[]");
+        const event = events.find(e => e.id === parseInt(eventId));
+
+        if (event) {
+            setEventStatus(event.status);
+        }
+    }, [eventId]);
+
+
 
     const handleSendAnnouncement = () => {
         if (!announcementTitle.trim() || !announcementMessage.trim()) {
@@ -175,6 +187,56 @@ const QuickAction = () => {
     };
 
 
+    const handleMarkAsComplete = () => {
+        const confirmAction = window.confirm(
+            "Are you sure you want to mark this event as completed?"
+        );
+
+        if (!confirmAction) return;
+
+        const events = JSON.parse(localStorage.getItem("events") || "[]");
+
+        const updatedEvents = events.map(event =>
+            event.id === parseInt(eventId)
+                ? { ...event, status: "completed", completedAt: new Date().toISOString() }
+                : event
+        );
+
+        localStorage.setItem("events", JSON.stringify(updatedEvents));
+
+        setEventStatus("completed"); // ✅ update UI instantly
+
+        alert("Event marked as completed");
+    };
+    const handleCancelEvent = () => {
+        const confirmAction = window.confirm(
+            "Are you sure you want to cancel this event? This action cannot be undone."
+        );
+
+        if (!confirmAction) return;
+
+        const events = JSON.parse(localStorage.getItem("events") || "[]");
+
+        const updatedEvents = events.map(event =>
+            event.id === parseInt(eventId)
+                ? {
+                    ...event,
+                    status: "cancelled",
+                    cancelledAt: new Date().toISOString()
+                }
+                : event
+        );
+
+        localStorage.setItem("events", JSON.stringify(updatedEvents));
+
+        setEventStatus("cancelled"); // ✅ hide buttons instantly
+
+        alert("Event has been cancelled");
+    };
+
+
+
+
 
 
 
@@ -206,21 +268,35 @@ const QuickAction = () => {
                         <span className="font-normal text-[16px]">Export volunteer list</span>
                     </button>
 
-                    <button className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <span className="font-normal text-[16px]">Mark as complete</span>
-                    </button>
+                    {!["completed", "cancelled"].includes(eventStatus) && (
+                        <>
+                            {/* Mark as complete */}
+                            <button
+                                onClick={handleMarkAsComplete}
+                                className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span className="font-normal text-[16px]">Mark as complete</span>
+                            </button>
 
-                    <button className="border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DB004B" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="15" y1="9" x2="9" y2="15"/>
-                            <line x1="9" y1="9" x2="15" y2="15"/>
-                        </svg>
-                        <span className="font-normal text-[#DB004B] text-[16px]">Cancel Event</span>
-                    </button>
+                            {/* Cancel Event */}
+                            <button
+                                onClick={handleCancelEvent}
+                                className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DB004B" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="15" y1="9" x2="9" y2="15" />
+                                    <line x1="9" y1="9" x2="15" y2="15" />
+                                </svg>
+                                <span className="font-normal text-[#DB004B] text-[16px]">Cancel Event</span>
+                            </button>
+                        </>
+                    )}
+
+
                 </div>
             </div>
 

@@ -55,13 +55,13 @@ const EventInfo = () => {
                 <div className="relative flex w-full h-[15%] rounded-tl-[20px] rounded-tr-[20px]
                 bg-[linear-gradient(180deg,#FFFFFF_9.43%,#EEF5FE_85.44%)] items-center py-0 px-2
                 ">
-                    <span className="relative left-[1%] font-bold">{event.eventName}</span>
-                    <div className="flex items-center gap-3 flex-shrink-0 absolute right-[2%]">
+                    <span className="relative left-[.5%] font-bold">{event.eventName}</span>
+                    <div className="flex  items-center gap-3 flex-shrink-0 absolute right-[5%]">
                         <EditButton text="Edit" onClick={() => {
                             setEditData(event);
                             setIsEditOpen(true);
                         }} />
-                        <DeleteButton text="Delete"></DeleteButton>
+                        {/*<DeleteButton text="Delete"></DeleteButton>*/}
                     </div>
                 </div>
 
