@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
 import logo from "../assets/logo.png";
-import Joel from "../assets/icons/joel.jpeg";
-import Ellie from "../assets/icons/ellie.jpeg";
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
@@ -12,12 +10,12 @@ const OrganizerDashboard = () => {
         const stored = localStorage.getItem('events');
         return stored ? JSON.parse(stored) : [];
     });
-
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({
         eventName: '',
         description: '',
-        date: '',
+        startdate: '',
+        enddate: '',
         location: '',
         volunteersNeeded: '',
         category: '',
@@ -25,7 +23,6 @@ const OrganizerDashboard = () => {
         endTime:'',
         requirements: ''
     });
-
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -33,8 +30,48 @@ const OrganizerDashboard = () => {
             [name]: value
         }));
     };
-
     const handleSubmit = () => {
+        // Required fields validation (everything except `requirements`)
+        const requiredFields = ['eventName','description','startdate','enddate','location','volunteersNeeded','category','startTime','endTime'];
+        for (const f of requiredFields) {
+            const v = formData[f];
+            if (v === undefined || v === null || String(v).trim() === '') {
+                alert('Fill all necessary information');
+                return;
+            }
+        }
+        // ensure volunteersNeeded is a positive number
+        if (isNaN(Number(formData.volunteersNeeded)) || Number(formData.volunteersNeeded) <= 0) {
+            alert('Fill all necessary information');
+            return;
+        }
+
+        // Validation: ensure end date is same or after start date.
+        // If dates are equal, ensure end time is at least 15 minutes after start time.
+        if (!formData.startdate || !formData.enddate) {
+            alert('Please provide both start and end dates.');
+            return;
+        }
+
+        // Build full ISO-like datetimes using provided times (fallback to 00:00 when missing).
+        const startTimePart = formData.startTime || '00:00';
+        const endTimePart = formData.endTime || '00:00';
+        const startDateTime = new Date(`${formData.startdate}T${startTimePart}`);
+        const endDateTime = new Date(`${formData.enddate}T${endTimePart}`);
+
+        if (endDateTime < startDateTime) {
+            alert('The event end must come after the start. If the end is in the same day, pick an end time at least 15 minutes later.');
+            return;
+        }
+
+        if (formData.startdate === formData.enddate) {
+            const diffMinutes = (endDateTime - startDateTime) / 60000; // milliseconds -> minutes
+            if (diffMinutes < 15) {
+                alert('When start and end date are the same, end time must be at least 15 minutes after start time.');
+                return;
+            }
+        }
+
         const organizerId = "org_123";
 
         const newEvent = {
@@ -45,17 +82,15 @@ const OrganizerDashboard = () => {
             volunteersRegistered: 0,
             createdAt: new Date().toISOString()
         };
-
         const updatedEvents = [...events, newEvent];
         setEvents(updatedEvents);
-
         localStorage.setItem('events', JSON.stringify(updatedEvents));
-
         setShowCreateModal(false);
         setFormData({
             eventName: '',
             description: '',
-            date: '',
+            startdate: '',
+            enddate: '',
             location: '',
             volunteersNeeded: '',
             category: '',
@@ -64,11 +99,9 @@ const OrganizerDashboard = () => {
             requirements: ''
         });
     };
-
     const handleLogout = () => {
         navigate('/login');
     };
-
     const handleAnnouncements = () => {
         navigate('/announcements');
     };
@@ -76,14 +109,12 @@ const OrganizerDashboard = () => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     };
-
     const getFilteredEvents = () => {
         const organizerId = "org_123";
         return events.filter(event =>
             event.organizerId === organizerId && event.status === activeTab
         );
     };
-
     const getStats = () => {
         const organizerId = "org_123"; // Same organizerId
         const myEvents = events.filter(e => e.organizerId === organizerId);
@@ -94,7 +125,6 @@ const OrganizerDashboard = () => {
 
         return { activeEvents, totalVolunteers, totalEvents };
     };
-
     const getEmptyStateContent = () => {
         switch(activeTab) {
             case 'pending':
@@ -114,32 +144,13 @@ const OrganizerDashboard = () => {
                 };
         }
     };
-
     // View Details Navigate
     const handleViewDetails = (eventId) => {
         navigate(`/event-details/${eventId}`);
     };
-
     const stats = getStats();
     const filteredEvents = getFilteredEvents();
     const emptyState = getEmptyStateContent();
-
-
-
-    //Event Object
-    const eventtData ={
-        title: "",
-        description: "",
-        date: "",
-        startTime: "",
-        endTime: "",
-        location: "",
-        Category: "",
-        volunteersNeeded: "",
-        requirements: "",
-    }
-
-
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -233,14 +244,12 @@ const OrganizerDashboard = () => {
                             e.stopPropagation();
                             setShowCreateModal(true);
                         }}
-                        className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold shadow-md"style={{paddingRight: '10px'}}
+                        className="flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold leading-none shadow-md"
                     >
                         <Plus className="w-6 h-6" />
                         Create Event
                     </button>
-
                 </div>
-
 
                 {/* Tabs */}
                 <div className="flex gap-8 px-8 " style={{paddingLeft: '48px', marginTop: '32px',marginBottom: '12px'}} >
@@ -249,23 +258,21 @@ const OrganizerDashboard = () => {
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`h-9 px-6 py-5 text-base font-semibold transition-colors rounded-lg border ${
+                                className={`h-9 px-6  text-base font-semibold transition-colors rounded-lg border ${
                                     activeTab === tab
                                         ? 'bg-white text-black-900 border-white'
                                         : 'bg-gray text-gray border-white'
                                 }`}
                             >
                                 {tab === 'active' ? 'Active' : tab === 'pending' ? 'Pending Approval' : 'Completed'}
-                                {activeTab === tab && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                                )}
+
                             </button>
                         ))}
                     </div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 " >
                     {/* Event Cards or Empty State */}
-                    <div className="h-60 px-8 py-8">
+                    <div className="h-80 px-8 py-8">
                         {filteredEvents.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredEvents.map((event) => (
@@ -278,8 +285,8 @@ const OrganizerDashboard = () => {
                                                     event.status === 'active' ? 'bg-green-100 text-green-700' :
                                                         'bg-gray-100 text-gray-700'
                                             }`}>
-                {event.status}
-            </span>
+                                                {event.status}
+                                            </span>
                                         </div>
 
                                         {/* Volunteers Progress */}
@@ -305,7 +312,7 @@ const OrganizerDashboard = () => {
                                         <div className="space-y-2" style={{marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px'}}>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <Calendar className="w-4 h-4 text-blue-500" />
-                                                <span>{formatDate(event.date)}</span>
+                                                <span>{formatDate(event.startdate)}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,8 +345,8 @@ const OrganizerDashboard = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center text-center py-12">
-                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{marginBottom: '16px'}}>
+                            <div className="flex flex-col items-center justify-center text-center py-6">
+                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{marginBottom: '24px'}}>
                                     <Calendar className="w-7 h-7 text-blue-500" />
                                 </div>
                                 <h3 className="text-base font-semibold text-gray-900">
@@ -355,9 +362,9 @@ const OrganizerDashboard = () => {
                                             e.stopPropagation();
                                             setShowCreateModal(true);
                                         }}
-                                        className="flex items-center gap-2 px-10 py-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+                                        className="flex items-center gap-2 px-5 py-5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base font-medium shadow-sm"
                                     >
-                                        <Plus className="w-8 h-8" />
+                                        <Plus className="w-4 h-4" />
                                         Create Event
                                     </button>
                                 )}
@@ -377,8 +384,7 @@ const OrganizerDashboard = () => {
                             <div className="flex items-center gap-2">
                                 <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                                     <Calendar
-                                        className="w-12 h-12 rounded-xl
-                                     bg-gradient-to-r from-[#0072c5] to-[#00c57b]"
+                                        className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#0072c5] to-[#00c57b]"
                                     />
 
                                 </div>
@@ -427,17 +433,18 @@ const OrganizerDashboard = () => {
                                     placeholder="Describe your volunteer event"
                                 />
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* First Row: Start Date and Start Time */}
                                 <div>
                                     <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        Date *
+                                        Start Date *
                                     </label>
                                     <input
                                         type="date"
-                                        name="date"
-                                        value={formData.date}
+                                        name="startdate"
+                                        value={formData.startdate}
                                         onChange={handleInputChange}
-                                        className=" h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         style={{marginBottom: '16px'}}
                                     />
                                 </div>
@@ -462,9 +469,9 @@ const OrganizerDashboard = () => {
                                                 e.preventDefault();
                                                 const input = document.getElementById('startTimeInput');
                                                 if (input.showPicker) {
-                                                    input.showPicker(); // Chrome / Edge
+                                                    input.showPicker();
                                                 } else {
-                                                    input.focus(); // Fallback for Safari & others
+                                                    input.focus();
                                                 }
                                             }}
                                             className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
@@ -474,6 +481,21 @@ const OrganizerDashboard = () => {
                                             </svg>
                                         </button>
                                     </div>
+                                </div>
+
+                                {/* Second Row: End Date and End Time */}
+                                <div>
+                                    <label className="block text-base font-semibold text-gray-700 mb-2">
+                                        End Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="enddate"
+                                        value={formData.enddate}
+                                        onChange={handleInputChange}
+                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        style={{marginBottom: '16px'}}
+                                    />
                                 </div>
 
                                 <div>
@@ -496,9 +518,9 @@ const OrganizerDashboard = () => {
                                                 e.preventDefault();
                                                 const input = document.getElementById('endTimeInput');
                                                 if (input.showPicker) {
-                                                    input.showPicker(); // Chrome / Edge
+                                                    input.showPicker();
                                                 } else {
-                                                    input.focus(); // Fallback for Safari & others
+                                                    input.focus();
                                                 }
                                             }}
                                             className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
