@@ -9,6 +9,8 @@ const VolunteerDashboard = () => {
     const [activeTab, setActiveTab] = useState('discover');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Category');
+    const [allEvents, setAllEvents] = useState([]);
+    const [recommendedEvents, setRecommendedEvents] = useState([]);
 
     const navigate = useNavigate();
 
@@ -59,97 +61,118 @@ const VolunteerDashboard = () => {
         }
     ];
 
-    const events = [
-        {
-            id: 1,
-            title: 'Emergency Medical Camp Setup',
-            description: 'Urgent need for medical volunteers for health camp',
-            tags: [
-                { name: 'first-aid', type: 'skill' },
-                { name: '4 spots left', type: 'spots' }
-            ],
-            date: 'Wednesday, December 24',
-            time: '08:00 - 14:00',
-            location: '716, Kafrul, Noakhali',
-            distance: '3.2km away',
-            requirements: 'First-aid, medical'
-        },
-        {
-            id: 2,
-            title: 'Community Food Drive',
-            description: 'Help distribute food to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '4 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Dhaka',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        }
-    ];
+    // const events = [
+    //     {
+    //         id: 1,
+    //         title: 'Emergency Medical Camp Setup',
+    //         description: 'Urgent need for medical volunteers for health camp',
+    //         tags: [
+    //             { name: 'first-aid', type: 'skill' },
+    //             { name: '4 spots left', type: 'spots' }
+    //         ],
+    //         date: 'Wednesday, December 24',
+    //         time: '08:00 - 14:00',
+    //         location: '716, Kafrul, Noakhali',
+    //         distance: '3.2km away',
+    //         requirements: 'First-aid, medical'
+    //     },
+    //     {
+    //         id: 2,
+    //         title: 'Community Food Drive',
+    //         description: 'Help distribute food to families in need',
+    //         tags: [
+    //             { name: 'distribution', type: 'skill' },
+    //             { name: '4 spots left', type: 'spots' }
+    //         ],
+    //         date: 'Friday, December 26',
+    //         time: '10:00 - 16:00',
+    //         location: '716, Pallabi, Dhaka',
+    //         distance: '3.2km away',
+    //         requirements: 'Distribution, crowd management'
+    //     }
+    // ];
+    //
+    // const allEvents = [
+    //     {
+    //         id: 3,
+    //         title: 'Emergency Medical Camp Setup',
+    //         description: 'Urgent need for medical volunteers for health camp',
+    //         tags: [
+    //             { name: 'first-aid', type: 'skill' },
+    //             { name: '4 spots left', type: 'spots' }
+    //         ],
+    //         date: 'Wednesday, December 24',
+    //         time: '08:00 - 14:00',
+    //         location: '716, Kafrul, Noakhali',
+    //         distance: '3.2km away',
+    //         requirements: 'First-aid, medical'
+    //     },
+    //     {
+    //         id: 4,
+    //         title: 'Community Food Drive',
+    //         description: 'Help distribute food to families in need',
+    //         tags: [
+    //             { name: 'distribution', type: 'skill' },
+    //             { name: '4 spots left', type: 'spots' }
+    //         ],
+    //         date: 'Friday, December 26',
+    //         time: '10:00 - 16:00',
+    //         location: '716, Pallabi, Dhaka',
+    //         distance: '3.2km away',
+    //         requirements: 'Distribution, crowd management'
+    //     },
+    //     {
+    //         id: 5,
+    //         title: 'Relief Distribution',
+    //         description: 'Help distribute food to families in need',
+    //         tags: [
+    //             { name: 'distribution', type: 'skill' },
+    //             { name: '5 spots left', type: 'spots' }
+    //         ],
+    //         date: 'Friday, December 26',
+    //         time: '10:00 - 16:00',
+    //         location: '716, Pallabi, Sylhet',
+    //         distance: '3.2km away',
+    //         requirements: 'Distribution, crowd management'
+    //     },
+    //     {
+    //         id: 6,
+    //         title: 'Winter Dress Distribution',
+    //         description: 'Help distribute winter dress to families in need',
+    //         tags: [
+    //             { name: 'distribution', type: 'skill' },
+    //             { name: '3 spots left', type: 'spots' }
+    //         ],
+    //         date: 'Friday, December 26',
+    //         time: '10:00 - 16:00',
+    //         location: '716, Pallabi, Barishal',
+    //         distance: '3.2km away',
+    //         requirements: 'Distribution, crowd management'
+    //     }
+    // ];
 
-    const allEvents = [
-        {
-            id: 3,
-            title: 'Emergency Medical Camp Setup',
-            description: 'Urgent need for medical volunteers for health camp',
-            tags: [
-                { name: 'first-aid', type: 'skill' },
-                { name: '4 spots left', type: 'spots' }
-            ],
-            date: 'Wednesday, December 24',
-            time: '08:00 - 14:00',
-            location: '716, Kafrul, Noakhali',
-            distance: '3.2km away',
-            requirements: 'First-aid, medical'
-        },
-        {
-            id: 4,
-            title: 'Community Food Drive',
-            description: 'Help distribute food to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '4 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Dhaka',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        },
-        {
-            id: 5,
-            title: 'Relief Distribution',
-            description: 'Help distribute food to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '5 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Sylhet',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        },
-        {
-            id: 6,
-            title: 'Winter Dress Distribution',
-            description: 'Help distribute winter dress to families in need',
-            tags: [
-                { name: 'distribution', type: 'skill' },
-                { name: '3 spots left', type: 'spots' }
-            ],
-            date: 'Friday, December 26',
-            time: '10:00 - 16:00',
-            location: '716, Pallabi, Barishal',
-            distance: '3.2km away',
-            requirements: 'Distribution, crowd management'
-        }
-    ];
+    const [filteredEvents, setFilteredEvents] = useState([]);
+    // Load events from localStorage on mount
+    React.useEffect(() => {
+        const stored = localStorage.getItem('events');
+        if (stored) {
+            const parsedEvents = JSON.parse(stored);
 
-    const [filteredEvents, setFilteredEvents] = useState(allEvents);
+            // Filter for active events only
+            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
+
+            // Set all events
+            setAllEvents(activeEvents);
+
+            // Set recommended events (first 2)
+            setRecommendedEvents(activeEvents.slice(0, 2));
+
+            // Set initial filtered events
+            setFilteredEvents(activeEvents);
+        }
+    }, []);
+
+
 
 // Filter function
     const handleFilter = () => {
@@ -158,21 +181,17 @@ const VolunteerDashboard = () => {
         // Filter by search query
         if (searchQuery.trim() !== '') {
             filtered = filtered.filter(event =>
-                event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                //
-                // event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                event.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                event.requirements.toLowerCase().includes(searchQuery.toLowerCase())
+                (event.requirements && event.requirements.toLowerCase().includes(searchQuery.toLowerCase()))
             );
         }
 
         // Filter by category
         if (selectedCategory !== 'All Category') {
             filtered = filtered.filter(event => {
-                // Check if any tag matches the category
-                return event.tags.some(tag =>
-                    tag.name.toLowerCase().includes(selectedCategory.toLowerCase())
-                ) || event.requirements.toLowerCase().includes(selectedCategory.toLowerCase());
+                return event.category?.toLowerCase() === selectedCategory.toLowerCase() ||
+                    (event.requirements && event.requirements.toLowerCase().includes(selectedCategory.toLowerCase()));
             });
         }
 
@@ -180,9 +199,9 @@ const VolunteerDashboard = () => {
     };
 
 // Call filter when search or category changes
-    React.useEffect(() => {
-        handleFilter();
-    }, [searchQuery, selectedCategory]);
+        React.useEffect(() => {
+            handleFilter();
+        }, [searchQuery, selectedCategory, allEvents]);
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -408,18 +427,21 @@ const VolunteerDashboard = () => {
 
                         {/* Event Cards - Recommended */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem', maxWidth: '100%' }}>
-                            {events.map((event) => (
+                            {recommendedEvents.map((event) => (
                                 <EventCard
                                     key={event.id}
-                                    title={event.title}
+                                    title={event.eventName}
                                     description={event.description}
-                                    tags={event.tags}
-                                    date={event.date}
-                                    time={event.time}
+                                    tags={[
+                                        { name: event.category || 'general', type: 'skill' },
+                                        { name: `${event.volunteersNeeded - event.volunteersRegistered} spots left`, type: 'spots' }
+                                    ]}
+                                    date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                    time={`${event.startTime} - ${event.endTime}`}
                                     location={event.location}
-                                    distance={event.distance}
-                                    requirements={event.requirements}
-                                    onRegister={() => console.log(`Register for ${event.title}`)}
+                                    distance="Calculating..."
+                                    requirements={event.requirements || 'No specific requirements'}
+                                    onRegister={() => console.log(`Register for ${event.eventName}`)}
                                 />
                             ))}
                         </div>
@@ -482,17 +504,21 @@ const VolunteerDashboard = () => {
                         {/* Event Cards - All Events */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', maxWidth: '100%' }}>
                             {filteredEvents.map((event) => (
+
                                 <EventCard
                                     key={event.id}
-                                    title={event.title}
+                                    title={event.eventName}
                                     description={event.description}
-                                    tags={event.tags}
-                                    date={event.date}
-                                    time={event.time}
+                                    tags={[
+                                        { name: event.category || 'general', type: 'skill' },
+                                        { name: `${event.volunteersNeeded - event.volunteersRegistered} spots left`, type: 'spots' }
+                                    ]}
+                                    date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                    time={`${event.startTime} - ${event.endTime}`}
                                     location={event.location}
-                                    distance={event.distance}
-                                    requirements={event.requirements}
-                                    onRegister={() => console.log(`Register for ${event.title}`)}
+                                    distance="Calculating..."
+                                    requirements={event.requirements || 'No specific requirements'}
+                                    onRegister={() => console.log(`Register for ${event.eventName}`)}
                                 />
                             ))}
 
