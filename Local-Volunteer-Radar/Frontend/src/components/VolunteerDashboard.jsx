@@ -4,6 +4,7 @@ import { User, LogOut, CheckCircle, Clock, Calendar, TrendingUp, Sparkles, MapPi
 import Navbar from './Navbar';
 import StatCard from './StatCard';
 import EventCard from './EventCard';
+import MyRegistrations from "./MyRegistrations.jsx";
 
 const VolunteerDashboard = () => {
     const [activeTab, setActiveTab] = useState('discover');
@@ -223,24 +224,12 @@ const VolunteerDashboard = () => {
                             fontSize: '1.5rem',
                             fontWeight: 'bold',
                             color: '#111827',
-                            margin: '0 0 0.5rem 0'
+                            margin: '0 0 1.5rem 0'
                         }}>
                             My Registrations
                         </h2>
-                        <p style={{
-                            fontSize: '0.875rem',
-                            color: '#6b7280',
-                            margin: '0 0 1rem 0'
-                        }}>
-                            You haven't registered for any events yet
-                        </p>
-                        <p style={{
-                            fontSize: '0.875rem',
-                            color: '#4b5563',
-                            margin: 0
-                        }}>
-                            Browse available events and register to start making a difference in your community!
-                        </p>
+
+                        <MyRegistrations />
                     </div>
                 )}
 
@@ -353,6 +342,7 @@ const VolunteerDashboard = () => {
                             {recommendedEvents.map((event) => (
                                 <EventCard
                                     key={event.id}
+                                    eventId={event.id}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
@@ -364,7 +354,17 @@ const VolunteerDashboard = () => {
                                     location={event.location}
                                     distance="Calculating..."
                                     requirements={event.requirements || 'No specific requirements'}
-                                    onRegister={() => console.log(`Register for ${event.eventName}`)}
+                                    onRegister={() => {
+                                        // Refresh events after registration
+                                        const stored = localStorage.getItem('events');
+                                        if (stored) {
+                                            const parsedEvents = JSON.parse(stored);
+                                            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
+                                            setAllEvents(activeEvents);
+                                            setRecommendedEvents(activeEvents.slice(0, 2));
+                                            setFilteredEvents(activeEvents);
+                                        }
+                                    }}
                                 />
                             ))}
                         </div>
@@ -430,6 +430,7 @@ const VolunteerDashboard = () => {
 
                                 <EventCard
                                     key={event.id}
+                                    eventId={event.id}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
@@ -441,7 +442,17 @@ const VolunteerDashboard = () => {
                                     location={event.location}
                                     distance="Calculating..."
                                     requirements={event.requirements || 'No specific requirements'}
-                                    onRegister={() => console.log(`Register for ${event.eventName}`)}
+                                    onRegister={() => {
+                                        // Refresh events after registration
+                                        const stored = localStorage.getItem('events');
+                                        if (stored) {
+                                            const parsedEvents = JSON.parse(stored);
+                                            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
+                                            setAllEvents(activeEvents);
+                                            setRecommendedEvents(activeEvents.slice(0, 2));
+                                            setFilteredEvents(activeEvents);
+                                        }
+                                    }}
                                 />
                             ))}
 

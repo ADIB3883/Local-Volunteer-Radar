@@ -10,6 +10,20 @@ const OrganizerDashboard = () => {
         const stored = localStorage.getItem('events');
         return stored ? JSON.parse(stored) : [];
     });
+
+    // Initialize volunteersRegistered for existing events
+    React.useEffect(() => {
+        const stored = localStorage.getItem('events');
+        if (stored) {
+            const parsedEvents = JSON.parse(stored);
+            const updated = parsedEvents.map(event => ({
+                ...event,
+                volunteersRegistered: event.volunteersRegistered || 0
+            }));
+            localStorage.setItem('events', JSON.stringify(updated));
+        }
+    }, []);
+
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({
         eventName: '',
