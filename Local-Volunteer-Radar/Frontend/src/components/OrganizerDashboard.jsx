@@ -390,7 +390,7 @@ const OrganizerDashboard = () => {
 
             {/* Create Event Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0   bg-opacity-2 flex items-center justify-center z-50 p-4" onClick={(e) => {
+                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
                     if (e.target === e.currentTarget) setShowCreateModal(false);
                 }}>
                     <div className="bg-white rounded-xl shadow-2xl max-w-4xl  h-[95vh] overflow-y-auto" style={{paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px'}} onClick={(e) => e.stopPropagation()}>

@@ -2,15 +2,20 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import DeleteButton from "./DeleteButton.jsx";
 import EditButton from "./EditButton.jsx";
-import CalendarIcon from "../../assets/icons/calendar.png";
+import CalendarIconn from "../../assets/icons/calendar.png";
+import CalendarWhite from "../../assets/icons//calendarWhite.png"
 import ClockIcon from "../../assets/icons/clock.png";
 import LocationIcon from "../../assets/icons/location.png";
 import VolunteerIcon from "../../assets/icons/user.png";
+import { X } from "lucide-react";
 
 const EventInfo = () => {
     const { eventId } = useParams();
     const [event, setEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
+    //edit korar jonne
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editData, setEditData] = useState({});
 
     useEffect(() => {
         // Load event data
@@ -36,6 +41,7 @@ const EventInfo = () => {
     const capacityPercentage = (event.volunteersRegistered / event.volunteersNeeded) * 100;
 
     return (
+        <>
         <div className="
          relative top-[15vh] left-[5vw] h-[411px]  max-w-[90vw]
          bg-[#0065E0] rounded-[20px]
@@ -51,7 +57,10 @@ const EventInfo = () => {
                 ">
                     <span className="relative left-[1%] font-bold">{event.eventName}</span>
                     <div className="flex items-center gap-3 flex-shrink-0 absolute right-[2%]">
-                        <EditButton text="Edit"></EditButton>
+                        <EditButton text="Edit" onClick={() => {
+                            setEditData(event);
+                            setIsEditOpen(true);
+                        }} />
                         <DeleteButton text="Delete"></DeleteButton>
                     </div>
                 </div>
@@ -71,7 +80,7 @@ const EventInfo = () => {
                         flex gap-4
                         ">
                             <div className=" relative w-[40px] h-[40px] rounded-[10px] bg-[#0065E0]/14 flex items-center justify-center">
-                                <img src={CalendarIcon} alt="Calendar icon" className="w-[25px] h-[25px]"/>
+                                <img src={CalendarIconn} alt="Calendar icon" className="w-[25px] h-[25px]"/>
                             </div>
 
                             {/*TEXT*/}
@@ -173,8 +182,229 @@ const EventInfo = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>x
         </div>
+            {isEditOpen && (
+                <div
+                    className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsEditOpen(false);
+                    }}
+                >
+                    <div
+                        className="bg-white w-[50%] rounded-xl shadow-2xl max-w-4xl h-[95vh] overflow-y-auto"
+                        style={{ paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div
+                            className="flex items-center justify-between p-8 border-b border-gray-200 sticky top-0 bg-white"
+                            style={{ marginBottom: '20px' }}
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="w-14 h-14 bg-[linear-gradient(131.73deg,#0067DD_5.55%,#00AD4B_71.83%)] rounded-xl flex items-center justify-center flex-shrink-0">
+                                    {/*<CalendarIcon className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#0072c5] to-[#00c57b]" />*/}
+                                    <img src={CalendarWhite} alt="Calendar icon" className="w-[35px] h-[35px]"/>
+                                </div>
+                                <div className="flex flex-col">
+                                    <h2 className="text-2xl font-bold text-gray-900 leading-tight">
+                                        Edit Event
+                                    </h2>
+                                    <p className="text-sm text-gray-500">
+                                        Update your volunteer event details
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsEditOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X className="w-6 h-6 text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Form */}
+                        <div className="p-8 space-y-6">
+                            {/* Event Name */}
+                            <div>
+                                <label className="block text-base font-semibold text-gray-700 mb-2">
+                                    Event Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="eventName"
+                                    value={editData.eventName || ""}
+                                    onChange={(e) =>
+                                        setEditData({ ...editData, eventName: e.target.value })
+                                    }
+                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Enter event name"
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-base font-semibold text-gray-700 mb-2">
+                                    Description
+                                </label>
+                                <textarea
+                                    name="description"
+                                    value={editData.description || ""}
+                                    onChange={(e) =>
+                                        setEditData({ ...editData, description: e.target.value })
+                                    }
+                                    rows="4"
+                                    className="w-full px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Describe your volunteer event"
+                                />
+                            </div>
+
+                            {/* Dates and Times */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-base font-semibold text-gray-700 mb-2">
+                                        Start Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="startdate"
+                                        value={editData.startdate || ""}
+                                        onChange={(e) =>
+                                            setEditData({ ...editData, startdate: e.target.value })
+                                        }
+                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-base font-semibold text-gray-700 mb-2">
+                                        Start Time *
+                                    </label>
+                                    <input
+                                        type="time"
+                                        name="startTime"
+                                        value={editData.startTime || ""}
+                                        onChange={(e) =>
+                                            setEditData({ ...editData, startTime: e.target.value })
+                                        }
+                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-base font-semibold text-gray-700 mb-2">
+                                        End Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="enddate"
+                                        value={editData.enddate || ""}
+                                        onChange={(e) =>
+                                            setEditData({ ...editData, enddate: e.target.value })
+                                        }
+                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-base font-semibold text-gray-700 mb-2">
+                                        End Time *
+                                    </label>
+                                    <input
+                                        type="time"
+                                        name="endTime"
+                                        value={editData.endTime || ""}
+                                        onChange={(e) =>
+                                            setEditData({ ...editData, endTime: e.target.value })
+                                        }
+                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Location */}
+                            <div>
+                                <label className="block text-base font-semibold text-gray-700 mb-2">
+                                    Location *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="location"
+                                    value={editData.location || ""}
+                                    onChange={(e) =>
+                                        setEditData({ ...editData, location: e.target.value })
+                                    }
+                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Event location"
+                                />
+                            </div>
+
+                            {/* Volunteers Needed */}
+                            <div>
+                                <label className="block text-base font-semibold text-gray-700 mb-2">
+                                    Volunteers Needed *
+                                </label>
+                                <input
+                                    type="number"
+                                    name="volunteersNeeded"
+                                    min="1"
+                                    value={editData.volunteersNeeded || ""}
+                                    onChange={(e) =>
+                                        setEditData({
+                                            ...editData,
+                                            volunteersNeeded: Number(e.target.value),
+                                        })
+                                    }
+                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Number of volunteers"
+                                />
+                            </div>
+
+                            {/* Requirements */}
+                            <div>
+                                <label className="block text-base font-semibold text-gray-700 mb-2">
+                                    Requirements
+                                </label>
+                                <textarea
+                                    name="requirements"
+                                    value={editData.requirements || ""}
+                                    onChange={(e) =>
+                                        setEditData({ ...editData, requirements: e.target.value })
+                                    }
+                                    rows="2"
+                                    className="w-full pt-2 px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Any specific requirements or skills needed"
+                                />
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    onClick={() => setIsEditOpen(false)}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const events = JSON.parse(localStorage.getItem("events")) || [];
+                                        const updatedEvents = events.map((e) =>
+                                            e.id === event.id ? editData : e
+                                        );
+                                        localStorage.setItem("events", JSON.stringify(updatedEvents));
+                                        setEvent(editData);
+                                        setIsEditOpen(false);
+                                    }}
+                                    className="px-6 py-3 bg-[linear-gradient(131.73deg,#0067DD_5.55%,#00AD4B_71.83%)] text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
+        </>
     );
 };
 

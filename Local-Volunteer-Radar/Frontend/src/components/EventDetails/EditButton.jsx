@@ -1,6 +1,8 @@
-const EditButton = ({text}) => {
+const EditButton = ({text, onClick}) => {
     return (
-        <button className="
+        <button
+            onClick={onClick}
+            className="
           box-border
 
           w-[94px] h-[36px]
