@@ -1,6 +1,6 @@
 import React from 'react';
 
-const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg }) => {
+const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg, onClick }) => {
     return (
         <div
             style={{
@@ -8,11 +8,19 @@ const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg }) => 
                 borderRadius: '1rem',
                 padding: '1.5rem',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                transition: 'box-shadow 0.3s',
-                borderLeft: `4px solid ${iconColor}`
+                transition: 'all 0.3s',
+                borderLeft: `4px solid ${iconColor}`,
+                cursor: 'pointer'
             }}
-            onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
-            onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
+            onMouseOver={(e) => {
+                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseOut={(e) => {
+                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            onClick={onClick}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4b5563', margin: 0 }}>

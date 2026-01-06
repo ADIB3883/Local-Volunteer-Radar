@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Users, HandFist, Building, Dumbbell, Sparkles, MapPin, Radio, Search, ChevronDown, X } from 'lucide-react';
+import { Users, Building, Sparkles, Search, ChevronDown, X } from 'lucide-react';
 import StatCard from './StatCard';
-import EventCard from './EventCard';
 import AdminNavbar from "./AdminNavbar.jsx";
 import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
@@ -10,6 +9,10 @@ import PendingUserCard from './PendingUserCard.jsx';
 import pendingUserData from './PendingUserData.jsx';
 import PendingEventsCard from "./PendingEventsCard.jsx";
 import pendingEventsData from './PendingEventsData.jsx';
+import Modal from './Modal';
+import TotalVolunteerModal from './TotalVolunteerModal';
+import TotalOrganizerModal from './TotalOrganizerModal';
+import ActiveEventsModal from './ActiveEventsModal';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
@@ -19,6 +22,7 @@ const AdminDashboard = () => {
     const [selectedType, setSelectedType] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
+    const [modalOpen, setModalOpen] = useState(null);
     //Filtered state needed?
 
     const navigate = useNavigate();
@@ -29,40 +33,37 @@ const AdminDashboard = () => {
 
     const stats = [
         {
-            id: 1,
+            id: 'volunteers',
             title: 'Total Volunteers',
-            value: '170',
+            value: '5',
             subtitle: 'Volunteers across the country',
             icon: Users,
             iconColor: '#3b82f6',
-            iconBg: '#dbeafe'
+            iconBg: '#dbeafe',
+            modalTitle: 'Total Volunteers',
+            modalContent: <TotalVolunteerModal />
         },
         {
-            id: 2,
-            title: 'Active Volunteers',
-            value: '88',
-            subtitle: 'Currently volunteering',
-            icon: HandFist,
-            iconColor: '#10b981',
-            iconBg: '#d1fae5'
-        },
-        {
-            id: 3,
+            id: 'organizers',
             title: 'Total Organizers',
-            value: 39,
+            value: 3,
             subtitle: 'Organizers registered',
             icon: Building,
             iconColor: '#06b6d4',
-            iconBg: '#cffafe'
+            iconBg: '#cffafe',
+            modalTitle: 'Total Organizers',
+            modalContent: <TotalOrganizerModal />
         },
         {
-            id: 4,
-            title: 'Active Organizers',
-            value: '20',
+            id: 'events',
+            title: 'Active Events',
+            value: '2',
             subtitle: 'Organizers currently working',
-            icon: Dumbbell,
+            icon: Sparkles,
             iconColor: '#a855f7',
-            iconBg: '#f3e8ff'
+            iconBg: '#f3e8ff',
+            modalTitle: 'Ongoing Events',
+            modalContent: <ActiveEventsModal />
         }
     ];
 
@@ -96,6 +97,7 @@ const AdminDashboard = () => {
                     {stats.map((stat) => (
                         <StatCard
                             key={stat.id}
+                            onClick={() => setModalOpen(stat.id)}
                             title={stat.title}
                             value={stat.value}
                             subtitle={stat.subtitle}
@@ -105,6 +107,17 @@ const AdminDashboard = () => {
                         />
                     ))}
                 </div>
+
+                {stats.map((stat) => (
+                    <Modal
+                        key={stat.id}
+                        isOpen={modalOpen === stat.id}
+                        onClose={() => setModalOpen(null)}
+                        title={stat.modalTitle}
+                    >
+                        {stat.modalContent}
+                    </Modal>
+                ))}
 
                 {/* Tabs */}
                 <div style={{
