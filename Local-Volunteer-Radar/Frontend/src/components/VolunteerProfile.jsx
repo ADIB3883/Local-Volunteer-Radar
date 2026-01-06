@@ -4,16 +4,31 @@ import {useNavigate} from "react-router-dom";
 import logo from "../assets/logo.png";
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
-
+import { useEffect } from "react";
 
 const VolunteerProfile = () => {
     const navigate = useNavigate();
+
+
+
+// inside component
+    const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
+
+    useEffect(() => {
+        if (!volunteer) {
+            navigate("/login");
+        }
+    }, [navigate, volunteer]);
+
+// Then in JSX, just render normally
+    if (!volunteer) return null; // temporary fallback until redirect
 
     const handleBackToDashboard = () => {
         navigate('/volunteer-dashboard');
     };
 
     const handleLogout = () => {
+        localStorage.removeItem("loggedInUser");
         navigate('/login');
     };
 
@@ -43,20 +58,20 @@ const VolunteerProfile = () => {
         console.log('Connect Google Calendar clicked');
     };
 
-    const volunteer = {
-        id: 'VOL-0001',
-        name: 'Joel Miller',
-        email: 'joelmiller@gmail.com',
-        phone: '+8801992002430',
-        skills: ['Teaching', 'Technical Support']
-    };
+
 
     const qrPayload = JSON.stringify({
         type: 'VOLUNTEER_PROFILE',
         id: volunteer.id,
-        name: volunteer.name,
+        name: volunteer.fullName,
         email: volunteer.email
     });
+    //loggedInUser e skills gula boolean object e ase
+    const activeSkills = volunteer.skills
+        ? Object.keys(volunteer.skills).filter(key => volunteer.skills[key])
+        : [];
+
+    const availability = volunteer.availability || [];
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -164,7 +179,7 @@ const VolunteerProfile = () => {
                                     </svg>
                                 </div>
                                 <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.25rem 0' }}>
-                                    Joel Miller
+                                    {volunteer.fullName}
                                 </h3>
                             </div>
 
@@ -173,19 +188,19 @@ const VolunteerProfile = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                                     <Mail size={18} style={{ color: '#6b7280' }} />
                                     <span style={{ fontSize: '0.875rem', color: '#374151' }}>
-                                        joemiller@gmail.com
+                                        {volunteer.email}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                                     <Phone size={18} style={{ color: '#6b7280' }} />
                                     <span style={{ fontSize: '0.875rem', color: '#374151' }}>
-                                        +8801992002430
+                                        {volunteer.phoneNumber || "Not provided"}
                                     </span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <MapPin size={18} style={{ color: '#6b7280' }} />
                                     <span style={{ fontSize: '0.875rem', color: '#374151' }}>
-                                        716, Kafrul, Noakhali
+                                        {volunteer.address || "Not provided"}
                                     </span>
                                 </div>
                             </div>
@@ -201,12 +216,22 @@ const VolunteerProfile = () => {
                                     </h3>
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    <span style={{ padding: '0.5rem 1rem', background: '#d1fae5', color: '#065f46', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: '500' }}>
-                                        Teaching
-                                    </span>
-                                    <span style={{ padding: '0.5rem 1rem', background: '#dbeafe', color: '#1e40af', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: '500' }}>
-                                        Technical Support
-                                    </span>
+                                    {activeSkills.map(skill => (
+                                        <span
+                                            key={skill}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                background: '#d1fae5',
+                                                color: '#065f46',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.875rem',
+                                                fontWeight: '500'
+                                            }}
+                                        >
+                                            {skill}
+                                        </span>
+                                    ))}
+
                                 </div>
                             </div>
 
@@ -215,12 +240,17 @@ const VolunteerProfile = () => {
                                 <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: '0 0 1rem 0' }}>
                                     Availability
                                 </h3>
-                                <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: '0 0 0.5rem 0' }}>
-                                    Monday: 09:00 - 17:00
-                                </p>
-                                <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>
-                                    Wednesday: 09:00 - 17:00
-                                </p>
+                                {availability.length > 0 ? (
+                                    availability.map(slot => (
+                                        <p key={slot.id} style={{ fontSize: '0.875rem', color: '#4b5563', margin: '0 0 0.5rem 0' }}>
+                                            {slot.day}: {slot.startTime} - {slot.endTime}
+                                        </p>
+                                    ))
+                                ) : (
+                                    <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>
+                                        No availability set
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -282,7 +312,7 @@ const VolunteerProfile = () => {
                                     {/* Volunteer Info */}
                                     <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                                         <p style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
-                                            {volunteer.name}
+                                            {volunteer.fullName}
                                         </p>
                                         <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0.25rem 0' }}>
                                             ID: {volunteer.id}
@@ -294,7 +324,8 @@ const VolunteerProfile = () => {
 
                                     {/* Skills */}
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
-                                        {volunteer.skills.map(skill => (
+
+                                        {activeSkills.map(skill => (
                                             <span
                                                 key={skill}
                                                 style={{

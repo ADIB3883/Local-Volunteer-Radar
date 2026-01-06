@@ -23,7 +23,8 @@ function App() {
                     <Route path="/volunteer-profile" element={<VolunteerProfile />} />
                     <Route path="/volunteer-edit-profile" element={<VolunteerEditProfile />} />
                     <Route path="/organizer-dashboard" element={<OrganizerDashboard />} />
-                    <Route path="/event-details/:evendId" element={<EventDetails />} />
+
+                    <Route path="/event-details/:eventId" element={<EventDetails />} />
                     <Route path="/admin-dashboard" element={<AdminDashboard />} />
                     <Route path="/announcements" element={<AnnouncementPage />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />

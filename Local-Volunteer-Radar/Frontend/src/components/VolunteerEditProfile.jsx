@@ -16,18 +16,40 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
     };
 
     const [formData, setFormData] = useState({
-        fullName: 'Joel Miller',
-        email: 'joelmiller@gmail.com',
-        phone: '+8801992002430',
-        address: '716, Kafrul, Noakhali',
+        fullName: '',
+        email: '',
+        phone: '',
+        address: '',
         bio: ''
     });
 
-    const [skills, setSkills] = useState(['Teaching', 'Technical Support']);
-    const [availabilitySlots, setAvailabilitySlots] = useState([
-        { id: 1, day: 'Monday', startTime: '09:00 AM', endTime: '05:00 PM' },
-        { id: 2, day: 'Monday', startTime: '09:00 AM', endTime: '05:00 PM' }
-    ]);
+    const [skills, setSkills] = useState([]);
+    const [availabilitySlots, setAvailabilitySlots] = useState([]);
+
+    React.useEffect(() => {
+        const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (!volunteer) {
+            navigate('/login');
+            return;
+        }
+
+        setFormData({
+            fullName: volunteer.fullName || '',
+            email: volunteer.email || '',
+            phone: volunteer.phoneNumber || '',
+            address: volunteer.address || '',
+            bio: volunteer.bio || ''
+        });
+
+        // Convert skills object to array
+        const activeSkills = volunteer.skills
+            ? Object.keys(volunteer.skills).filter(key => volunteer.skills[key])
+            : [];
+        setSkills(activeSkills);
+
+        // Load availability if exists
+        setAvailabilitySlots(volunteer.availability || []);
+    }, [navigate]);
 
     const handleInputChange = (e) => {
         setFormData({
@@ -61,8 +83,20 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
     };
 
     const handleSave = () => {
-        console.log('Saving changes:', formData, skills, availabilitySlots);
-        if (onSave) onSave();
+        const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (!volunteer) return;
+
+        const updatedVolunteer = {
+            ...volunteer,
+            phoneNumber: formData.phone,
+            address: formData.address,
+            bio: formData.bio,
+            skills: skills.reduce((acc, skill) => ({ ...acc, [skill]: true }), {}),
+            availability: availabilitySlots
+        };
+
+        localStorage.setItem('loggedInUser', JSON.stringify(updatedVolunteer));
+        navigate('/volunteer-profile');
     };
 
     return (
@@ -353,10 +387,13 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
                             }}
                         >
                             <option value="">Select skill</option>
-                            <option value="Communication">Communication</option>
-                            <option value="Leadership">Leadership</option>
-                            <option value="Organization">Organization</option>
-                            <option value="Other">Other</option>
+                            <option value="firstAid">firstAid</option>
+                            <option value="mediaPhotography">mediaPhotography</option>
+                            <option value="technicalSupport">technicalSupport</option>
+                            <option value="animalRescue">animalRescue</option>
+                            <option value="distribution">distribution</option>
+                            <option value="eventLogistics">eventLogistics</option>
+                            <option value="other">other</option>
                         </select>
 
                         <button
