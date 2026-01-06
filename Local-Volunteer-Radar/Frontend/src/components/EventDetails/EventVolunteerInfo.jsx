@@ -1,4 +1,5 @@
-import {useState} from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import EditButton from "./EditButton.jsx";
 import DeleteButton from "./DeleteButton.jsx";
 import FilterButtons from "./VolunteerFilterButtons.jsx";
@@ -9,53 +10,48 @@ import Joel from "../../assets/icons/joel.jpeg"
 import Ellie from "../../assets/icons/ellie.jpeg"
 
 function EventVolunteerInfo(){
-    const [volunteers, setVolunteers] = useState([
-        {
-            id: 1,
-            pic: Joel,
-            name: "Joel Miller",
-            registerDate: "21/12/2025",
-            eventsCompleted: "12",
-            volunteerStatus: "Pending",
-            actionTaken: false,
-            email: "joel@gmail.com",
-            phone: "+8801992002430",
-            hoursVolunteered: "48",
-            skills: ["first-aid", "medical"],
-            availability: [
-                {day: 'Sun', time: '08:00-12:00'},
-                {day: 'Sat', time: '08:00-12:00'},
-                {day: 'Mon', time: '14:00-18:00'}
-            ]
-        },
-        {
-            id: 2,
-            pic: Ellie,
-            name: "Ellie Williams",
-            registerDate: "15/12/2025",
-            eventsCompleted: "8",
-            volunteerStatus: "Pending",
-            actionTaken: false,
-            email: "ellie@gmail.com",
-            phone: "+8801992002431",
-            hoursVolunteered: "32",
-            skills: ["first-aid", "communication"],
-            availability: [
-                {day: 'Fri', time: '10:00-14:00'},
-                {day: 'Sat', time: '09:00-13:00'}
-            ]
-        }
-    ]);
+    const { eventId } = useParams();
+    const [volunteers, setVolunteers] = useState([]);
+    const [activeFilter, setActiveFilter] = useState("All");
 
+    // Load volunteers from registrations
+    useEffect(() => {
+        const loadVolunteers = () => {
+            const allRegistrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
+            const eventRegs = allRegistrations.filter(
+                reg => reg.eventId === parseInt(eventId)
+            );
+
+            // Transform registrations into volunteer format
+            const volunteersData = eventRegs.map(reg => ({
+                id: reg.id,
+                pic: reg.volunteerPic || userGray,
+                name: reg.volunteerName,
+                registerDate: new Date(reg.registeredAt).toLocaleDateString('en-GB'),
+                eventsCompleted: reg.eventsCompleted,
+                volunteerStatus: reg.status,
+                actionTaken: reg.status !== 'Pending',
+                email: reg.volunteerEmail,
+                phone: reg.volunteerPhone,
+                hoursVolunteered: reg.hoursVolunteered,
+                skills: reg.volunteerSkills || [],
+                availability: reg.volunteerAvailability || []
+            }));
+
+            setVolunteers(volunteersData);
+        };
+
+        loadVolunteers();
+    }, [eventId]);
 
     // Volunteer filter er jonne
-    const [activeFilter, setActiveFilter] = useState("All");
     const filteredVolunteers = activeFilter === "All"
         ? volunteers
         : volunteers.filter(volunteer=> volunteer.volunteerStatus === activeFilter);
 
-    //Volunteer er status  array te cng anar jonno
+    //Volunteer er status array te change anar jonno
     const updateVolunteerStatus = (volunteerId, newStatus) => {
+        // Update in state
         setVolunteers(prevVolunteers =>
             prevVolunteers.map(volunteer =>
                 volunteer.id === volunteerId
@@ -63,6 +59,29 @@ function EventVolunteerInfo(){
                     : volunteer
             )
         );
+
+        // Update in localStorage
+        const allRegistrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
+        const updatedRegistrations = allRegistrations.map(reg =>
+            reg.id === volunteerId
+                ? { ...reg, status: newStatus }
+                : reg
+        );
+        localStorage.setItem('eventRegistrations', JSON.stringify(updatedRegistrations));
+
+        // Also update the event's volunteer count if approved/rejected
+        const events = JSON.parse(localStorage.getItem('events')) || [];
+        const eventIndex = events.findIndex(e => e.id === parseInt(eventId));
+
+        if (eventIndex !== -1) {
+            // Count approved volunteers
+            const approvedCount = updatedRegistrations.filter(
+                reg => reg.eventId === parseInt(eventId) && reg.status === 'Approved'
+            ).length;
+
+            events[eventIndex].volunteersRegistered = approvedCount;
+            localStorage.setItem('events', JSON.stringify(events));
+        }
     };
 
     // 0 volunteer thakle different msg dekhabe
@@ -121,20 +140,8 @@ function EventVolunteerInfo(){
             </div>
 
             <div className="w-full h-[20px]"></div>
-            {/*<div className=" absolute bg-cyan-500 top-[40%]*/}
-            {/*  w-[90%] min-h-[158px] bg-black rounded-[15px]*/}
-            {/*  flex flex-col items-start*/}
-            {/*  ">*/}
-            {/*    <EventVolunteerProfile/>*/}
-
-            {/*</div>*/}
-
         </div>
-
-
     );
-
-
-
 }
+
 export default EventVolunteerInfo;
