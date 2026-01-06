@@ -9,6 +9,9 @@ import PendingUserCard from './PendingUserCard.jsx';
 import pendingUserData from './PendingUserData.jsx';
 import PendingEventsCard from "./PendingEventsCard.jsx";
 import pendingEventsData from './PendingEventsData.jsx';
+import StatDetailPopup from './StatDetailPopup.jsx';
+
+
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
@@ -69,6 +72,12 @@ const AdminDashboard = () => {
     }, [searchQuery, selectedType, selectedStatus, sortBy]);
 
     const navigate = useNavigate();
+
+    const [selectedStat, setSelectedStat] = useState(null);
+
+    const handleAnnouncementsClick = () => {
+
+    };
 
     const handleLogoutClick = () => {
         navigate('/login');
@@ -132,9 +141,11 @@ const AdminDashboard = () => {
             {/* Navbar */}
             <AdminNavbar
                 userName="Adib Hoque"
-                title = "Admin Dashboard"
+                title="Admin Dashboard"
+                onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
             />
+
 
             {/* Main Content */}
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
@@ -757,6 +768,11 @@ const AdminDashboard = () => {
                     </>
                 )}
             </div>
+            <StatDetailPopup
+                stat={selectedStat}
+                isOpen={!!selectedStat}
+                onClose={() => setSelectedStat(null)}
+            />
         </div>
     );
 };
