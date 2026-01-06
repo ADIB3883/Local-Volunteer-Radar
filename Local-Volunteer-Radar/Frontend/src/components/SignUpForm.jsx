@@ -3,8 +3,8 @@ import VolunteerSignUpForm from './VolunteerSignUpForm';
 import OrganizerSignUpForm from './OrganizerSignUpForm';
 import UserTypeButton from './UserTypeButton';
 
-const SignUpForm = () => {
-    const [userType, setUserType] = useState('volunteer');
+const SignUpForm = ({ initialUserType = 'volunteer' }) => {
+    const [userType, setUserType] = useState(initialUserType);
 
     return (
         <div className="grid gap-6 max-w-3xl mx-auto w-full px-8">

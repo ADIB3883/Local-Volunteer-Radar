@@ -31,8 +31,18 @@ function HomePage() {
                         dedicated to build a better tomorrow.
                     </p>
                     <div className="copa-hero-buttons">
-                        <button className="copa-btn-hero-primary">Join as Volunteer</button>
-                        <button className="copa-btn-hero-secondary">Register Organization</button>
+                        <button
+                            className="copa-btn-hero-primary"
+                            onClick={() => navigate('/login', { state: { view: 'signup', userType: 'volunteer' } })}
+                        >
+                            Join as Volunteer
+                        </button>
+                        <button
+                            className="copa-btn-hero-secondary"
+                            onClick={() => navigate('/login', { state: { view: 'signup', userType: 'organizer' } })}
+                        >
+                            Register Organization
+                        </button>
                     </div>
                 </section>
 

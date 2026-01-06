@@ -1,12 +1,20 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import HomeButton from './HomeButton';
 import LoginForm from './LoginForm';
 import SignUpForm from './SignUpForm';
 
 const LoginPage = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [selected, setSelected] = useState('login');
+
+    // Check if navigation state specifies signup view
+    useEffect(() => {
+        if (location.state?.view === 'signup') {
+            setSelected('signup');
+        }
+    }, [location.state]);
 
     return (
         <div className="min-h-screen grid place-items-center bg-gradient-to-br from-blue-200 to-teal-200 p-4">
@@ -39,7 +47,7 @@ const LoginPage = () => {
                 {/* Form Row */}
                 <div className="grid">
                     {selected === 'login' && <LoginForm />}
-                    {selected === 'signup' && <SignUpForm />}
+                    {selected === 'signup' && <SignUpForm initialUserType={location.state?.userType} />}
                 </div>
             </div>
         </div>
