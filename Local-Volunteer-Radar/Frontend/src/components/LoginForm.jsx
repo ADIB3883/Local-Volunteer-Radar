@@ -16,13 +16,49 @@ const LoginForm = () => {
     const handleSignIn = (e) => {
         e.preventDefault();
 
+        let users=[];
+
+        if(userType === "volunteer"){
+            users= JSON.parse(localStorage.getItem("allVolunteers")) || [];
+        }
+        else if(userType ==="organizer"){
+            users=JSON.parse(localStorage.getItem("allOrganizers")) || [];
+        }
+        else if(userType==="admin"){
+            //demo admin er id
+            if(email ==="admin@gmail.com" && password ==="admin123"){
+                const adminUser={role:"admin",email};
+                localStorage.setItem("loggedInUser",JSON.stringify(adminUser));
+                navigate("/admin-dashboard");
+                return
+            }
+            else{
+                alert("Invalid admin credentials");
+                return;
+            }
+        }
+
+        const foundUser = users.find(
+            (user) => user.email === email && user.password === password
+        );
+        if(!foundUser){
+            alert("Invalid email or password");
+            return;
+        }
+
+        //login session
+        localStorage.setItem(
+            "loggedInUser",
+            JSON.stringify(foundUser)
+        );
+
+
         const dashboardRoutes = {
             volunteer: '/volunteer-dashboard',
-            organizer: '/organizer-dashboard',
-            admin: '/admin-dashboard',
+            organizer: '/organizer-dashboard'
         };
 
-        navigate(dashboardRoutes[userType] || '/volunteer-dashboard');
+        navigate(dashboardRoutes[userType]);
     };
 
     const handleForgotPassword = () => {
