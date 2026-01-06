@@ -1,3 +1,6 @@
+
+
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
@@ -233,7 +236,7 @@ const OrganizerDashboard = () => {
                             e.stopPropagation();
                             setShowCreateModal(true);
                         }}
-                        className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold shadow-md"style={{paddingRight: '10px'}}
+                        className="flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold leading-none shadow-md"
                     >
                         <Plus className="w-6 h-6" />
                         Create Event
@@ -249,23 +252,21 @@ const OrganizerDashboard = () => {
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`h-9 px-6 py-5 text-base font-semibold transition-colors rounded-lg border ${
+                                className={`h-9 px-6  text-base font-semibold transition-colors rounded-lg border ${
                                     activeTab === tab
                                         ? 'bg-white text-black-900 border-white'
                                         : 'bg-gray text-gray border-white'
                                 }`}
                             >
                                 {tab === 'active' ? 'Active' : tab === 'pending' ? 'Pending Approval' : 'Completed'}
-                                {activeTab === tab && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                                )}
+
                             </button>
                         ))}
                     </div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 " >
                     {/* Event Cards or Empty State */}
-                    <div className="h-60 px-8 py-8">
+                    <div className="h-80 px-8 py-8">
                         {filteredEvents.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredEvents.map((event) => (
@@ -338,8 +339,8 @@ const OrganizerDashboard = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center text-center py-12">
-                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{marginBottom: '16px'}}>
+                            <div className="flex flex-col items-center justify-center text-center py-6">
+                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{marginBottom: '24px'}}>
                                     <Calendar className="w-7 h-7 text-blue-500" />
                                 </div>
                                 <h3 className="text-base font-semibold text-gray-900">
@@ -355,9 +356,9 @@ const OrganizerDashboard = () => {
                                             e.stopPropagation();
                                             setShowCreateModal(true);
                                         }}
-                                        className="flex items-center gap-2 px-10 py-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+                                        className="flex items-center gap-2 px-5 py-5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base font-medium shadow-sm"
                                     >
-                                        <Plus className="w-8 h-8" />
+                                        <Plus className="w-4 h-4" />
                                         Create Event
                                     </button>
                                 )}
