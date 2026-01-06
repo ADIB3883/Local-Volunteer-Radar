@@ -5,11 +5,12 @@ import logo from "../assets/logo.png";
 import { QRCodeCanvas } from 'qrcode.react';
 import html2canvas from 'html2canvas';
 import { useEffect } from "react";
+import { useState } from "react";
 
 const VolunteerProfile = () => {
     const navigate = useNavigate();
 
-
+    const [isCalendarConnected, setIsCalendarConnected] = useState(false);
 
 // inside component
     const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
@@ -55,10 +56,8 @@ const VolunteerProfile = () => {
 
 
     const handleConnectCalendar = () => {
-        console.log('Connect Google Calendar clicked');
+        setIsCalendarConnected(!isCalendarConnected);
     };
-
-
 
     const qrPayload = JSON.stringify({
         type: 'VOLUNTEER_PROFILE',
@@ -173,10 +172,18 @@ const VolunteerProfile = () => {
 
                             {/* Profile Picture and Name */}
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-                                <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
+                                <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', overflow: 'hidden' }}>
+                                    {volunteer.profilePicture ? (
+                                        <img
+                                            src={volunteer.profilePicture}
+                                            alt="Profile"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    )}
                                 </div>
                                 <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.25rem 0' }}>
                                     {volunteer.fullName}
@@ -384,8 +391,15 @@ const VolunteerProfile = () => {
                                             Google Calendar Sync
                                         </h2>
                                     </div>
-                                    <span style={{ padding: '0.25rem 0.75rem', background: '#d1fae5', color: '#065f46', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600' }}>
-                                        Not Connected
+                                    <span style={{
+                                        padding: '0.25rem 0.75rem',
+                                        background: isCalendarConnected ? '#dbeafe' : '#fee2e2',
+                                        color: isCalendarConnected ? '#1e40af' : '#991b1b',
+                                        borderRadius: '9999px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600'
+                                    }}>
+                                        {isCalendarConnected ? 'Connected' : 'Not Connected'}
                                     </span>
                                 </div>
                                 <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 1.5rem 0' }}>
@@ -415,7 +429,7 @@ const VolunteerProfile = () => {
                                     style={{
                                         width: '100%',
                                         padding: '0.75rem',
-                                        background: '#3b82f6',
+                                        background: isCalendarConnected ? '#10b981' : '#3b82f6',
                                         color: 'white',
                                         border: 'none',
                                         borderRadius: '9999px',
@@ -424,10 +438,10 @@ const VolunteerProfile = () => {
                                         fontWeight: '600',
                                         transition: 'background-color 0.2s'
                                     }}
-                                    onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                                    onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                                    onMouseOver={(e) => e.currentTarget.style.background = isCalendarConnected ? '#059669' : '#2563eb'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = isCalendarConnected ? '#10b981' : '#3b82f6'}
                                 >
-                                    Connect Google Calendar
+                                    {isCalendarConnected ? 'Disconnect Calendar' : 'Connect Google Calendar'}
                                 </button>
                             </div>
                         </div>
