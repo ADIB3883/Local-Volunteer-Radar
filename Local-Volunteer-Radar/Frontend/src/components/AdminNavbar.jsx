@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, LogOut, MegaphoneIcon } from 'lucide-react';
 import AnnouncementPopup from './AnnouncementPopup.jsx';
-import logo from '../../assets/logo.png';
+import logo from '../assets/logo.png';
 
 const AdminNavbar = ({
                          userName = "Default Username",

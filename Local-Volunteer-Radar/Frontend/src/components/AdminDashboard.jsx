@@ -1,7 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, HandFist, Building, Dumbbell, Search, ChevronDown, X } from 'lucide-react';
-import StatCard from '../StatCard.jsx';
+import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";

@@ -3,7 +3,7 @@ import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import VolunteerDashboard from './components/VolunteerDashboard';
 import OrganizerDashboard from './components/OrganizerDashboard';
-import AdminDashboard from './components/Admin/AdminDashboard.jsx';
+import AdminDashboard from './components/AdminDashboard.jsx';
 import './App.css';
 import EventDetails from "./components/EventDetails/EventDetails.jsx";
 import VolunteerProfile from "./components/VolunteerProfile.jsx";
