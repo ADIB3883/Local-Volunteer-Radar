@@ -66,6 +66,12 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
         });
     };
 
+    const handleSlotChange = (id, field, value) => {
+        setAvailabilitySlots(availabilitySlots.map(slot =>
+            slot.id === id ? { ...slot, [field]: value } : slot
+        ));
+    };
+
     const removeSkill = (skillToRemove) => {
         setSkills(skills.filter(skill => skill !== skillToRemove));
     };
@@ -465,6 +471,7 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
                         <div key={slot.id} style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                             <select
                                 value={slot.day}
+                                onChange={(e) => handleSlotChange(slot.id, 'day', e.target.value)}
                                 style={{
                                     flex: '1',
                                     minWidth: '150px',
@@ -488,6 +495,8 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
                             <input
                                 type="text"
                                 value={slot.startTime}
+                                onChange={(e) => handleSlotChange(slot.id, 'startTime', e.target.value)}
+                                placeholder="09:00 AM"
                                 style={{
                                     flex: '1',
                                     minWidth: '120px',
@@ -502,6 +511,8 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
                             <input
                                 type="text"
                                 value={slot.endTime}
+                                onChange={(e) => handleSlotChange(slot.id, 'endTime', e.target.value)}
+                                placeholder="05:00 PM"
                                 style={{
                                     flex: '1',
                                     minWidth: '120px',
