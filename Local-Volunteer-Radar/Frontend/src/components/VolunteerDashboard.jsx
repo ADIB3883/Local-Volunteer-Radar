@@ -1,10 +1,109 @@
-import React, { useState } from 'react';
+import React, { useState} from 'react';
+import { CheckCircle, Clock, Calendar, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Calendar, TrendingUp, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
+import { User, LogOut, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
 import Navbar from './Navbar';
 import StatCard from './StatCard';
 import EventCard from './EventCard';
 import MyRegistrations from "./MyRegistrations.jsx";
+import Modal from './Modal';
+import EventsCompletedModal from './EventsCompletedModal';
+import HoursVolunteeredModal from './HoursVolunteeredModal';
+import ActiveRegistrationModal from './ActiveRegistrationModal';
+import SkillsUtilizedModal from './SkillsUtilizedModal';
+
+const VolunteerNotifications = () => {
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+
+    React.useEffect(() => {
+        console.log("Component mounted");
+        console.log("loggedInUser:", loggedInUser);
+
+        if (!loggedInUser) {
+            console.log("No logged in user found");
+            return;
+        }
+
+        const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
+        console.log("Stored notifications:", stored);
+        const myNotifications = stored.filter(n => n.volunteerId === loggedInUser?.email);
+        console.log("My notifications:", myNotifications);
+        const sorted = myNotifications.sort((a, b) => parseInt(b.id.split('-')[0]) - parseInt(a.id.split('-')[0]));
+        setNotifications(sorted);
+        setUnreadCount(sorted.filter(n => !n.read).length);
+    }, []);
+
+    const markAsRead = (notifId) => {
+        const all = JSON.parse(localStorage.getItem("notifications") || "[]");
+        const updated = all.map(n => n.id === notifId ? { ...n, read: true } : n);
+        localStorage.setItem("notifications", JSON.stringify(updated));
+
+        setNotifications(notifications.map(n => n.id === notifId ? { ...n, read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+    };
+
+    return (
+        <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ width: '2.5rem', height: '2.5rem', background: '#14b8a6', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Notifications</h2>
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}</p>
+                </div>
+            </div>
+
+            {notifications.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {notifications.map((notif) => (
+                        <div
+                            key={notif.id}
+                            onClick={() => !notif.read && markAsRead(notif.id)}
+                            style={{
+                                padding: '1rem',
+                                borderRadius: '0.75rem',
+                                border: notif.read ? '1px solid #e5e7eb' : '2px solid #3b82f6',
+                                background: notif.read ? '#f9fafb' : '#eff6ff',
+                                cursor: notif.read ? 'default' : 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span style={{ fontWeight: '600', color: '#111827' }}>{notif.title}</span>
+                                    {!notif.read && <span style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '50%' }}></span>}
+                                </div>
+                                <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{notif.timestamp}</span>
+                            </div>
+                            <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 0.5rem 0' }}>{notif.message}</p>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                <span>📍 {notif.eventName}</span>
+                                <span style={{ margin: '0 0.5rem' }}>•</span>
+                                <span>{notif.organizationName}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 0', textAlign: 'center' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ marginBottom: '1rem' }}>
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>No notifications yet</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 
 const VolunteerDashboard = () => {
     const [activeTab, setActiveTab] = useState('discover');
@@ -12,6 +111,7 @@ const VolunteerDashboard = () => {
     const [selectedCategory, setSelectedCategory] = useState('All Category');
     const [allEvents, setAllEvents] = useState([]);
     const [recommendedEvents, setRecommendedEvents] = useState([]);
+    const [modalOpen, setModalOpen] = useState(null);
 
     const navigate = useNavigate();
     //login kora volutneer jaate shudhu Volunteer Dashboard e ashte pare
@@ -36,40 +136,48 @@ const VolunteerDashboard = () => {
 
     const stats = [
         {
-            id: 1,
+            id: 'events',
             title: 'Events Completed',
             value: '12',
             subtitle: 'Successfully completed',
             icon: CheckCircle,
             iconColor: '#3b82f6',
-            iconBg: '#dbeafe'
+            iconBg: '#dbeafe',
+            modalTitle: 'Completed Events',
+            modalContent: <EventsCompletedModal />
         },
         {
-            id: 2,
+            id: 'hours',
             title: 'Hours Volunteered',
             value: '40',
             subtitle: 'Hours contributed',
             icon: Clock,
             iconColor: '#10b981',
-            iconBg: '#d1fae5'
+            iconBg: '#d1fae5',
+            modalTitle: 'Volunteer Hours',
+            modalContent: <HoursVolunteeredModal />
         },
         {
-            id: 3,
+            id: 'registration',
             title: 'Active Registration',
             value: '0',
             subtitle: 'Upcoming events',
             icon: Calendar,
             iconColor: '#06b6d4',
-            iconBg: '#cffafe'
+            iconBg: '#cffafe',
+            modalTitle: 'Active Registrations',
+            modalContent: <ActiveRegistrationModal />
         },
         {
-            id: 4,
+            id: 'skills',
             title: 'Skills Utilized',
             value: '2',
             subtitle: 'Active skill categories',
             icon: TrendingUp,
             iconColor: '#a855f7',
-            iconBg: '#f3e8ff'
+            iconBg: '#f3e8ff',
+            modalTitle: 'Skills Utilized',
+            modalContent: <SkillsUtilizedModal />
         }
     ];
 
@@ -123,9 +231,9 @@ const VolunteerDashboard = () => {
     };
 
 // Call filter when search or category changes
-        React.useEffect(() => {
-            handleFilter();
-        }, [searchQuery, selectedCategory, allEvents]);
+    React.useEffect(() => {
+        handleFilter();
+    }, [searchQuery, selectedCategory, allEvents]);
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -149,9 +257,22 @@ const VolunteerDashboard = () => {
                             icon={stat.icon}
                             iconColor={stat.iconColor}
                             iconBg={stat.iconBg}
+                            onClick={() => setModalOpen(stat.id)}
                         />
                     ))}
                 </div>
+
+                {/* Modals */}
+                {stats.map((stat) => (
+                    <Modal
+                        key={stat.id}
+                        isOpen={modalOpen === stat.id}
+                        onClose={() => setModalOpen(null)}
+                        title={stat.modalTitle}
+                    >
+                        {stat.modalContent}
+                    </Modal>
+                ))}
 
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -233,96 +354,7 @@ const VolunteerDashboard = () => {
                     </div>
                 )}
 
-                {activeTab === 'notifications' && (
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '1rem',
-                        padding: '2rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        marginBottom: '2rem'
-                    }}>
-                        {/* Header with icon */}
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            marginBottom: '0.5rem'
-                        }}>
-                            <div style={{
-                                width: '2.5rem',
-                                height: '2.5rem',
-                                background: '#14b8a6',
-                                borderRadius: '0.5rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                            }}>
-                                <svg
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h2 style={{
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold',
-                                    color: '#111827',
-                                    margin: 0
-                                }}>
-                                    Notifications
-                                </h2>
-                                <p style={{
-                                    fontSize: '0.75rem',
-                                    color: '#6b7280',
-                                    margin: 0
-                                }}>
-                                    0 unread notification
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Empty state */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '3rem 0',
-                            textAlign: 'center'
-                        }}>
-                            <svg
-                                width="48"
-                                height="48"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="#9ca3af"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                style={{ marginBottom: '1rem' }}
-                            >
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                            </svg>
-                            <p style={{
-                                fontSize: '0.875rem',
-                                color: '#6b7280',
-                                margin: 0
-                            }}>
-                                No notifications yet
-                            </p>
-                        </div>
-                    </div>
-                )}
+                {activeTab === 'notifications' && <VolunteerNotifications />}
 
                 {/* Show events only on Discover tab */}
                 {activeTab === 'discover' && (

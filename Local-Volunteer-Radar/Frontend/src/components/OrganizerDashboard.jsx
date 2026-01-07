@@ -2,9 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
 import logo from "../assets/logo.png";
+import Modal from './Modal';
+import ActiveEventsOrganizerModal from './ActiveEventsOrganizerModal';
+import TotalVolunteersOrganizerModal from './TotalVolunteersOrganizerModal';
+import EventsCreatedModal from './EventsCreatedModal';
+
+
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
+    const [modalOpen, setModalOpen] = useState(null);
 
     const [events, setEvents] = useState(() => {
         const stored = localStorage.getItem('events');
@@ -208,7 +215,11 @@ const OrganizerDashboard = () => {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-3 gap-6" style={{marginBottom: '32px',paddingTop: '24px'}}>
                     {/* Active Events */}
-                    <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200" style={{borderLeft: '4px solid #3b82f6'}}>
+                    <div
+                        className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
+                        style={{borderLeft: '4px solid #3b82f6'}}
+                        onClick={() => setModalOpen('active-events')}
+                    >
                         <div className="flex items-start justify-between " style={{marginBottom: '32px'}}>
                             <span className="text-base font-medium text-gray-600">Active Events</span>
                             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -219,8 +230,11 @@ const OrganizerDashboard = () => {
                         <p className="text-sm text-gray-500">Currently Recruiting Volunteers</p>
                     </div>
 
-                    {/* Total Volunteers */}
-                    <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200" style={{borderLeft: '4px solid #00AF44'}}>
+                    <div
+                        className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
+                        style={{borderLeft: '4px solid #00AF44'}}
+                        onClick={() => setModalOpen('total-volunteers')}
+                    >
                         <div className="flex items-start justify-between " style={{marginBottom: '32px'}}>
                             <span className="text-sm font-medium text-gray-600">Total Volunteers</span>
                             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -232,7 +246,11 @@ const OrganizerDashboard = () => {
                     </div>
 
                     {/* Events Created */}
-                    <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200" style={{borderLeft: '4px solid #00AF44'}}>
+                    <div
+                        className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
+                        style={{borderLeft: '4px solid #00AF44'}}
+                        onClick={() => setModalOpen('events-created')}
+                    >
                         <div className="flex items-start justify-between " style={{marginBottom: '32px'}}>
                             <span className="text-sm font-medium text-gray-600">Events Created</span>
                             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -243,6 +261,30 @@ const OrganizerDashboard = () => {
                         <p className="text-sm text-gray-500">Lifetime Total</p>
                     </div>
                 </div>
+
+                <Modal
+                    isOpen={modalOpen === 'active-events'}
+                    onClose={() => setModalOpen(null)}
+                    title="Active Events"
+                >
+                    <ActiveEventsOrganizerModal events={events} />
+                </Modal>
+
+                <Modal
+                    isOpen={modalOpen === 'total-volunteers'}
+                    onClose={() => setModalOpen(null)}
+                    title="Total Volunteers"
+                >
+                    <TotalVolunteersOrganizerModal events={events} />
+                </Modal>
+
+                <Modal
+                    isOpen={modalOpen === 'events-created'}
+                    onClose={() => setModalOpen(null)}
+                    title="Events Created"
+                >
+                    <EventsCreatedModal events={events} />
+                </Modal>
 
                 {/* Manage Events Section */}
 
@@ -390,7 +432,7 @@ const OrganizerDashboard = () => {
 
             {/* Create Event Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0   bg-opacity-2 flex items-center justify-center z-50 p-4" onClick={(e) => {
+                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
                     if (e.target === e.currentTarget) setShowCreateModal(false);
                 }}>
                     <div className="bg-white rounded-xl shadow-2xl max-w-4xl  h-[95vh] overflow-y-auto" style={{paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px'}} onClick={(e) => e.stopPropagation()}>
