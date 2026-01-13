@@ -12,7 +12,7 @@ import HoursVolunteeredModal from './HoursVolunteeredModal';
 import ActiveRegistrationModal from './ActiveRegistrationModal';
 import SkillsUtilizedModal from './SkillsUtilizedModal';
 
-const VolunteerNotifications = () => {
+const VolunteerNotifications = ({ onNotificationRead }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -42,6 +42,8 @@ const VolunteerNotifications = () => {
 
         setNotifications(notifications.map(n => n.id === notifId ? { ...n, read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
+
+        if (onNotificationRead) onNotificationRead();
     };
 
     return (
@@ -112,6 +114,7 @@ const VolunteerDashboard = () => {
     const [allEvents, setAllEvents] = useState([]);
     const [recommendedEvents, setRecommendedEvents] = useState([]);
     const [modalOpen, setModalOpen] = useState(null);
+    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
     const navigate = useNavigate();
     //login kora volutneer jaate shudhu Volunteer Dashboard e ashte pare
@@ -121,8 +124,12 @@ const VolunteerDashboard = () => {
         if(!loggedInUser|| loggedInUser.role!= "volunteer"){
             navigate("/login");
         }
-    },[]);
 
+        const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
+        const myNotifications = stored.filter(n => n.volunteerId === loggedInUser?.email);
+        const unreadCount = myNotifications.filter(n => !n.read).length;
+        setUnreadNotificationsCount(unreadCount);
+    }, [activeTab]);
 
 
     const handleProfileClick = () => {
@@ -323,12 +330,34 @@ const VolunteerDashboard = () => {
                             transition: 'all 0.3s',
                             background: activeTab === 'notifications' ? 'white' : 'transparent',
                             color: activeTab === 'notifications' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'notifications' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                            boxShadow: activeTab === 'notifications' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                            position: 'relative'
                         }}
                         onMouseOver={(e) => { if (activeTab !== 'notifications') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
                         onMouseOut={(e) => { if (activeTab !== 'notifications') e.currentTarget.style.background = 'transparent' }}
                     >
                         Notifications
+                        {unreadNotificationsCount > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '0.25rem',
+                                right: '0.25rem',
+                                minWidth: '1.25rem',
+                                height: '1.25rem',
+                                background: '#ef4444',
+                                color: 'white',
+                                fontSize: '0.75rem',
+                                fontWeight: '700',
+                                borderRadius: '9999px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0 0.25rem',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                            }}>
+                                {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                            </span>
+                        )}
                     </button>
                 </div>
 
@@ -354,7 +383,17 @@ const VolunteerDashboard = () => {
                     </div>
                 )}
 
-                {activeTab === 'notifications' && <VolunteerNotifications />}
+                {activeTab === 'notifications' && (
+                    <VolunteerNotifications
+                        onNotificationRead={() => {
+                            // Refresh unread count
+                            const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
+                            const myNotifications = stored.filter(n => n.volunteerId === loggedInUser?.email);
+                            const unreadCount = myNotifications.filter(n => !n.read).length;
+                            setUnreadNotificationsCount(unreadCount);
+                        }}
+                    />
+                )}
 
                 {/* Show events only on Discover tab */}
                 {activeTab === 'discover' && (
