@@ -370,10 +370,10 @@ const VolunteerProfile = () => {
                                         transition: 'background 0.2s ease'
                                     }}
                                     onMouseOver={(e) => {
-                                        e.currentTarget.style.background = '#1558d6';
+                                        e.currentTarget.style.background = '#2563eb';
                                     }}
                                     onMouseOut={(e) => {
-                                        e.currentTarget.style.background = '#1a73e8';
+                                        e.currentTarget.style.background = '#3b82f6';
                                     }}
                                 >
                                     <Download size={18} />

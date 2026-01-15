@@ -4,11 +4,10 @@ import {useNavigate} from "react-router-dom";
 import logo from "../assets/logo.png";
 
 
-const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
+const VolunteerEditProfile = () => {
 
     const navigate = useNavigate();
 
-    const [profilePicture, setProfilePicture] = useState(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
 
     const handleBackToProfile = () => {
@@ -16,6 +15,7 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
     };
 
     const handleLogout = () => {
+        localStorage.removeItem("loggedInUser");
         navigate('/login');
     };
 
@@ -101,7 +101,6 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setProfilePicture(file);
                 setProfilePicturePreview(reader.result);
             };
             reader.readAsDataURL(file);

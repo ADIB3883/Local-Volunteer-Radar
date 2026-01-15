@@ -121,7 +121,7 @@ const VolunteerDashboard = () => {
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
     React.useEffect(() => {
-        if(!loggedInUser|| loggedInUser.role!= "volunteer"){
+        if(!loggedInUser|| loggedInUser.role !== "volunteer"){
             navigate("/login");
         }
 
