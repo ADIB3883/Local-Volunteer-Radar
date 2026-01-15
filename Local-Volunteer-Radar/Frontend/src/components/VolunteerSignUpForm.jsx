@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../utils/api';
 import userIcon from '../assets/icons/user-icon.png';
 import mailIcon from '../assets/icons/mail-icon.png';
 import passwordIcon from '../assets/icons/password-icon.png';
@@ -39,38 +40,32 @@ const VolunteerSignUpForm = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        //locally store er jnno
-        const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
+        
+        try {
+            // Call backend API to create volunteer account
+            const response = await authAPI.signupVolunteer(formData);
+            
+            // Store user data and token in localStorage
+            const userWithToken = {
+                ...response.user,
+                token: response.token
+            };
+            localStorage.setItem('loggedInUser', JSON.stringify(userWithToken));
+            
+            // Also maintain backward compatibility with old localStorage structure
+            const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
+            existingVolunteers.push(response.user);
+            localStorage.setItem("allVolunteers", JSON.stringify(existingVolunteers));
 
-        const alreadyExists = existingVolunteers.find(
-            (vol) =>vol.email === formData.email
-        )
-        if(alreadyExists){
-            alert("This email is already registered!");
-            return;
+            alert(response.message || 'Account created successfully!');
+            console.log('Volunteer Sign Up Data:', response.user);
+            navigate('/volunteer-dashboard');
+        } catch (error) {
+            alert(error.message || 'Failed to create account. Please try again.');
+            console.error('Signup error:', error);
         }
-
-        const newVolunteer = {
-            id: Date.now(),
-            role: "volunteer",
-            ...formData,
-        };
-        //actually storing
-        localStorage.setItem(
-            "allVolunteers",
-            JSON.stringify([...existingVolunteers,newVolunteer])
-        );
-
-        localStorage.setItem(
-            "loggedInUser",
-            JSON.stringify(newVolunteer)
-        )
-
-        alert("Account created successfully!");
-        console.log('Volunteer Sign Up Data:', newVolunteer);
-        navigate('/volunteer-dashboard');
     };
 
     return (

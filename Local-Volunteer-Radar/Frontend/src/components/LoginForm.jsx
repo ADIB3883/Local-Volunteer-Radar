@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../utils/api';
 import UserTypeButton from './UserTypeButton';
 import mailIcon from '../assets/icons/mail-icon.png';
 import passwordIcon from '../assets/icons/password-icon.png';
@@ -13,52 +14,48 @@ const LoginForm = () => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSignIn = (e) => {
+    const handleSignIn = async (e) => {
         e.preventDefault();
 
-        let users=[];
-
-        if(userType === "volunteer"){
-            users= JSON.parse(localStorage.getItem("allVolunteers")) || [];
-        }
-        else if(userType ==="organizer"){
-            users=JSON.parse(localStorage.getItem("allOrganizers")) || [];
-        }
-        else if(userType==="admin"){
-            //demo admin er id
-            if(email ==="admin@gmail.com" && password ==="admin123"){
-                const adminUser={role:"admin",email};
-                localStorage.setItem("loggedInUser",JSON.stringify(adminUser));
-                navigate("/admin-dashboard");
-                return
+        try {
+            // Call backend API to login
+            const response = await authAPI.login({ email, password, userType });
+            
+            // Store user data and token in localStorage
+            const userWithToken = {
+                ...response.user,
+                token: response.token
+            };
+            localStorage.setItem('loggedInUser', JSON.stringify(userWithToken));
+            
+            // Also maintain backward compatibility by updating the old localStorage structure
+            if (userType === 'volunteer') {
+                const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
+                const userExists = existingVolunteers.find(u => u.email === email);
+                if (!userExists) {
+                    existingVolunteers.push(response.user);
+                    localStorage.setItem("allVolunteers", JSON.stringify(existingVolunteers));
+                }
+            } else if (userType === 'organizer') {
+                const existingOrganizers = JSON.parse(localStorage.getItem("allOrganizers")) || [];
+                const userExists = existingOrganizers.find(u => u.email === email);
+                if (!userExists) {
+                    existingOrganizers.push(response.user);
+                    localStorage.setItem("allOrganizers", JSON.stringify(existingOrganizers));
+                }
             }
-            else{
-                alert("Invalid admin credentials");
-                return;
-            }
+
+            const dashboardRoutes = {
+                volunteer: '/volunteer-dashboard',
+                organizer: '/organizer-dashboard',
+                admin: '/admin-dashboard'
+            };
+
+            navigate(dashboardRoutes[userType]);
+        } catch (error) {
+            alert(error.message || 'Login failed. Please try again.');
+            console.error('Login error:', error);
         }
-
-        const foundUser = users.find(
-            (user) => user.email === email && user.password === password
-        );
-        if(!foundUser){
-            alert("Invalid email or password");
-            return;
-        }
-
-        //login session
-        localStorage.setItem(
-            "loggedInUser",
-            JSON.stringify(foundUser)
-        );
-
-
-        const dashboardRoutes = {
-            volunteer: '/volunteer-dashboard',
-            organizer: '/organizer-dashboard'
-        };
-
-        navigate(dashboardRoutes[userType]);
     };
 
     const handleForgotPassword = () => {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../utils/api';
 import organizationIcon from '../assets/icons/organizer-icon.png';
 import mailIcon from '../assets/icons/mail-icon.png';
 import passwordIcon from '../assets/icons/password-icon.png';
@@ -22,41 +23,32 @@ const OrganizerSignUpForm = () => {
     });
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        //form ta locally store korar jonno
-        const existingOrganizers =
-            JSON.parse(localStorage.getItem("allOrganizers")) || [];
+        
+        try {
+            // Call backend API to create organizer account
+            const response = await authAPI.signupOrganizer(formData);
+            
+            // Store user data and token in localStorage
+            const userWithToken = {
+                ...response.user,
+                token: response.token
+            };
+            localStorage.setItem('loggedInUser', JSON.stringify(userWithToken));
+            
+            // Also maintain backward compatibility with old localStorage structure
+            const existingOrganizers = JSON.parse(localStorage.getItem("allOrganizers")) || [];
+            existingOrganizers.push(response.user);
+            localStorage.setItem("allOrganizers", JSON.stringify(existingOrganizers));
 
-        const alreadyExists = existingOrganizers.find(
-            (org) => org.email === formData.email
-        );
-
-        if (alreadyExists) {
-            alert("This email is already registered!");
-            return;
+            alert(response.message || 'Account created successfully!');
+            console.log('Organizer Sign Up Data:', response.user);
+            navigate('/organizer-dashboard');
+        } catch (error) {
+            alert(error.message || 'Failed to create account. Please try again.');
+            console.error('Signup error:', error);
         }
-
-        const newOrganizer = {
-            id: Date.now(),
-            role: "organizer",
-            ...formData,
-        };
-        //store hoitese
-        localStorage.setItem(
-            "allOrganizers",
-            JSON.stringify([...existingOrganizers, newOrganizer])
-        );
-
-        //locally session create korar jonne
-        localStorage.setItem(
-            "loggedInUser",
-            JSON.stringify(newOrganizer)
-        );
-
-        console.log('Organizer Sign Up Data:', newOrganizer);
-        alert("Account created successfully!");
-        navigate('/organizer-dashboard');
     };
 
     return (
