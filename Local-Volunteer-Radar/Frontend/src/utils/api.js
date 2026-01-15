@@ -25,14 +25,31 @@ const apiRequest = async (endpoint, options = {}) => {
 
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-        const data = await response.json();
-
+        
+        // Handle network errors or non-OK responses
         if (!response.ok) {
-            throw new Error(data.error || 'Something went wrong');
+            // Try to parse error message from JSON
+            try {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error ${response.status}`);
+            } catch (jsonError) {
+                // If JSON parsing fails, throw a generic error
+                throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+            }
         }
 
-        return data;
+        // Parse successful response
+        try {
+            const data = await response.json();
+            return data;
+        } catch (jsonError) {
+            throw new Error('Failed to parse server response');
+        }
     } catch (error) {
+        // Network error or other fetch errors
+        if (error.message.includes('Failed to fetch')) {
+            throw new Error('Cannot connect to server. Please check your internet connection.');
+        }
         console.error('API request error:', error);
         throw error;
     }

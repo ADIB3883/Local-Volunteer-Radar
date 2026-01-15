@@ -105,15 +105,24 @@ Data is stored in JSON files in the `backend/data/` directory:
 
 - Passwords are hashed using bcrypt before storage
 - JWT tokens expire after 7 days
-- CORS is configured to allow cross-origin requests
-- Admin credentials are hardcoded for demo purposes (email: admin@gmail.com, password: admin123)
+- JWT_SECRET is required (server won't start without it)
+- Protected endpoints require valid JWT authentication
+- CORS is configured to allow all origins by default
+  - **In production**: Configure CORS to only allow your frontend domain
+  - Edit `server.js` line 24: `app.use(cors({ origin: 'https://yourdomain.com' }));`
+- Admin credentials can be set via environment variables
+  - Default (development only): admin@gmail.com / admin123
+  - **In production**: Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables
 
 ## Deployment
 
 For production deployment:
 
-1. Set the `JWT_SECRET` environment variable to a secure random string
-2. Consider using a proper database instead of JSON files for better scalability
-3. Set up proper logging and error monitoring
-4. Use HTTPS for all communications
-5. Configure CORS to only allow requests from your frontend domain
+1. **Set the `JWT_SECRET` environment variable** to a secure random string (required)
+   - Generate with: `openssl rand -base64 32`
+2. **Configure CORS** to only allow requests from your frontend domain
+3. **Set strong admin credentials** via `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables
+4. Consider using a proper database instead of JSON files for better scalability
+5. Set up proper logging and error monitoring
+6. Use HTTPS for all communications
+7. Regular backups of the data directory

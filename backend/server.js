@@ -21,6 +21,8 @@ if (!JWT_SECRET) {
 }
 
 // Middleware
+// Note: In production, configure CORS to only allow specific origins
+// Example: app.use(cors({ origin: 'https://yourdomain.com' }));
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -57,8 +59,13 @@ const readData = async (filePath) => {
         const data = await fs.readFile(filePath, 'utf8');
         return JSON.parse(data);
     } catch (error) {
+        if (error.code === 'ENOENT') {
+            // File doesn't exist yet, return empty array
+            console.log(`File ${filePath} not found, initializing with empty array`);
+            return [];
+        }
         console.error(`Error reading ${filePath}:`, error);
-        return [];
+        throw new Error(`Failed to read data from ${filePath}`);
     }
 };
 
@@ -68,7 +75,7 @@ const writeData = async (filePath, data) => {
         return true;
     } catch (error) {
         console.error(`Error writing to ${filePath}:`, error);
-        return false;
+        throw new Error(`Failed to write data to ${filePath}`);
     }
 };
 
