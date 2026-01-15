@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Radio } from 'lucide-react';
-
+import { Calendar, Clock, MapPin, Radio, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 const EventCard = ({
                        eventId,
                        title,
+                       organizerId,
                        description,
                        tags,
                        date,
@@ -13,6 +14,7 @@ const EventCard = ({
                        requirements,
                        onRegister
                    }) => {
+    const navigate = useNavigate();
     const [registrationStatus, setRegistrationStatus] = useState(null);
 
     // Check registration status on mount and when eventId changes
@@ -117,7 +119,22 @@ const EventCard = ({
             onRegister();
         }
     };
+const handleMessageOrganizer = () => {
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
+    if (!loggedInUser) {
+        alert("Please login to message organizers");
+        return;
+    }
+
+    if (loggedInUser.role !== "volunteer") {
+        alert("Only volunteers can message organizers");
+        return;
+    }
+
+    // Navigate to conversation with this organizer
+    navigate(`/volunteer/messages/conv_${eventId}`);
+};
     const getButtonContent = () => {
         if (!registrationStatus) {
             return "Register to Volunteer";
@@ -229,24 +246,59 @@ const EventCard = ({
                 <span style={{ fontWeight: '600' }}>Requirements:</span> {requirements}
             </div>
 
-            <button
-                onClick={registrationStatus ? null : handleRegister}
-                disabled={!!registrationStatus}
-                style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    ...getButtonStyle(),
-                    color: 'white',
-                    fontWeight: '600',
-                    border: 'none',
-                    borderRadius: '0.75rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    transition: 'all 0.3s',
-                    opacity: registrationStatus ? 0.9 : 1
-                }}
-            >
-                {getButtonContent()}
-            </button>
+            {/* Button Group - Register and Message */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Register Button */}
+                <button
+                    onClick={registrationStatus ? null : handleRegister}
+                    disabled={!!registrationStatus}
+                    style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        ...getButtonStyle(),
+                        color: 'white',
+                        fontWeight: '600',
+                        border: 'none',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.3s',
+                        opacity: registrationStatus ? 0.9 : 1
+                    }}
+                >
+                    {getButtonContent()}
+                </button>
+
+                {/* Message Organizer Button */}
+                <button
+                    onClick={handleMessageOrganizer}
+                    style={{
+                        padding: '0.75rem 1rem',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        fontWeight: '600',
+                        border: 'none',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                        transition: 'all 0.3s',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '50px'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 12px -1px rgba(59, 130, 246, 0.4)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                    }}
+                    title="Message Organizer"
+                >
+                    <MessageCircle size={20} />
+                </button>
+            </div>
         </div>
     );
 };

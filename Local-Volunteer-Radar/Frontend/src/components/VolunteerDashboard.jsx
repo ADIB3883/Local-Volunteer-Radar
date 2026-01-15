@@ -1,5 +1,6 @@
 import React, { useState} from 'react';
 import { CheckCircle, Clock, Calendar, TrendingUp } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
 import Navbar from './Navbar';
@@ -359,6 +360,34 @@ const VolunteerDashboard = () => {
                             </span>
                         )}
                     </button>
+                    <button
+                        onClick={() => navigate('/volunteer/messages')}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '0.75rem',
+                            fontWeight: '600',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            color: 'white',
+                            boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 12px -1px rgba(59, 130, 246, 0.4)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                        }}
+                    >
+                        <MessageCircle size={20} />
+                        Messages
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -414,6 +443,7 @@ const VolunteerDashboard = () => {
                                 <EventCard
                                     key={event.id}
                                     eventId={event.id}
+                                    organizerId={event.organizerId}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
@@ -502,6 +532,7 @@ const VolunteerDashboard = () => {
                                 <EventCard
                                     key={event.id}
                                     eventId={event.id}
+                                    organizerId={event.organizerId}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
