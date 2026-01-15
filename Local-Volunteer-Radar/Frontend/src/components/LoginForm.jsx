@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loginUser } from '../api/authApi';
 import UserTypeButton from './UserTypeButton';
 import mailIcon from '../assets/icons/mail-icon.png';
 import passwordIcon from '../assets/icons/password-icon.png';
@@ -13,52 +14,35 @@ const LoginForm = () => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSignIn = (e) => {
+    const handleSignIn = async (e) => {
         e.preventDefault();
 
-        let users=[];
+        try {
+            const response = await loginUser(email, password, userType);
 
-        if(userType === "volunteer"){
-            users= JSON.parse(localStorage.getItem("allVolunteers")) || [];
-        }
-        else if(userType ==="organizer"){
-            users=JSON.parse(localStorage.getItem("allOrganizers")) || [];
-        }
-        else if(userType==="admin"){
-            //demo admin er id
-            if(email ==="admin@gmail.com" && password ==="admin123"){
-                const adminUser={role:"admin",email};
-                localStorage.setItem("loggedInUser",JSON.stringify(adminUser));
-                navigate("/admin-dashboard");
-                return
+            if (response.success) {
+                localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+
+                alert('Login successful!');
+
+                const dashboardRoutes = {
+                    volunteer: '/volunteer-dashboard',
+                    organizer: '/organizer-dashboard',
+                    admin: '/admin-dashboard'
+                };
+
+                navigate(dashboardRoutes[userType]);
             }
-            else{
-                alert("Invalid admin credentials");
-                return;
+        } catch (error) {
+            if (error.response && error.response.data) {
+                alert(error.response.data.message);
+            } else if (error.request) {
+                alert('Cannot connect to server. Make sure backend is running on http://localhost:5000');
+            } else {
+                alert('An error occurred. Please try again.');
             }
+            console.error('Login error:', error);
         }
-
-        const foundUser = users.find(
-            (user) => user.email === email && user.password === password
-        );
-        if(!foundUser){
-            alert("Invalid email or password");
-            return;
-        }
-
-        //login session
-        localStorage.setItem(
-            "loggedInUser",
-            JSON.stringify(foundUser)
-        );
-
-
-        const dashboardRoutes = {
-            volunteer: '/volunteer-dashboard',
-            organizer: '/organizer-dashboard'
-        };
-
-        navigate(dashboardRoutes[userType]);
     };
 
     const handleForgotPassword = () => {
