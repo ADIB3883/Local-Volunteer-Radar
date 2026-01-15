@@ -114,10 +114,18 @@ Data is stored in JSON files in the `backend/data/` directory:
 - Protected endpoints require valid JWT authentication
 - CORS is configured to allow all origins by default
   - **In production**: Configure CORS to only allow your frontend domain
-  - Edit `server.js` line 24: `app.use(cors({ origin: 'https://yourdomain.com' }));`
+  - Edit `server.js` line 26: `app.use(cors({ origin: 'https://yourdomain.com' }));`
 - Admin credentials can be set via environment variables
   - Default (development only): admin@gmail.com / admin123
   - **In production**: Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables
+
+**Security Recommendations:**
+- **Rate Limiting**: Consider adding rate limiting middleware (e.g., `express-rate-limit`) to prevent abuse
+  - Recommended for login and signup endpoints
+  - Example: Limit to 5 requests per minute per IP for auth endpoints
+- **Input Sanitization**: Add input sanitization for user-provided data
+- **Request Size Limits**: Configure body size limits in Express
+- **Helmet.js**: Add security headers with helmet middleware
 
 ## Deployment
 
