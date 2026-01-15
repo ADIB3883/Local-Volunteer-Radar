@@ -10,6 +10,11 @@ This is the backend server for the Local Volunteer Radar application. It provide
 - File-based data storage (JSON files)
 - CORS enabled for cross-origin requests
 
+## Requirements
+
+- Node.js 14.17+ (required for crypto.randomUUID())
+- npm or yarn
+
 ## Installation
 
 1. Navigate to the backend directory:

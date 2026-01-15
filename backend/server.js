@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const fs = require('fs').promises;
@@ -24,7 +23,7 @@ if (!JWT_SECRET) {
 // Note: In production, configure CORS to only allow specific origins
 // Example: app.use(cors({ origin: 'https://yourdomain.com' }));
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 // Data file paths
 const DATA_DIR = path.join(__dirname, 'data');
@@ -80,6 +79,7 @@ const writeData = async (filePath, data) => {
 };
 
 // Helper function to generate unique IDs
+// Requires Node.js 14.17+
 const generateId = () => {
     return crypto.randomUUID();
 };

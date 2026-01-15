@@ -47,7 +47,8 @@ const apiRequest = async (endpoint, options = {}) => {
         }
     } catch (error) {
         // Network error or other fetch errors
-        if (error.message.includes('Failed to fetch')) {
+        // Use instanceof TypeError to detect network errors reliably across browsers
+        if (error instanceof TypeError && !error.message.includes('parse')) {
             throw new Error('Cannot connect to server. Please check your internet connection.');
         }
         console.error('API request error:', error);
