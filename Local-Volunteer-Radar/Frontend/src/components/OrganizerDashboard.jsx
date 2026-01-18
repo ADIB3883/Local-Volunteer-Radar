@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus,X,MessageCircle} from 'lucide-react';
 import logo from "../assets/logo.png";
 import Modal from './Modal';
 import ActiveEventsOrganizerModal from './ActiveEventsOrganizerModal';
@@ -126,6 +126,9 @@ const OrganizerDashboard = () => {
     const handleAnnouncements = () => {
         navigate('/announcements');
     };
+    const handleMessages = () => {
+        navigate('/organizer/messages');
+    };
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -199,6 +202,13 @@ const OrganizerDashboard = () => {
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                             Pending Verification
                         </div>
+
+                        {/* MESSAGES BUTTON - NEW */}
+                        <button onClick={handleMessages} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                            <MessageCircle className="w-5 h-5 text-gray-600" />
+                        </button>
+                        <span onClick={handleMessages} className="text-sm text-gray-700 font-medium cursor-pointer hover:text-gray-900">Messages</span>
+
                         <button onClick={handleAnnouncements} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
                             <Megaphone className="w-5 h-5 text-gray-600" />
                         </button>
