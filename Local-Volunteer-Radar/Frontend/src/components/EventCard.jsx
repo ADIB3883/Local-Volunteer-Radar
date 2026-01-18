@@ -1,204 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Radio } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, Clock, Users, MessageCircle } from 'lucide-react';
+import ChatInterface from './ChatInterface';
 
-const EventCard = ({
-                       eventId,
-                       title,
-                       description,
-                       tags,
-                       date,
-                       time,
-                       location,
-                       distance,
-                       requirements,
-                       onRegister
-                   }) => {
-    const [registrationStatus, setRegistrationStatus] = useState(null);
+const EventCard = ({ eventId, title, description, tags, date, time, location, distance, requirements, onRegister }) => {
+    const [showChat, setShowChat] = useState(false);
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
-    // Check registration status on mount and when eventId changes
-    useEffect(() => {
-        const checkRegistrationStatus = () => {
-            const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-            if (!loggedInUser) return;
+    // Get organizer info from the event
+    const events = JSON.parse(localStorage.getItem('events') || '[]');
+    const event = events.find(e => e.id === eventId);
+    const organizerId = event?.organizerId || 'org_123';
+    const organizerName = 'Swapno Organization'; // You can fetch this from a users collection
 
-            const registrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
-            const userRegistration = registrations.find(
-                reg => reg.eventId === eventId && reg.volunteerEmail === loggedInUser.email
-            );
+    const handleMessageClick = (e) => {
+        e.stopPropagation();
+        setShowChat(true);
+    };
 
-            if (userRegistration) {
-                setRegistrationStatus(userRegistration.status);
-            } else {
-                setRegistrationStatus(null);
-            }
-        };
+    const conversationId = `${loggedInUser.email}_${organizerId}_${eventId}`;
+    const chatConversation = {
+        conversationId,
+        participants: [
+            { userId: loggedInUser.email, userName: loggedInUser.fullName, userRole: 'volunteer' },
+            { userId: organizerId, userName: organizerName, userRole: 'organizer' }
+        ],
+        eventId,
+        eventName: title,
+        lastMessage: '',
+        lastMessageTime: new Date()
+    };
 
-        checkRegistrationStatus();
-    }, [eventId]);
-
-    const handleRegister = () => {
-        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-
-        if (!loggedInUser) {
-            alert("Please login to register");
-            return;
-        }
-
-        if (loggedInUser.role !== "volunteer") {
-            alert("Only volunteers can register for events");
-            return;
-        }
-
-        // Get all events
-        const events = JSON.parse(localStorage.getItem('events')) || [];
-
-        // Find the specific event
-        const eventIndex = events.findIndex(e => e.id === eventId);
-
-        if (eventIndex === -1) {
-            alert("Event not found");
-            return;
-        }
-
-        // Get existing registrations or initialize
-        const registrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
-
-        // Check if already registered
-        const alreadyRegistered = registrations.some(
-            reg => reg.eventId === eventId && reg.volunteerEmail === loggedInUser.email
+    if (showChat) {
+        return (
+            <div style={{ gridColumn: '1 / -1' }}>
+                <ChatInterface
+                    conversation={chatConversation}
+                    onBack={() => setShowChat(false)}
+                    currentUser={loggedInUser}
+                />
+            </div>
         );
-
-        if (alreadyRegistered) {
-            alert("You are already registered for this event");
-            return;
-        }
-
-        // Check if event is full
-        if (events[eventIndex].volunteersRegistered >= events[eventIndex].volunteersNeeded) {
-            alert("Event is full");
-            return;
-        }
-
-        // Create registration
-        const newRegistration = {
-            id: Date.now(),
-            eventId: eventId,
-            eventName: title, // Store event name for display
-            eventDate: date,
-            eventTime: time,
-            eventLocation: location,
-            volunteerEmail: loggedInUser.email,
-            volunteerName: loggedInUser.fullName || loggedInUser.name || "Volunteer",
-            volunteerPhone: loggedInUser.phone || "",
-            volunteerSkills: loggedInUser.skills || [],
-            volunteerAvailability: loggedInUser.availability || [],
-            eventsCompleted: loggedInUser.eventsCompleted || "0",
-            hoursVolunteered: loggedInUser.hoursVolunteered || "0",
-            status: 'Pending',
-            actionTaken: false,
-            registeredAt: new Date().toISOString()
-        };
-
-        // Add registration
-        registrations.push(newRegistration);
-        localStorage.setItem('eventRegistrations', JSON.stringify(registrations));
-
-        // Update event volunteer count
-        events[eventIndex].volunteersRegistered = (events[eventIndex].volunteersRegistered || 0) + 1;
-        localStorage.setItem('events', JSON.stringify(events));
-
-        alert("Successfully registered for the event! Your registration is pending organizer approval.");
-
-        // Update local status
-        setRegistrationStatus('Pending');
-
-        // Call parent callback if provided to refresh the UI
-        if (onRegister) {
-            onRegister();
-        }
-    };
-
-    const getButtonContent = () => {
-        if (!registrationStatus) {
-            return "Register to Volunteer";
-        }
-
-        switch(registrationStatus) {
-            case 'Pending':
-                return "⏳ Registration Pending";
-            case 'Approved':
-                return "✓ Registered";
-            case 'Rejected':
-                return "✗ Registration Rejected";
-            default:
-                return "Register to Volunteer";
-        }
-    };
-
-    const getButtonStyle = () => {
-        if (!registrationStatus) {
-            return {
-                background: 'linear-gradient(to right, #3b82f6, #10b981)',
-                cursor: 'pointer'
-            };
-        }
-
-        switch(registrationStatus) {
-            case 'Pending':
-                return {
-                    background: 'linear-gradient(to right, #f59e0b, #f97316)',
-                    cursor: 'not-allowed'
-                };
-            case 'Approved':
-                return {
-                    background: 'linear-gradient(to right, #10b981, #059669)',
-                    cursor: 'not-allowed'
-                };
-            case 'Rejected':
-                return {
-                    background: 'linear-gradient(to right, #ef4444, #dc2626)',
-                    cursor: 'not-allowed'
-                };
-            default:
-                return {
-                    background: 'linear-gradient(to right, #3b82f6, #10b981)',
-                    cursor: 'pointer'
-                };
-        }
-    };
+    }
 
     return (
-        <div
-            style={{
-                background: 'white',
-                borderRadius: '1rem',
-                padding: '1.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                transition: 'box-shadow 0.3s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
-            onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
-        >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.5rem 0' }}>
-                {title}
-            </h3>
-            <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: '0 0 1rem 0' }}>
-                {description}
-            </p>
+        <div style={{
+            background: 'white',
+            borderRadius: '1rem',
+            padding: '1.5rem',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb',
+            transition: 'all 0.3s',
+            position: 'relative'
+        }}
+             onMouseOver={(e) => {
+                 e.currentTarget.style.transform = 'translateY(-4px)';
+                 e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+             }}
+             onMouseOut={(e) => {
+                 e.currentTarget.style.transform = 'translateY(0)';
+                 e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+             }}>
+            {/* Message Icon - Top Right */}
+            <button
+                onClick={handleMessageClick}
+                style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '1rem',
+                    width: '36px',
+                    height: '36px',
+                    background: '#eff6ff',
+                    border: '1px solid #3b82f6',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    zIndex: 10
+                }}
+                onMouseOver={(e) => {
+                    e.currentTarget.style.background = '#3b82f6';
+                    e.currentTarget.querySelector('svg').setAttribute('stroke', 'white');
+                }}
+                onMouseOut={(e) => {
+                    e.currentTarget.style.background = '#eff6ff';
+                    e.currentTarget.querySelector('svg').setAttribute('stroke', '#3b82f6');
+                }}
+                title="Message organizer"
+            >
+                <MessageCircle size={18} color="#3b82f6" />
+            </button>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                {tags.map((tag, index) => (
+            {/* Event Title */}
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '0.75rem', paddingRight: '3rem' }}>{title}</h3>
+
+            {/* Tags */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                {tags.map((tag, idx) => (
                     <span
-                        key={index}
+                        key={idx}
                         style={{
                             padding: '0.25rem 0.75rem',
                             borderRadius: '9999px',
                             fontSize: '0.75rem',
                             fontWeight: '500',
-                            border: '1px solid',
-                            color: tag.type === 'skill' ? '#0891b2' : '#4b5563',
-                            background: tag.type === 'skill' ? '#cffafe' : '#f3f4f6',
-                            borderColor: tag.type === 'skill' ? '#67e8f9' : '#d1d5db'
+                            background: tag.type === 'skill' ? '#dbeafe' : '#fef3c7',
+                            color: tag.type === 'skill' ? '#1e40af' : '#92400e'
                         }}
                     >
                         {tag.name}
@@ -206,46 +114,58 @@ const EventCard = ({
                 ))}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                    <Calendar size={16} style={{ color: '#3b82f6' }} />
+            {/* Description */}
+            <p style={{ fontSize: '0.875rem', color: '#4b5563', marginBottom: '1rem', lineHeight: '1.5' }}>{description}</p>
+
+            {/* Event Details */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+                    <Clock size={16} style={{ color: '#10b981' }} />
                     <span>{date}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                    <Clock size={16} style={{ color: '#10b981' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
+                    <Clock size={16} style={{ color: '#3b82f6' }} />
                     <span>{time}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
                     <MapPin size={16} style={{ color: '#ef4444' }} />
                     <span>{location}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                    <Radio size={16} style={{ color: '#a855f7' }} />
-                    <span>{distance}</span>
+            </div>
+
+            {/* Requirements */}
+            {requirements && (
+                <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>Requirements:</p>
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{requirements}</p>
                 </div>
-            </div>
+            )}
 
-            <div style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                <span style={{ fontWeight: '600' }}>Requirements:</span> {requirements}
-            </div>
-
+            {/* Register Button */}
             <button
-                onClick={registrationStatus ? null : handleRegister}
-                disabled={!!registrationStatus}
+                onClick={onRegister}
                 style={{
                     width: '100%',
                     padding: '0.75rem',
-                    ...getButtonStyle(),
+                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
                     color: 'white',
-                    fontWeight: '600',
                     border: 'none',
-                    borderRadius: '0.75rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    borderRadius: '0.5rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
                     transition: 'all 0.3s',
-                    opacity: registrationStatus ? 0.9 : 1
+                    fontSize: '0.875rem'
+                }}
+                onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                }}
+                onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = 'none';
                 }}
             >
-                {getButtonContent()}
+                Register Now
             </button>
         </div>
     );
