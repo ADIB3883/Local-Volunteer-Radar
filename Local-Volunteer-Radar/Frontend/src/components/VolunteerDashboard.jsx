@@ -1,7 +1,9 @@
-import React, { useState} from 'react';
-import { CheckCircle, Clock, Calendar, TrendingUp } from 'lucide-react';
+
+
+import React, { useState } from 'react';
+import { CheckCircle, Clock, Calendar, TrendingUp, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
+import { Sparkles, Search, ChevronDown } from 'lucide-react';
 import Navbar from './Navbar';
 import StatCard from './StatCard';
 import EventCard from './EventCard';
@@ -11,6 +13,12 @@ import EventsCompletedModal from './EventsCompletedModal';
 import HoursVolunteeredModal from './HoursVolunteeredModal';
 import ActiveRegistrationModal from './ActiveRegistrationModal';
 import SkillsUtilizedModal from './SkillsUtilizedModal';
+import MessagesTab from './MessageTab';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
+
+//const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
 const VolunteerNotifications = ({ onNotificationRead }) => {
     const [notifications, setNotifications] = useState([]);
@@ -101,6 +109,7 @@ const VolunteerNotifications = ({ onNotificationRead }) => {
                     <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>No notifications yet</p>
                 </div>
             )}
+
         </div>
     );
 };
@@ -115,13 +124,61 @@ const VolunteerDashboard = () => {
     const [recommendedEvents, setRecommendedEvents] = useState([]);
     const [modalOpen, setModalOpen] = useState(null);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+    const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+    const [filteredEvents, setFilteredEvents] = useState([]);
 
     const navigate = useNavigate();
     //login kora volutneer jaate shudhu Volunteer Dashboard e ashte pare
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
+
+    const fetchUnreadCount = async () => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/unread-count/${loggedInUser.email}`);
+            const data = await response.json();
+            setUnreadMessagesCount(data.count);
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
+        }
+    };
+    // Socket connection and unread messages count
     React.useEffect(() => {
-        if(!loggedInUser|| loggedInUser.role!= "volunteer"){
+        if (loggedInUser) {
+            // Join socket room
+            socket.emit('join', loggedInUser.email);
+
+            // Fetch initial unread count
+            fetchUnreadCount();
+
+            // Listen for unread count updates
+            socket.on('unread_count_update', (data) => {
+                setUnreadMessagesCount(data.count);
+            });
+
+            return () => {
+                socket.off('unread_count_update');
+            };
+        }
+    }, [loggedInUser]);
+
+
+    // Listen for openChat event from EventCard
+    React.useEffect(() => {
+        const handleOpenChat = () => {
+            setActiveTab('messages');
+        };
+
+        window.addEventListener('openChat', handleOpenChat);
+
+        return () => {
+            window.removeEventListener('openChat', handleOpenChat);
+        };
+    }, []);
+
+
+    React.useEffect(() => {
+        const userType = loggedInUser?.role || loggedInUser?.type;
+        if(!loggedInUser || userType !== "volunteer"){
             navigate("/login");
         }
 
@@ -190,7 +247,7 @@ const VolunteerDashboard = () => {
 
 
 
-    const [filteredEvents, setFilteredEvents] = useState([]);
+  // const [filteredEvents, setFilteredEvents] = useState([]);
     // Load events from localStorage on mount
     React.useEffect(() => {
         const stored = localStorage.getItem('events');
@@ -359,6 +416,46 @@ const VolunteerDashboard = () => {
                             </span>
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab('messages')}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '0.75rem',
+                            fontWeight: '600',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            background: activeTab === 'messages' ? 'white' : 'transparent',
+                            color: activeTab === 'messages' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'messages' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                            position: 'relative'
+                        }}
+                        onMouseOver={(e) => { if (activeTab !== 'messages') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
+                        onMouseOut={(e) => { if (activeTab !== 'messages') e.currentTarget.style.background = 'transparent' }}
+                    >
+                        Messages
+                        {unreadMessagesCount > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '0.25rem',
+                                right: '0.25rem',
+                                minWidth: '1.25rem',
+                                height: '1.25rem',
+                                background: '#ef4444',
+                                color: 'white',
+                                fontSize: '0.75rem',
+                                fontWeight: '700',
+                                borderRadius: '9999px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0 0.25rem',
+                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                            }}>
+                                {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -394,7 +491,9 @@ const VolunteerDashboard = () => {
                         }}
                     />
                 )}
-
+                {activeTab === 'messages' && (
+                    <MessagesTab currentUser={loggedInUser} />
+                )}
                 {/* Show events only on Discover tab */}
                 {activeTab === 'discover' && (
                     <>
@@ -414,13 +513,14 @@ const VolunteerDashboard = () => {
                                 <EventCard
                                     key={event.id}
                                     eventId={event.id}
+                                    organizerId={event.organizerId}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
                                         { name: event.category || 'general', type: 'skill' },
-                                        { name: `${event.volunteersNeeded - event.volunteersRegistered} spots left`, type: 'spots' }
+                                        { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                     ]}
-                                    date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                    date={new Date(event.startdate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                     time={`${event.startTime} - ${event.endTime}`}
                                     location={event.location}
                                     distance="Calculating..."
@@ -502,11 +602,12 @@ const VolunteerDashboard = () => {
                                 <EventCard
                                     key={event.id}
                                     eventId={event.id}
+                                    organizerId={event.organizerId}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
                                         { name: event.category || 'general', type: 'skill' },
-                                        { name: `${event.volunteersNeeded - event.volunteersRegistered} spots left`, type: 'spots' }
+                                        { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                     ]}
                                     date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                     time={`${event.startTime} - ${event.endTime}`}

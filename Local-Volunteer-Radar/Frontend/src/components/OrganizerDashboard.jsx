@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus,X,MessageCircle} from 'lucide-react';
 import logo from "../assets/logo.png";
 import Modal from './Modal';
 import ActiveEventsOrganizerModal from './ActiveEventsOrganizerModal';
 import TotalVolunteersOrganizerModal from './TotalVolunteersOrganizerModal';
 import EventsCreatedModal from './EventsCreatedModal';
+import MessagesTab from './MessageTab';
+import io from 'socket.io-client';
 
-
+const socket = io('http://localhost:5000');
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
@@ -32,6 +34,7 @@ const OrganizerDashboard = () => {
     }, []);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showMessagesModal, setShowMessagesModal] = useState(false);
     const [formData, setFormData] = useState({
         eventName: '',
         description: '',
@@ -126,6 +129,9 @@ const OrganizerDashboard = () => {
     const handleAnnouncements = () => {
         navigate('/announcements');
     };
+    const handleMessages = () => {
+        setShowMessagesModal(true);
+    };
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -199,6 +205,13 @@ const OrganizerDashboard = () => {
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                             Pending Verification
                         </div>
+
+                        {/* MESSAGES BUTTON - NEW */}
+                        <button onClick={handleMessages} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                            <MessageCircle className="w-5 h-5 text-gray-600" />
+                        </button>
+                        <span onClick={handleMessages} className="text-sm text-gray-700 font-medium cursor-pointer hover:text-gray-900">Messages</span>
+
                         <button onClick={handleAnnouncements} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
                             <Megaphone className="w-5 h-5 text-gray-600" />
                         </button>
@@ -667,6 +680,28 @@ const OrganizerDashboard = () => {
                                     Create Event
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Messages Modal */}
+            {showMessagesModal && (
+                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
+                    if (e.target === e.currentTarget) setShowMessagesModal(false);
+                }}>
+                    <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+                            <h2 className="text-2xl font-bold text-gray-900">Messages</h2>
+                            <button
+                                onClick={() => setShowMessagesModal(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                <X className="w-6 h-6 text-gray-500" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <MessagesTab currentUser={{ email: "org_123", role: "organizer", fullName: "Swapno" }} />
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signupUser } from '../api/authApi';
 import userIcon from '../assets/icons/user-icon.png';
 import mailIcon from '../assets/icons/mail-icon.png';
 import passwordIcon from '../assets/icons/password-icon.png';
@@ -28,6 +29,7 @@ const VolunteerSignUpForm = () => {
         }
     });
     const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSkillChange = (skill) => {
         setFormData(prev => ({
@@ -39,38 +41,69 @@ const VolunteerSignUpForm = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        //locally store er jnno
-        const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
+        setIsSubmitting(true);
 
-        const alreadyExists = existingVolunteers.find(
-            (vol) =>vol.email === formData.email
-        )
-        if(alreadyExists){
-            alert("This email is already registered!");
-            return;
+        try {
+            // Call backend API to create user in database
+            const response = await signupUser({
+                name: formData.fullName,
+                email: formData.email,
+                password: formData.password,
+                userType: 'volunteer',
+                phoneNumber: formData.phoneNumber,
+                address: formData.address,
+                skills: formData.skills
+            });
+
+            if (response.success) {
+                // Also store in localStorage for backward compatibility
+                const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
+                const newVolunteer = {
+                    id: response.user.id,
+                    role: "volunteer",
+                    fullName: formData.fullName,
+                    ...formData,
+                };
+
+                localStorage.setItem(
+                    "allVolunteers",
+                    JSON.stringify([...existingVolunteers, newVolunteer])
+                );
+
+                // Store logged in user
+                localStorage.setItem(
+                    "loggedInUser",
+                    JSON.stringify({
+                        ...response.user,
+                        fullName: response.user.name,
+                        phoneNumber: formData.phoneNumber,
+                        address: formData.address,
+                        skills: formData.skills
+                    })
+                );
+
+                alert("Account created successfully!");
+                console.log('Volunteer Sign Up Data:', response.user);
+                navigate('/volunteer-dashboard');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            let errorMessage = 'An error occurred during signup. Please try again.';
+
+            if (error.response && error.response.data && error.response.data.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.request) {
+                errorMessage = 'Cannot connect to server. Make sure backend is running on http://localhost:5000';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            alert(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
-
-        const newVolunteer = {
-            id: Date.now(),
-            role: "volunteer",
-            ...formData,
-        };
-        //actually storing
-        localStorage.setItem(
-            "allVolunteers",
-            JSON.stringify([...existingVolunteers,newVolunteer])
-        );
-
-        localStorage.setItem(
-            "loggedInUser",
-            JSON.stringify(newVolunteer)
-        )
-
-        alert("Account created successfully!");
-        console.log('Volunteer Sign Up Data:', newVolunteer);
-        navigate('/volunteer-dashboard');
     };
 
     return (
@@ -281,9 +314,10 @@ const VolunteerSignUpForm = () => {
             <div className="grid mt-2">
                 <button
                     type="submit"
-                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Create Account
+                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
             </div>
         </form>

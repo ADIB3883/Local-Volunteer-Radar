@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, MapPin, Radio } from 'lucide-react';
+import { Calendar, Clock, MapPin, Radio, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const EventCard = ({
                        eventId,
                        title,
+                       organizerId,
                        description,
                        tags,
                        date,
@@ -13,6 +15,7 @@ const EventCard = ({
                        requirements,
                        onRegister
                    }) => {
+    const navigate = useNavigate();
     const [registrationStatus, setRegistrationStatus] = useState(null);
 
     // Check registration status on mount and when eventId changes
@@ -44,7 +47,9 @@ const EventCard = ({
             return;
         }
 
-        if (loggedInUser.role !== "volunteer") {
+        // Check both 'role' and 'type' for backward compatibility
+        const userType = loggedInUser.role || loggedInUser.type;
+        if (userType !== "volunteer") {
             alert("Only volunteers can register for events");
             return;
         }
@@ -83,7 +88,7 @@ const EventCard = ({
         const newRegistration = {
             id: Date.now(),
             eventId: eventId,
-            eventName: title, // Store event name for display
+            eventName: title,
             eventDate: date,
             eventTime: time,
             eventLocation: location,
@@ -115,6 +120,67 @@ const EventCard = ({
         // Call parent callback if provided to refresh the UI
         if (onRegister) {
             onRegister();
+        }
+    };
+
+    const handleMessageOrganizer = async () => {
+        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+
+        if (!loggedInUser) {
+            alert("Please login to message organizers");
+            return;
+        }
+
+        // Check both 'role' and 'type' for backward compatibility
+        const userType = loggedInUser.role || loggedInUser.type;
+        if (userType !== "volunteer") {
+            alert("Only volunteers can message organizers");
+            return;
+        }
+
+        // Get organizer info
+        const actualOrganizerId = organizerId || 'org_123';
+        const organizerName = 'Swapno Organization'; // You can fetch this from your organizers collection if needed
+
+        // Create conversation data
+        const conversationId = `${loggedInUser.email}_${actualOrganizerId}_${eventId}`;
+        const conversation = {
+            conversationId,
+            participants: [
+                { userId: loggedInUser.email, userName: loggedInUser.fullName || loggedInUser.name, userRole: 'volunteer' },
+                { userId: actualOrganizerId, userName: organizerName, userRole: 'organizer' }
+            ],
+            eventId,
+            eventName: title,
+            lastMessage: '',
+            lastMessageTime: new Date().toISOString()
+        };
+
+        try {
+            // Create conversation in database
+            const response = await fetch('http://localhost:5000/api/conversations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(conversation)
+            });
+
+            if (response.ok) {
+                // Store conversation info temporarily
+                localStorage.setItem('openChatConversation', JSON.stringify(conversation));
+
+                // Dispatch custom event to open Messages tab in VolunteerDashboard
+                window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
+            } else {
+                console.error('Failed to create conversation');
+                alert('Failed to start conversation. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error creating conversation:', error);
+            // If backend is not available, still switch to messages tab
+            localStorage.setItem('openChatConversation', JSON.stringify(conversation));
+            window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
         }
     };
 
@@ -174,7 +240,8 @@ const EventCard = ({
                 borderRadius: '1rem',
                 padding: '1.5rem',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                transition: 'box-shadow 0.3s'
+                transition: 'box-shadow 0.3s',
+                position: 'relative'
             }}
             onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
             onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
@@ -229,24 +296,59 @@ const EventCard = ({
                 <span style={{ fontWeight: '600' }}>Requirements:</span> {requirements}
             </div>
 
-            <button
-                onClick={registrationStatus ? null : handleRegister}
-                disabled={!!registrationStatus}
-                style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    ...getButtonStyle(),
-                    color: 'white',
-                    fontWeight: '600',
-                    border: 'none',
-                    borderRadius: '0.75rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    transition: 'all 0.3s',
-                    opacity: registrationStatus ? 0.9 : 1
-                }}
-            >
-                {getButtonContent()}
-            </button>
+            {/* Button Group - Register and Message */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Register Button */}
+                <button
+                    onClick={registrationStatus ? null : handleRegister}
+                    disabled={!!registrationStatus}
+                    style={{
+                        flex: 1,
+                        padding: '0.75rem',
+                        ...getButtonStyle(),
+                        color: 'white',
+                        fontWeight: '600',
+                        border: 'none',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.3s',
+                        opacity: registrationStatus ? 0.9 : 1
+                    }}
+                >
+                    {getButtonContent()}
+                </button>
+
+                {/* Message Organizer Button */}
+                <button
+                    onClick={handleMessageOrganizer}
+                    style={{
+                        padding: '0.75rem 1rem',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        fontWeight: '600',
+                        border: 'none',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)',
+                        transition: 'all 0.3s',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '50px'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 12px -1px rgba(59, 130, 246, 0.4)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3)';
+                    }}
+                    title="Message Organizer"
+                >
+                    <MessageCircle size={20} />
+                </button>
+            </div>
         </div>
     );
 };
