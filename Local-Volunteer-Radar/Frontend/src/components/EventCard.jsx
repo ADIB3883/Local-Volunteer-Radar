@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Radio, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
 const EventCard = ({
                        eventId,
                        title,
@@ -46,7 +47,9 @@ const EventCard = ({
             return;
         }
 
-        if (loggedInUser.role !== "volunteer") {
+        // Check both 'role' and 'type' for backward compatibility
+        const userType = loggedInUser.role || loggedInUser.type;
+        if (userType !== "volunteer") {
             alert("Only volunteers can register for events");
             return;
         }
@@ -85,7 +88,7 @@ const EventCard = ({
         const newRegistration = {
             id: Date.now(),
             eventId: eventId,
-            eventName: title, // Store event name for display
+            eventName: title,
             eventDate: date,
             eventTime: time,
             eventLocation: location,
@@ -119,22 +122,68 @@ const EventCard = ({
             onRegister();
         }
     };
-const handleMessageOrganizer = () => {
-    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
-    if (!loggedInUser) {
-        alert("Please login to message organizers");
-        return;
-    }
+    const handleMessageOrganizer = async () => {
+        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
-    if (loggedInUser.role !== "volunteer") {
-        alert("Only volunteers can message organizers");
-        return;
-    }
+        if (!loggedInUser) {
+            alert("Please login to message organizers");
+            return;
+        }
 
-    // Navigate to conversation with this organizer
-    navigate(`/volunteer/messages/conv_${eventId}`);
-};
+        // Check both 'role' and 'type' for backward compatibility
+        const userType = loggedInUser.role || loggedInUser.type;
+        if (userType !== "volunteer") {
+            alert("Only volunteers can message organizers");
+            return;
+        }
+
+        // Get organizer info
+        const actualOrganizerId = organizerId || 'org_123';
+        const organizerName = 'Swapno Organization'; // You can fetch this from your organizers collection if needed
+
+        // Create conversation data
+        const conversationId = `${loggedInUser.email}_${actualOrganizerId}_${eventId}`;
+        const conversation = {
+            conversationId,
+            participants: [
+                { userId: loggedInUser.email, userName: loggedInUser.fullName || loggedInUser.name, userRole: 'volunteer' },
+                { userId: actualOrganizerId, userName: organizerName, userRole: 'organizer' }
+            ],
+            eventId,
+            eventName: title,
+            lastMessage: '',
+            lastMessageTime: new Date().toISOString()
+        };
+
+        try {
+            // Create conversation in database
+            const response = await fetch('http://localhost:5000/api/conversations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(conversation)
+            });
+
+            if (response.ok) {
+                // Store conversation info temporarily
+                localStorage.setItem('openChatConversation', JSON.stringify(conversation));
+
+                // Dispatch custom event to open Messages tab in VolunteerDashboard
+                window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
+            } else {
+                console.error('Failed to create conversation');
+                alert('Failed to start conversation. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error creating conversation:', error);
+            // If backend is not available, still switch to messages tab
+            localStorage.setItem('openChatConversation', JSON.stringify(conversation));
+            window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
+        }
+    };
+
     const getButtonContent = () => {
         if (!registrationStatus) {
             return "Register to Volunteer";
@@ -191,7 +240,8 @@ const handleMessageOrganizer = () => {
                 borderRadius: '1rem',
                 padding: '1.5rem',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                transition: 'box-shadow 0.3s'
+                transition: 'box-shadow 0.3s',
+                position: 'relative'
             }}
             onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
             onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}

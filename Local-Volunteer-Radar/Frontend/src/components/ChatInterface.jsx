@@ -2,7 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, Circle } from 'lucide-react';
 import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
+// Initialize socket OUTSIDE component to avoid reconnections
+let socket = null;
+
+const getSocket = () => {
+    if (!socket) {
+        socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5
+        });
+
+        socket.on('connect', () => {
+            console.log('✅ Socket connected:', socket.id);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Socket disconnected');
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('❌ Socket connection error:', error);
+        });
+    }
+    return socket;
+};
 
 const ChatInterface = ({ conversation, onBack, currentUser }) => {
     const [messages, setMessages] = useState([]);
@@ -10,12 +35,21 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
     const [isTyping, setIsTyping] = useState(false);
     const [typingTimeout, setTypingTimeout] = useState(null);
     const messagesEndRef = useRef(null);
+    const socketRef = useRef(null);
 
     const otherParticipant = conversation.participants.find(p => p.userId !== currentUser.email);
 
     useEffect(() => {
+        console.log('🔌 ChatInterface mounted');
+        console.log('Current user:', currentUser.email);
+        console.log('Conversation:', conversation.conversationId);
+
+        // Get socket instance
+        socketRef.current = getSocket();
+
         // Join user's room
-        socket.emit('join', currentUser.email);
+        console.log('📤 Joining room:', currentUser.email);
+        socketRef.current.emit('join', currentUser.email);
 
         // Fetch messages
         fetchMessages();
@@ -24,23 +58,63 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
         markAsRead();
 
         // Listen for new messages
-        socket.on('receive_message', (message) => {
+        const handleReceiveMessage = (message) => {
+            console.log('📨 Received message:', message);
             if (message.conversationId === conversation.conversationId) {
-                setMessages(prev => [...prev, message]);
+                setMessages(prev => {
+                    // If this is a real message from server (not temp), remove any temp messages with same content
+                    if (message._id && !message._id.toString().startsWith('temp-')) {
+                        // Check if we already have this exact message by ID
+                        const existsById = prev.some(m => m._id === message._id);
+                        if (existsById) {
+                            console.log('⚠️ Duplicate message by ID, ignoring');
+                            return prev;
+                        }
+
+                        // Remove temp message with same content from same sender
+                        const filteredMessages = prev.filter(m => {
+                            const isTemp = m._id && m._id.toString().startsWith('temp-');
+                            const isSameContent = m.message === message.message && m.senderId === message.senderId;
+
+                            if (isTemp && isSameContent) {
+                                console.log('🔄 Replacing temp message with real message');
+                                return false; // Remove temp message
+                            }
+                            return true; // Keep other messages
+                        });
+
+                        return [...filteredMessages, message];
+                    }
+
+                    // For temp messages or other cases, just add if not duplicate
+                    const exists = prev.some(m => m._id === message._id);
+                    if (exists) {
+                        console.log('⚠️ Duplicate message detected, ignoring');
+                        return prev;
+                    }
+
+
+                    return [...prev, message];
+                });
                 markAsRead();
             }
-        });
+        };
+
+        socketRef.current.on('receive_message', handleReceiveMessage);
 
         // Listen for typing
-        socket.on('user_typing', (data) => {
+        const handleTyping = (data) => {
             if (data.conversationId === conversation.conversationId) {
                 setIsTyping(data.isTyping);
             }
-        });
+        };
+
+        socketRef.current.on('user_typing', handleTyping);
 
         return () => {
-            socket.off('receive_message');
-            socket.off('user_typing');
+            console.log('🔌 ChatInterface unmounting');
+            socketRef.current.off('receive_message', handleReceiveMessage);
+            socketRef.current.off('user_typing', handleTyping);
         };
     }, [conversation.conversationId]);
 
@@ -50,11 +124,13 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
 
     const fetchMessages = async () => {
         try {
+            console.log('📥 Fetching messages for:', conversation.conversationId);
             const response = await fetch(`http://localhost:5000/api/messages/${conversation.conversationId}`);
             const data = await response.json();
+            console.log('📥 Fetched messages:', data.length);
             setMessages(data);
         } catch (error) {
-            console.error('Error fetching messages:', error);
+            console.error('❌ Error fetching messages:', error);
         }
     };
 
@@ -69,7 +145,7 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
                 })
             });
         } catch (error) {
-            console.error('Error marking as read:', error);
+            console.error('❌ Error marking as read:', error);
         }
     };
 
@@ -78,21 +154,25 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
     };
 
     const handleTyping = () => {
-        socket.emit('typing', {
+        if (!socketRef.current) return;
+
+        const userName = currentUser.fullName || currentUser.name || 'User';
+
+        socketRef.current.emit('typing', {
             conversationId: conversation.conversationId,
             receiverId: otherParticipant.userId,
             isTyping: true,
-            userName: currentUser.fullName
+            userName: userName
         });
 
         if (typingTimeout) clearTimeout(typingTimeout);
 
         const timeout = setTimeout(() => {
-            socket.emit('typing', {
+            socketRef.current.emit('typing', {
                 conversationId: conversation.conversationId,
                 receiverId: otherParticipant.userId,
                 isTyping: false,
-                userName: currentUser.fullName
+                userName: userName
             });
         }, 1000);
 
@@ -101,22 +181,42 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
 
     const handleSendMessage = () => {
         if (!newMessage.trim()) return;
+        if (!socketRef.current) {
+            console.error('❌ Socket not connected');
+            alert('Connection error. Please refresh the page.');
+            return;
+        }
+
+        // Support both property naming conventions
+        const userName = currentUser.fullName || currentUser.name || 'User';
+        const userRole = currentUser.role || currentUser.type || 'volunteer';
 
         const messageData = {
             conversationId: conversation.conversationId,
             senderId: currentUser.email,
-            senderName: currentUser.fullName,
-            senderRole: currentUser.role,
+            senderName: userName,
+            senderRole: userRole,
             receiverId: otherParticipant.userId,
             receiverName: otherParticipant.userName,
             receiverRole: otherParticipant.userRole,
             eventId: conversation.eventId,
             eventName: conversation.eventName,
-            message: newMessage
+            message: newMessage,
+            createdAt: new Date().toISOString()
         };
 
-        socket.emit('send_message', messageData);
+        // Optimistic update - show message immediately
+        const optimisticMessage = {
+            ...messageData,
+            _id: 'temp-' + Date.now(),
+            read: false
+        };
+
+        setMessages(prev => [...prev, optimisticMessage]);
         setNewMessage('');
+
+        console.log('📤 Sending message:', messageData);
+        socketRef.current.emit('send_message', messageData);
     };
 
     const formatTime = (date) => {
@@ -157,7 +257,7 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
                 {messages.map((msg, idx) => {
                     const isOwn = msg.senderId === currentUser.email;
                     return (
-                        <div key={idx} style={{ display: 'flex', justifyContent: isOwn ? 'flex-end' : 'flex-start' }}>
+                        <div key={msg._id || idx} style={{ display: 'flex', justifyContent: isOwn ? 'flex-end' : 'flex-start' }}>
                             <div style={{ maxWidth: '70%' }}>
                                 <div style={{ background: isOwn ? '#3b82f6' : '#f3f4f6', color: isOwn ? 'white' : '#111827', padding: '0.75rem 1rem', borderRadius: '1rem', borderTopRightRadius: isOwn ? '0.25rem' : '1rem', borderTopLeftRadius: isOwn ? '1rem' : '0.25rem' }}>
                                     <p style={{ margin: 0, fontSize: '0.9375rem', wordWrap: 'break-word' }}>{msg.message}</p>
@@ -172,9 +272,9 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
                 {isTyping && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280', fontSize: '0.875rem', fontStyle: 'italic' }}>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <Circle size={8} style={{ animation: 'pulse 1.4s infinite' }} />
-                            <Circle size={8} style={{ animation: 'pulse 1.4s infinite 0.2s' }} />
-                            <Circle size={8} style={{ animation: 'pulse 1.4s infinite 0.4s' }} />
+                            <Circle size={8} className="pulse-dot" />
+                            <Circle size={8} className="pulse-dot" style={{ animationDelay: '0.2s' }} />
+                            <Circle size={8} className="pulse-dot" style={{ animationDelay: '0.4s' }} />
                         </div>
                         <span>typing...</span>
                     </div>
@@ -220,6 +320,9 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
                 @keyframes pulse {
                     0%, 100% { opacity: 0.4; }
                     50% { opacity: 1; }
+                }
+                .pulse-dot {
+                    animation: pulse 1.4s infinite;
                 }
             `}</style>
         </div>

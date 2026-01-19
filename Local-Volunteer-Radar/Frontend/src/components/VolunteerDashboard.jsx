@@ -1,12 +1,9 @@
-import { MessageCircle } from 'lucide-react';
-import MessagesTab from './MessagesTab';
-import io from 'socket.io-client';
 
-const socket = io('http://localhost:5000');
-import React, { useState} from 'react';
-import { CheckCircle, Clock, Calendar, TrendingUp } from 'lucide-react';
+
+import React, { useState } from 'react';
+import { CheckCircle, Clock, Calendar, TrendingUp, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Sparkles, MapPin, Radio, Search, ChevronDown } from 'lucide-react';
+import { Sparkles, Search, ChevronDown } from 'lucide-react';
 import Navbar from './Navbar';
 import StatCard from './StatCard';
 import EventCard from './EventCard';
@@ -16,6 +13,11 @@ import EventsCompletedModal from './EventsCompletedModal';
 import HoursVolunteeredModal from './HoursVolunteeredModal';
 import ActiveRegistrationModal from './ActiveRegistrationModal';
 import SkillsUtilizedModal from './SkillsUtilizedModal';
+import MessagesTab from './MessageTab';
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:5000');
+
 //const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
 const VolunteerNotifications = ({ onNotificationRead }) => {
@@ -175,7 +177,8 @@ const VolunteerDashboard = () => {
 
 
     React.useEffect(() => {
-        if(!loggedInUser|| loggedInUser.role!= "volunteer"){
+        const userType = loggedInUser?.role || loggedInUser?.type;
+        if(!loggedInUser || userType !== "volunteer"){
             navigate("/login");
         }
 
@@ -510,13 +513,14 @@ const VolunteerDashboard = () => {
                                 <EventCard
                                     key={event.id}
                                     eventId={event.id}
+                                    organizerId={event.organizerId}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
                                         { name: event.category || 'general', type: 'skill' },
-                                        { name: `${event.volunteersNeeded - event.volunteersRegistered} spots left`, type: 'spots' }
+                                        { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                     ]}
-                                    date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                    date={new Date(event.startdate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                     time={`${event.startTime} - ${event.endTime}`}
                                     location={event.location}
                                     distance="Calculating..."
@@ -598,11 +602,12 @@ const VolunteerDashboard = () => {
                                 <EventCard
                                     key={event.id}
                                     eventId={event.id}
+                                    organizerId={event.organizerId}
                                     title={event.eventName}
                                     description={event.description}
                                     tags={[
                                         { name: event.category || 'general', type: 'skill' },
-                                        { name: `${event.volunteersNeeded - event.volunteersRegistered} spots left`, type: 'spots' }
+                                        { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                     ]}
                                     date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                     time={`${event.startTime} - ${event.endTime}`}

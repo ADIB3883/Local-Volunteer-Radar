@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Clock } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import ChatInterface from './ChatInterface';
 
 const MessagesTab = ({ currentUser }) => {
@@ -8,7 +8,9 @@ const MessagesTab = ({ currentUser }) => {
     const [filter, setFilter] = useState('All');
     const [loading, setLoading] = useState(true);
 
-    const isVolunteer = currentUser.role === 'volunteer';
+    // Support both 'role' and 'type' properties for backward compatibility
+    const userType = currentUser.role || currentUser.type;
+    const isVolunteer = userType === 'volunteer';
 
     const filterOptions = isVolunteer
         ? ['All', 'Registered Event Organizer', 'Unregistered Event Organizer']
@@ -16,16 +18,53 @@ const MessagesTab = ({ currentUser }) => {
 
     useEffect(() => {
         fetchConversations();
+
+        // Check for pending conversation to open
+        const pendingChat = localStorage.getItem('openChatConversation');
+        if (pendingChat) {
+            try {
+                const conversation = JSON.parse(pendingChat);
+                console.log('📨 Opening pending conversation:', conversation);
+
+                // Create conversation on backend if it doesn't exist
+                createConversation(conversation).then(() => {
+                    setSelectedConversation(conversation);
+                    fetchConversations(); // Refresh list
+                });
+
+                localStorage.removeItem('openChatConversation');
+            } catch (error) {
+                console.error('Error opening pending conversation:', error);
+                localStorage.removeItem('openChatConversation');
+            }
+        }
     }, []);
+
+    const createConversation = async (conversation) => {
+        try {
+            const response = await fetch('http://localhost:5000/api/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(conversation)
+            });
+            const data = await response.json();
+            console.log('✅ Conversation created/verified:', data);
+            return data;
+        } catch (error) {
+            console.error('❌ Error creating conversation:', error);
+        }
+    };
 
     const fetchConversations = async () => {
         try {
+            console.log('📥 Fetching conversations for:', currentUser.email);
             const response = await fetch(`http://localhost:5000/api/conversations/${currentUser.email}`);
             const data = await response.json();
+            console.log('📥 Fetched conversations:', data);
             setConversations(data);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching conversations:', error);
+            console.error('❌ Error fetching conversations:', error);
             setLoading(false);
         }
     };
@@ -34,31 +73,29 @@ const MessagesTab = ({ currentUser }) => {
         if (filter === 'All') return conversations;
 
         if (isVolunteer) {
-            // Check if volunteer is registered for the event
-            const registrations = JSON.parse(localStorage.getItem('registrations') || '[]');
+            const registrations = JSON.parse(localStorage.getItem('eventRegistrations') || '[]');
 
             if (filter === 'Registered Event Organizer') {
                 return conversations.filter(conv => {
                     if (!conv.eventId) return false;
                     return registrations.some(reg =>
                         reg.eventId === conv.eventId &&
-                        reg.volunteerId === currentUser.email &&
-                        reg.status === 'approved'
+                        reg.volunteerEmail === currentUser.email &&
+                        reg.status === 'Approved'
                     );
                 });
             } else {
                 return conversations.filter(conv => {
-                    if (!conv.eventId) return true; // No event means unregistered
+                    if (!conv.eventId) return true;
                     return !registrations.some(reg =>
                         reg.eventId === conv.eventId &&
-                        reg.volunteerId === currentUser.email &&
-                        reg.status === 'approved'
+                        reg.volunteerEmail === currentUser.email &&
+                        reg.status === 'Approved'
                     );
                 });
             }
         } else {
-            // Organizer view
-            const registrations = JSON.parse(localStorage.getItem('registrations') || '[]');
+            const registrations = JSON.parse(localStorage.getItem('eventRegistrations') || '[]');
 
             if (filter === 'Registered Volunteers') {
                 return conversations.filter(conv => {
@@ -66,8 +103,8 @@ const MessagesTab = ({ currentUser }) => {
                     if (!volunteer || !conv.eventId) return false;
                     return registrations.some(reg =>
                         reg.eventId === conv.eventId &&
-                        reg.volunteerId === volunteer.userId &&
-                        reg.status === 'approved'
+                        reg.volunteerEmail === volunteer.userId &&
+                        reg.status === 'Approved'
                     );
                 });
             } else {
@@ -77,8 +114,8 @@ const MessagesTab = ({ currentUser }) => {
                     if (!conv.eventId) return true;
                     return !registrations.some(reg =>
                         reg.eventId === conv.eventId &&
-                        reg.volunteerId === volunteer.userId &&
-                        reg.status === 'approved'
+                        reg.volunteerEmail === volunteer.userId &&
+                        reg.status === 'Approved'
                     );
                 });
             }

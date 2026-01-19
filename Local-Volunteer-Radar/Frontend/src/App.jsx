@@ -1,5 +1,5 @@
 // javascript
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import VolunteerDashboard from './components/VolunteerDashboard';
@@ -13,11 +13,12 @@ import AnnouncementPage from './components/EventDetails/AnnouncementPage.jsx';
 import ForgotPassword from './components/ForgotPasswordPage.jsx';
 import ResetPassword from './components/ResetPasswordPage.jsx';
 
-import { ChatProvider } from './contexts/ChatContext';
-import OrganizerMessages from './pages/organizer/OrganizerMessages';
-import OrganizerConversation from './pages/organizer/OrganizerConversation';
-import VolunteerMessages from './pages/volunteer/VolunteerMessages';
-import VolunteerConversation from './pages/volunteer/VolunteerConversation';
+// Messaging imports commented out - these files don't exist yet
+// import { ChatProvider } from './contexts/ChatContext';
+// import OrganizerMessages from './pages/organizer/OrganizerMessages';
+// import OrganizerConversation from './pages/organizer/OrganizerConversation';
+// import VolunteerMessages from './pages/volunteer/VolunteerMessages';
+// import VolunteerConversation from './pages/volunteer/VolunteerConversation';
 
 function App() {
     return (
@@ -29,7 +30,15 @@ function App() {
                     <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
                     <Route path="/volunteer-profile" element={<VolunteerProfile />} />
                     <Route path="/volunteer-edit-profile" element={<VolunteerEditProfile />} />
+                    <Route path="/organizer-dashboard" element={<OrganizerDashboard />} />
+                    <Route path="/event-details/:eventId" element={<EventDetails />} />
+                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                    <Route path="/announcements" element={<AnnouncementPage />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
+                    {/* Messaging routes commented out - requires ChatContext and missing components */}
+                    {/*
                     <Route
                         path="/organizer"
                         element={
@@ -55,12 +64,7 @@ function App() {
                         <Route path="messages" element={<VolunteerMessages />} />
                         <Route path="messages/:conversationId" element={<VolunteerConversation />} />
                     </Route>
-
-                    <Route path="/event-details/:eventId" element={<EventDetails />} />
-                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    <Route path="/announcements" element={<AnnouncementPage />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
+                    */}
                 </Routes>
             </div>
         </Router>

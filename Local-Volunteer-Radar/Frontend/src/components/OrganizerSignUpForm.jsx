@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signupUser } from '../api/authApi';
 import organizationIcon from '../assets/icons/organizer-icon.png';
 import mailIcon from '../assets/icons/mail-icon.png';
 import passwordIcon from '../assets/icons/password-icon.png';
@@ -21,42 +22,73 @@ const OrganizerSignUpForm = () => {
         address: ''
     });
     const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        //form ta locally store korar jonno
-        const existingOrganizers =
-            JSON.parse(localStorage.getItem("allOrganizers")) || [];
+        setIsSubmitting(true);
 
-        const alreadyExists = existingOrganizers.find(
-            (org) => org.email === formData.email
-        );
+        try {
+            // Call backend API to create user in database
+            const response = await signupUser({
+                name: formData.organizationName,
+                email: formData.email,
+                password: formData.password,
+                userType: 'organizer',
+                phoneNumber: formData.phoneNumber,
+                address: formData.address,
+                organizationType: formData.organizationType,
+                description: formData.description
+            });
 
-        if (alreadyExists) {
-            alert("This email is already registered!");
-            return;
+            if (response.success) {
+                // Also store in localStorage for backward compatibility
+                const existingOrganizers = JSON.parse(localStorage.getItem("allOrganizers")) || [];
+                const newOrganizer = {
+                    id: response.user.id,
+                    role: "organizer",
+                    organizationName: formData.organizationName,
+                    ...formData,
+                };
+
+                localStorage.setItem(
+                    "allOrganizers",
+                    JSON.stringify([...existingOrganizers, newOrganizer])
+                );
+
+                // Store logged in user
+                localStorage.setItem(
+                    "loggedInUser",
+                    JSON.stringify({
+                        ...response.user,
+                        organizationName: response.user.name,
+                        phoneNumber: formData.phoneNumber,
+                        address: formData.address,
+                        organizationType: formData.organizationType,
+                        description: formData.description
+                    })
+                );
+
+                console.log('Organizer Sign Up Data:', response.user);
+                alert("Account created successfully!");
+                navigate('/organizer-dashboard');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            let errorMessage = 'An error occurred during signup. Please try again.';
+
+            if (error.response && error.response.data && error.response.data.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.request) {
+                errorMessage = 'Cannot connect to server. Make sure backend is running on http://localhost:5000';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            alert(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
-
-        const newOrganizer = {
-            id: Date.now(),
-            role: "organizer",
-            ...formData,
-        };
-        //store hoitese
-        localStorage.setItem(
-            "allOrganizers",
-            JSON.stringify([...existingOrganizers, newOrganizer])
-        );
-
-        //locally session create korar jonne
-        localStorage.setItem(
-            "loggedInUser",
-            JSON.stringify(newOrganizer)
-        );
-
-        console.log('Organizer Sign Up Data:', newOrganizer);
-        alert("Account created successfully!");
-        navigate('/organizer-dashboard');
     };
 
     return (
@@ -219,9 +251,10 @@ const OrganizerSignUpForm = () => {
             <div className="grid mt-2">
                 <button
                     type="submit"
-                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-bold text-lg hover:opacity-90 transition-opacity"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Create Account
+                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
             </div>
         </form>
