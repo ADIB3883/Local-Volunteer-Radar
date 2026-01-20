@@ -11,7 +11,14 @@ const LoginPage = () => {
     const location = useLocation();
     const [selected, setSelected] = useState('login');
 
-    const [showSuccess, setShowSuccess] = useState(false);
+    //for POPUP
+    const [showSuccess, setShowSuccess] = useState(true);
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationConfig, setNotificationConfig] = useState({
+        borderColor: 'border-green-500',
+        bgColor: 'bg-green-500',
+        message: 'Login Successful!'
+    });
 
     // Check if navigation state specifies signup view
     useEffect(() => {
@@ -22,7 +29,12 @@ const LoginPage = () => {
 
     return (
         <div className="min-h-screen grid place-items-center bg-gradient-to-br from-blue-200 to-teal-200 p-4">
-            <LoginSuccessPopUp showSuccess={showSuccess} ></LoginSuccessPopUp>
+            <LoginSuccessPopUp
+                showSuccess={showNotification}
+                borderColor={notificationConfig.borderColor}
+                bgColor={notificationConfig.bgColor}
+                message={notificationConfig.message}
+            />
             <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl grid grid-rows-[auto_auto_1fr] gap-6 p-12">
                 {/* Home Button Row */}
                 <div className="grid place-items-center">
