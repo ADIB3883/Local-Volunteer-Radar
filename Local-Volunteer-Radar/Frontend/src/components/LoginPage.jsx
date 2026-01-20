@@ -3,11 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import HomeButton from './HomeButton';
 import LoginForm from './LoginForm';
 import SignUpForm from './SignUpForm';
+import LoginSuccessPopUp from "./LoginSuccessPopUp.jsx";
+
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [selected, setSelected] = useState('login');
+
+    const [showSuccess, setShowSuccess] = useState(false);
 
     // Check if navigation state specifies signup view
     useEffect(() => {
@@ -18,6 +22,7 @@ const LoginPage = () => {
 
     return (
         <div className="min-h-screen grid place-items-center bg-gradient-to-br from-blue-200 to-teal-200 p-4">
+            <LoginSuccessPopUp showSuccess={showSuccess} ></LoginSuccessPopUp>
             <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl grid grid-rows-[auto_auto_1fr] gap-6 p-12">
                 {/* Home Button Row */}
                 <div className="grid place-items-center">
@@ -46,7 +51,7 @@ const LoginPage = () => {
 
                 {/* Form Row */}
                 <div className="grid">
-                    {selected === 'login' && <LoginForm />}
+                    {selected === 'login' && <LoginForm setShowSuccess={setShowSuccess} />}
                     {selected === 'signup' && <SignUpForm initialUserType={location.state?.userType} />}
                 </div>
             </div>

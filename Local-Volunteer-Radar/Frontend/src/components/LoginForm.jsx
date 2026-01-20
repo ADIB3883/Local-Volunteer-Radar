@@ -7,7 +7,7 @@ import passwordIcon from '../assets/icons/password-icon.png';
 import showPasswordIcon from '../assets/icons/show-password.png';
 import hidePasswordIcon from '../assets/icons/hide-password.png';
 
-const LoginForm = () => {
+const LoginForm = ({ setShowSuccess }) => {
     const navigate = useNavigate();
     const [userType, setUserType] = useState('volunteer');
     const [email, setEmail] = useState('');
@@ -23,15 +23,21 @@ const LoginForm = () => {
             if (response.success) {
                 localStorage.setItem('loggedInUser', JSON.stringify(response.user));
 
-                alert('Login successful!');
+                // alert('Login successful!');
+                setShowSuccess(true);
 
-                const dashboardRoutes = {
-                    volunteer: '/volunteer-dashboard',
-                    organizer: '/organizer-dashboard',
-                    admin: '/admin-dashboard'
-                };
+                // Hide popup and navigate after 2 seconds
+                setTimeout(() => {
+                    setShowSuccess(false);
 
-                navigate(dashboardRoutes[userType]);
+                    const dashboardRoutes = {
+                        volunteer: '/volunteer-dashboard',
+                        organizer: '/organizer-dashboard',
+                        admin: '/admin-dashboard'
+                    };
+
+                    navigate(dashboardRoutes[userType]);
+                }, 2000);
             }
         } catch (error) {
             if (error.response && error.response.data) {
