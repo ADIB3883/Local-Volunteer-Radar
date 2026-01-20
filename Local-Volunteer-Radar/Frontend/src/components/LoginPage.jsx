@@ -12,7 +12,6 @@ const LoginPage = () => {
     const [selected, setSelected] = useState('login');
 
     //for POPUP
-    const [showSuccess, setShowSuccess] = useState(true);
     const [showNotification, setShowNotification] = useState(false);
     const [notificationConfig, setNotificationConfig] = useState({
         borderColor: 'border-green-500',
@@ -63,7 +62,12 @@ const LoginPage = () => {
 
                 {/* Form Row */}
                 <div className="grid">
-                    {selected === 'login' && <LoginForm setShowSuccess={setShowSuccess} />}
+                    {selected === 'login' && (
+                        <LoginForm
+                            setShowNotification={setShowNotification}
+                            setNotificationConfig={setNotificationConfig}
+                        />
+                    )}
                     {selected === 'signup' && <SignUpForm initialUserType={location.state?.userType} />}
                 </div>
             </div>
