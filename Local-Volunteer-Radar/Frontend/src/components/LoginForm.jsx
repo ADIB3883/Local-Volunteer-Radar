@@ -7,7 +7,7 @@ import passwordIcon from '../assets/icons/password-icon.png';
 import showPasswordIcon from '../assets/icons/show-password.png';
 import hidePasswordIcon from '../assets/icons/hide-password.png';
 
-const LoginForm = () => {
+const LoginForm = ({ setShowNotification, setNotificationConfig }) => {
     const navigate = useNavigate();
     const [userType, setUserType] = useState('volunteer');
     const [email, setEmail] = useState('');
@@ -23,24 +23,53 @@ const LoginForm = () => {
             if (response.success) {
                 localStorage.setItem('loggedInUser', JSON.stringify(response.user));
 
-                alert('Login successful!');
+                // alert('Login successful!');
+                // ✅ Show success notification
+                setNotificationConfig({
+                    borderColor: 'border-green-500',
+                    bgColor: 'bg-green-500',
+                    message: 'Login Successful!'
+                });
+                setShowNotification(true);
 
-                const dashboardRoutes = {
-                    volunteer: '/volunteer-dashboard',
-                    organizer: '/organizer-dashboard',
-                    admin: '/admin-dashboard'
-                };
+                // Hide popup and navigate after 2 seconds
+                setTimeout(() => {
+                    setShowNotification(false);
 
-                navigate(dashboardRoutes[userType]);
+                    const dashboardRoutes = {
+                        volunteer: '/volunteer-dashboard',
+                        organizer: '/organizer-dashboard',
+                        admin: '/admin-dashboard'
+                    };
+
+                    navigate(dashboardRoutes[userType]);
+                }, 2000);
             }
         } catch (error) {
-            if (error.response && error.response.data) {
-                alert(error.response.data.message);
+            // ❌ Show error notification with backend message
+            let errorMessage = 'Login Failed!';
+
+            if (error.response && error.response.data && error.response.data.message) {
+                // Use the backend error message
+                errorMessage = error.response.data.message;
             } else if (error.request) {
-                alert('Cannot connect to server. Make sure backend is running on http://localhost:5000');
+                errorMessage = 'Cannot connect to server';
             } else {
-                alert('An error occurred. Please try again.');
+                errorMessage = 'An error occurred. Please try again.';
             }
+
+            setNotificationConfig({
+                borderColor: 'border-red-300',
+                bgColor: 'bg-red-400',
+                message: errorMessage  // ← Backend message like "Invalid email or password"
+            });
+            setShowNotification(true);
+
+            // Hide error notification after 3 seconds
+            setTimeout(() => {
+                setShowNotification(false);
+            }, 3000);
+
             console.error('Login error:', error);
         }
     };

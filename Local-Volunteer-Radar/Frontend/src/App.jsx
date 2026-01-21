@@ -13,6 +13,7 @@ import AnnouncementPage from './components/EventDetails/AnnouncementPage.jsx';
 import ForgotPassword from './components/ForgotPasswordPage.jsx';
 import ResetPassword from './components/ResetPasswordPage.jsx';
 
+import LoginSuccessPopUp from "./components/LoginSuccessPopUp.jsx";
 // Messaging imports commented out - these files don't exist yet
 // import { ChatProvider } from './contexts/ChatContext';
 // import OrganizerMessages from './pages/organizer/OrganizerMessages';
@@ -25,6 +26,7 @@ function App() {
         <Router>
             <div className="App">
                 <Routes>
+                    {/*<Route path="/" element={<LoginSuccessPopUp/>}/>*/}
                     <Route path="/" element={<HomePage/>} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
