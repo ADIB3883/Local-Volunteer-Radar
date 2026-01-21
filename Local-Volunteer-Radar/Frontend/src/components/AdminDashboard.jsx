@@ -139,7 +139,7 @@ const AdminDashboard = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Navbar */}
             <AdminNavbar
-                userName="Adib Hoque"
+                //userName="Adib Hoque"
                 title="Admin Dashboard"
                 onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
