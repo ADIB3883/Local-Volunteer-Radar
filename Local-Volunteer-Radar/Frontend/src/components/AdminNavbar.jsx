@@ -4,7 +4,6 @@ import AnnouncementPopup from './AnnouncementPopup.jsx';
 import logo from '../assets/logo.png';
 
 const AdminNavbar = ({
-                         userName = "Default Username",
                          title = "Default Dashboard",
                          onAnnouncementsClick,
                          onLogoutClick
@@ -37,9 +36,6 @@ const AdminNavbar = ({
                                 <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
                                     {title}
                                 </h1>
-                                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
-                                    {userName}
-                                </p>
                             </div>
                         </div>
 

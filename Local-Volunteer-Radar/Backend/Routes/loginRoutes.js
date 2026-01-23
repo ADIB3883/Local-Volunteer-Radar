@@ -119,19 +119,31 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// Test route to see all users
 router.get('/users', async (req, res) => {
     try {
         const users = await User.find();
+
+        const sanitizedUsers = users.map(u => ({
+            id: u._id,
+            name: u.name,
+            email: u.email,
+            type: u.type,
+            phoneNumber: u.phoneNumber,
+            address: u.address,
+            skills: u.skills,
+            status: u.status,
+            hoursVolunteered: u.hoursVolunteered,
+            joinedDate: u.joinedDate,
+            category: u.category,
+            registrationNumber: u.registrationNumber,
+            membersCount: u.membersCount,
+            createdAt: u.createdAt
+        }));
+
         res.json({
             success: true,
-            count: users.length,
-            users: users.map(u => ({
-                name: u.name,
-                email: u.email,
-                type: u.type,
-                password: u.password
-            }))
+            count: sanitizedUsers.length,
+            users: sanitizedUsers
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -1,9 +1,8 @@
-import React, {useMemo, useState} from 'react';
+import React, {useMemo, useEffect, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, HandFist, Building, Dumbbell, Search, ChevronDown, X, Sparkles } from 'lucide-react';
+import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
-import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
 import PendingUserCard from './PendingUserCard.jsx';
 import pendingUserData from './PendingUserData.jsx';
@@ -22,33 +21,42 @@ const AdminDashboard = () => {
     const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
     const [modalOpen, setModalOpen] = useState(null);
-    //Filtered state needed?
+    const [users, setUsers] = useState([]);
 
+    // Fetch users from backend API
+    useEffect(() => {
+        fetch('http://localhost:5000/api/users')
+            .then(res => res.json())
+            .then(data => setUsers(data.users)) // <-- use data.users from backend
+            .catch(err => console.error(err));
+    }, []);
+
+    // Filtered and sorted users
     const filteredAndSortedUsers = useMemo(() => {
         if (!users || users.length === 0) return [];
 
         let filtered = [...users];
 
+        // Search by name
         if (searchQuery.trim()) {
-            filtered = filtered.filter(user =>
-                user.name.toLowerCase().includes(searchQuery.toLowerCase())
+            filtered = filtered.filter(u =>
+                u.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
+        // Filter by type
         if (selectedType) {
-            const typeValue = selectedType.charAt(0).toUpperCase() + selectedType.slice(1);
-            filtered = filtered.filter(user =>
-                user.type === typeValue
-            );
+            const typeValue = selectedType.charAt(0).toLowerCase() + selectedType.slice(1);
+            filtered = filtered.filter(u => u.type === typeValue);
         }
 
+        // Filter by status
         if (selectedStatus) {
             const statusValue = selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1);
-            filtered = filtered.filter(user =>
-                user.status === statusValue
-            );
+            filtered = filtered.filter(u => u.status === statusValue);
         }
 
+        // Sorting
         if (sortBy) {
             filtered.sort((a, b) => {
                 switch (sortBy) {
@@ -57,9 +65,9 @@ const AdminDashboard = () => {
                     case 'name-desc':
                         return b.name.localeCompare(a.name);
                     case 'date-asc':
-                        return new Date(a.joined) - new Date(b.joined);
+                        return new Date(a.joinedDate) - new Date(b.joinedDate);
                     case 'date-desc':
-                        return new Date(b.joined) - new Date(a.joined);
+                        return new Date(b.joinedDate) - new Date(a.joinedDate);
                     case 'email-asc':
                         return a.email.localeCompare(b.email);
                     case 'email-desc':
@@ -71,11 +79,9 @@ const AdminDashboard = () => {
         }
 
         return filtered;
-    }, [searchQuery, selectedType, selectedStatus, sortBy]);
+    }, [users, searchQuery, selectedType, selectedStatus, sortBy]);
 
     const navigate = useNavigate();
-
-    const [selectedStat, setSelectedStat] = useState(null);
 
     const handleAnnouncementsClick = () => {
 
@@ -85,11 +91,21 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
+    const totalVolunteers = useMemo(
+        () => users?.filter(u => u.type === 'volunteer').length || 0,
+        [users]
+    );
+
+    const totalOrganizers = useMemo(
+        () => users?.filter(u => u.type === 'organizer').length || 0,
+        [users]
+    );
+
     const stats = [
         {
             id: 'volunteers',
             title: 'Total Volunteers',
-            value: '5',
+            value: totalVolunteers,
             subtitle: 'Volunteers across the country',
             icon: Users,
             iconColor: '#3b82f6',
@@ -100,7 +116,7 @@ const AdminDashboard = () => {
         {
             id: 'organizers',
             title: 'Total Organizers',
-            value: 3,
+            value: totalOrganizers,
             subtitle: 'Organizers registered',
             icon: Building,
             iconColor: '#06b6d4',
@@ -139,7 +155,6 @@ const AdminDashboard = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Navbar */}
             <AdminNavbar
-                //userName="Adib Hoque"
                 title="Admin Dashboard"
                 onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
@@ -369,32 +384,6 @@ const AdminDashboard = () => {
                                     <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
                                 </div>
 
-                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
-                                    <select
-                                        value={selectedStatus}
-                                        onChange={(e) => setSelectedStatus(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
-                                            border: 'none',
-                                            borderRadius: '0.625rem',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: '400',
-                                            background: 'rgba(142, 142, 147, 0.12)',
-                                            color: '#000',
-                                            cursor: 'pointer',
-                                            appearance: 'none',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <option value="">All Status</option>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
-                                    </select>
-                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
-                                </div>
-
                                 <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
                                     <select
                                         value={sortBy}
@@ -496,9 +485,7 @@ const AdminDashboard = () => {
                                               padding: '0.375rem 0.75rem',
                                               borderRadius: '1rem',
                                               fontSize: '0.75rem',
-                                              fontWeight: '500',
-                                              background: user.status === 'Active' ? '#dcfce7' : '#fcdcf1',
-                                              color: user.status === 'Active' ? '#166534' : '#65161f'
+                                              fontWeight: '500'
                                           }}>
                                             {user.status}
                                           </span>
