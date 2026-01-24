@@ -11,13 +11,6 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed, // Accepts both Object and Array
         default: {}
     },
-
-    // New optional fields - won't break existing data
-    status: {
-        type: String,
-        enum: ['Active', 'Inactive'],
-        default: 'Active'
-    },
     hoursVolunteered: {
         type: Number,
         default: 0
@@ -27,7 +20,7 @@ const UserSchema = new mongoose.Schema({
         default: Date.now
     },
 
-    // NGO-specific fields - all optional
+    // NGO-specific fields, optional
     category: String,
     registrationNumber: String,
     membersCount: {
@@ -38,7 +31,11 @@ const UserSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    profileImage: {
+        data: { type: Buffer },
+        contentType: { type: String }
+    },
 });
 
 module.exports = mongoose.model('User', UserSchema, 'Users');

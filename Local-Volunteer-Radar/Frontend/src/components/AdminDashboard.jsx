@@ -18,7 +18,6 @@ const AdminDashboard = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('');
-    const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
     const [modalOpen, setModalOpen] = useState(null);
     const [users, setUsers] = useState([]);
@@ -50,12 +49,6 @@ const AdminDashboard = () => {
             filtered = filtered.filter(u => u.type === typeValue);
         }
 
-        // Filter by status
-        if (selectedStatus) {
-            const statusValue = selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1);
-            filtered = filtered.filter(u => u.status === statusValue);
-        }
-
         // Sorting
         if (sortBy) {
             filtered.sort((a, b) => {
@@ -79,7 +72,7 @@ const AdminDashboard = () => {
         }
 
         return filtered;
-    }, [users, searchQuery, selectedType, selectedStatus, sortBy]);
+    }, [users, searchQuery, selectedType, sortBy]);
 
     const navigate = useNavigate();
 
@@ -128,7 +121,7 @@ const AdminDashboard = () => {
             id: 'events',
             title: 'Active Events',
             value: '2',
-            subtitle: 'Organizers currently working',
+            subtitle: 'Events taking place',
             icon: Sparkles,
             iconColor: '#a855f7',
             iconBg: '#f3e8ff',
@@ -380,6 +373,7 @@ const AdminDashboard = () => {
                                         <option value="">All Types</option>
                                         <option value="volunteer">Volunteer</option>
                                         <option value="ngo">NGO</option>
+                                        <option value="organizer">Organizer</option>
                                     </select>
                                     <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
                                 </div>
@@ -434,7 +428,6 @@ const AdminDashboard = () => {
                                 }}>
                                     <div>NAME</div>
                                     <div>EMAIL</div>
-                                    <div>STATUS</div>
                                     <div>TYPE</div>
                                     <div>JOINED</div>
                                 </div>
@@ -479,18 +472,6 @@ const AdminDashboard = () => {
                                         {/* Email */}
                                         <div style={{ color: '#00000', fontSize: '0.875rem' }}>{user.email}</div>
 
-                                        {/* Status Badge */}
-                                        <div>
-                                          <span style={{
-                                              padding: '0.375rem 0.75rem',
-                                              borderRadius: '1rem',
-                                              fontSize: '0.75rem',
-                                              fontWeight: '500'
-                                          }}>
-                                            {user.status}
-                                          </span>
-                                        </div>
-
                                         {/* Type Badge */}
                                         <div>
                                           <span style={{
@@ -498,10 +479,12 @@ const AdminDashboard = () => {
                                               borderRadius: '1rem',
                                               fontSize: '0.75rem',
                                               fontWeight: '500',
-                                              background: user.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
-                                              color: user.type === 'Volunteer' ? '#92400e' : '#6b21a8'
+                                              background: user.type === 'volunteer' ? '#fef3c7' :
+                                                  user.type === 'ngo' ? '#dbeafe' : '#f3e8ff',
+                                              color: user.type === 'volunteer' ? '#92400e' :
+                                                  user.type === 'ngo' ? '#1e40af' : '#7c2d12'
                                           }}>
-                                            {user.type}
+                                            {user.type.toUpperCase()}
                                           </span>
                                         </div>
 
@@ -600,20 +583,6 @@ const AdminDashboard = () => {
 
                                         {/* User Details */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Status</span>
-                                                <span style={{
-                                                    padding: '0.25rem 0.75rem',
-                                                    borderRadius: '1rem',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '500',
-                                                    background: selectedUser.status === 'Active' ? '#dcfce7' : '#fcdcf1',
-                                                    color: selectedUser.status === 'Active' ? '#166534' : '#65161f'
-                                                }}>
-                                                  {selectedUser.status}
-                                                </span>
-                                            </div>
-
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
                                                 <span style={{ color: '#6b7280', fontWeight: '500' }}>Type</span>
                                                 <span style={{

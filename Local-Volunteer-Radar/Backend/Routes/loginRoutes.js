@@ -131,7 +131,6 @@ router.get('/users', async (req, res) => {
             phoneNumber: u.phoneNumber,
             address: u.address,
             skills: u.skills,
-            status: u.status,
             hoursVolunteered: u.hoursVolunteered,
             joinedDate: u.joinedDate,
             category: u.category,
