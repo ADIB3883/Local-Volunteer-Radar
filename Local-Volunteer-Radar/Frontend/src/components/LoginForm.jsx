@@ -189,7 +189,7 @@ const LoginForm = ({ setShowNotification, setNotificationConfig }) => {
             <div className="grid mt-2">
                 <button
                     type="submit"
-                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity"
+                    className="w-full cursor-pointer py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity"
                 >
                     Sign In
                 </button>

@@ -44,7 +44,7 @@ const LoginPage = () => {
                 <div className="grid grid-cols-2 gap-0">
                     <button
                         onClick={() => setSelected('login')}
-                        className={`text-lg font-medium py-3 px-6 rounded-l-lg border-2 border-gray-300 transition-colors ${
+                        className={`text-lg font-medium cursor-pointer py-3 px-6 rounded-l-lg border-2 border-gray-300 transition-colors ${
                             selected === 'login' ? 'bg-white text-black' : 'bg-gray-200 text-gray-600'
                         }`}
                     >
@@ -52,7 +52,7 @@ const LoginPage = () => {
                     </button>
                     <button
                         onClick={() => setSelected('signup')}
-                        className={`text-lg font-medium py-3 px-6 rounded-r-lg border-2 border-gray-300 transition-colors ${
+                        className={`text-lg font-medium cursor-pointer py-3 px-6 rounded-r-lg border-2 border-gray-300 transition-colors ${
                             selected === 'signup' ? 'bg-white text-black' : 'bg-gray-200 text-gray-600'
                         }`}
                     >

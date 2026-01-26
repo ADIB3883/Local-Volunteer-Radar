@@ -35,7 +35,7 @@ const UserTypeButton = ({ type, title, isSelected, onClick }) => {
             type="button"
             onClick={onClick}
             className={`
-                flex flex-col items-center justify-center
+                flex flex-col items-center justify-center cursor-pointer
                 px-5 py-4 rounded-xl border-2 transition-all
                 min-w-[110px]
                 ${isSelected
