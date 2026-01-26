@@ -1,10 +1,22 @@
 const mongoose = require("mongoose");
 
 const EventSchema = new mongoose.Schema({
-  eventName: {
+  eventId: {
+    type: Number,
+    required: true,
+    unique: true,
+  },
+
+  title: {
     type: String,
     required: true,
     trim: true,
+  },
+
+  organizerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: "User",
   },
 
   description: {
@@ -13,14 +25,21 @@ const EventSchema = new mongoose.Schema({
     trim: true,
   },
 
-  startDateTime: {
-    type: Date,
-    required: true,
+  tags: {
+    type: [String],
+    default: [],
   },
 
-  endDateTime: {
-    type: Date,
+  date: {
+    type: String, // example: "2026-01-26"
     required: true,
+    trim: true,
+  },
+
+  time: {
+    type: String, // example: "10:30 AM"
+    required: true,
+    trim: true,
   },
 
   location: {
@@ -29,16 +48,10 @@ const EventSchema = new mongoose.Schema({
     trim: true,
   },
 
-  volunteersNeeded: {
+  distance: {
     type: Number,
-    required: true,
-    min: 1,
-  },
-
-  category: {
-    type: String,
-    required: true,
-    trim: true,
+    default: 0,
+    min: 0,
   },
 
   requirements: {
@@ -47,23 +60,15 @@ const EventSchema = new mongoose.Schema({
     trim: true,
   },
 
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  onRegister: {
+    type: Boolean,
+    default: true,
   },
 
   isApproved: {
     type: Boolean,
-    default: false
-  }
-});
-
-//ensure endDateTime is after startDateTime
-EventSchema.pre("save", function (next) {
-  if (this.endDateTime <= this.startDateTime) {
-    return next(new Error("endDateTime must be after startDateTime"));
-  }
-  next();
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("Event", EventSchema, "Events");

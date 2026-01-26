@@ -7,7 +7,6 @@ import AdminAnalytics from "./AdminAnalytics.jsx";
 import PendingUserCard from './PendingUserCard.jsx';
 import pendingUserData from './PendingUserData.jsx';
 import PendingEventsCard from "./PendingEventsCard.jsx";
-import pendingEventsData from './PendingEventsData.jsx';
 import Modal from './Modal';
 import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
@@ -21,6 +20,8 @@ const AdminDashboard = () => {
     const [sortBy, setSortBy] = useState('');
     const [modalOpen, setModalOpen] = useState(null);
     const [users, setUsers] = useState([]);
+    const [pendingEvents, setPendingEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // Fetch users from backend API
     useEffect(() => {
@@ -28,6 +29,19 @@ const AdminDashboard = () => {
             .then(res => res.json())
             .then(data => setUsers(data.users)) // <-- use data.users from backend
             .catch(err => console.error(err));
+    }, []);
+
+    useEffect(() => {
+        fetch("http://localhost:5000/api/events/pending") // your backend route
+            .then((res) => res.json())
+            .then((data) => {
+                console.log("Fetched events:", data.events); // debug log
+                setPendingEvents(data.events || []); // set state
+            })
+            .catch((err) => {
+                console.error("Error fetching pending events:", err);
+            })
+            .finally(() => setLoading(false)); // stop loading spinner
     }, []);
 
     // Filtered and sorted users
@@ -706,32 +720,41 @@ const AdminDashboard = () => {
 
                 {activeTab === 'pendingEvents' && (
                     <>
-                        {pendingEventsData.length > 0 ? (
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '1.5rem',
-                                    marginBottom: '2rem',
-                                }}
-                            >
-                                {pendingEventsData.map((event) => (
-                                    <PendingEventsCard
-                                        key={event.id}
-                                        event={event}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{
+                    {loading ? (
+                        <div style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
+                    ) : pendingEvents.length > 0 ? (
+                        <div
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '1.5rem',
+                                marginBottom: '2rem',
+                            }}
+                        >
+                            {pendingEvents.map((event) => (
+                                <PendingEventsCard
+                                    key={event.eventId}
+                                    event={event}
+                                    onActionComplete={() =>
+                                        setPendingEvents((prev) =>
+                                            prev.filter((e) => e.eventId !== event.eventId)
+                                        )
+                                    }
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div
+                            style={{
                                 padding: '3rem',
                                 textAlign: 'center',
                                 color: '#6b7280',
-                                fontSize: '1rem'
-                            }}>
-                                No pending events found
-                            </div>
-                        )}
+                                fontSize: '1rem',
+                            }}
+                        >
+                            You're done!
+                        </div>
+                    )}
                     </>
                 )}
             </div>
