@@ -216,7 +216,7 @@ const OrganizerDashboard = () => {
                             <Megaphone className="w-5 h-5 text-gray-600" />
                         </button>
                         <span onClick={handleAnnouncements} className="text-sm text-gray-700 font-medium cursor-pointer hover:text-gray-900">Announcements</span>
-                        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition-colors">
+                        <button onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900 transition-colors">
                             <LogOut className="w-4 h-4" />
                             <span className="font-medium">Logout</span>
                         </button>
@@ -322,12 +322,12 @@ const OrganizerDashboard = () => {
 
                 {/* Tabs */}
                 <div className="flex gap-8 px-8 " style={{paddingLeft: '48px', marginTop: '32px',marginBottom: '12px'}} >
-                    <div className="inline-flex gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
+                    <div className="inline-flex  gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
                         {['active', 'pending', 'completed'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`h-9 px-6  text-base font-semibold transition-colors rounded-lg border ${
+                                className={`h-9 px-6 cursor-pointer  text-base font-semibold transition-colors rounded-lg border ${
                                     activeTab === tab
                                         ? 'bg-white text-black-900 border-white'
                                         : 'bg-gray text-gray border-white'

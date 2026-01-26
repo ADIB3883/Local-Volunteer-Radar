@@ -252,7 +252,7 @@ const OrganizerSignUpForm = () => {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full cursor-pointer py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>
