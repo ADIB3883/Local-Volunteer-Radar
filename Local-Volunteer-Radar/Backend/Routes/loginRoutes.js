@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const Event = require("../models/Event");
 
 router.post('/login', async (req, res) => {
     try {
@@ -46,7 +45,7 @@ router.post('/login', async (req, res) => {
             success: true,
             message: 'Login successful',
             user: {
-                id: user._id,
+                id: user.id,
                 name: user.name,
                 email: user.email,
                 role: user.type
@@ -191,34 +190,6 @@ router.post('/create-admin', async (req, res) => {
     } catch (error) {
         console.error('❌ Error creating admin:', error);
         res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-router.put("/events/approve/:eventId", async (req, res) => {
-    try {
-        const event = await Event.findOneAndUpdate(
-            { eventId: Number(req.params.eventId) },
-            { $set: { isApproved: true } },
-            { new: true }
-        );
-
-        if (!event) {
-            return res.status(404).json({ message: "Event not found" });
-        }
-
-        res.json({ message: "Event approved successfully", event });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
-
-// GET /api/events/pending
-router.get("/events/pending", async (req, res) => {
-    try {
-        const events = await Event.find({ isApproved: false }).sort({ date: 1 });
-        res.json({ events });
-    } catch (err) {
-        res.status(500).json({ message: "Server error", error: err.message });
     }
 });
 

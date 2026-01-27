@@ -8,7 +8,7 @@ export default function RejectedEventsCard({ event, onRestore }) {
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/events/restore/${event.eventId}`,
+                `http://localhost:5000/api/admin/events/restore/${event.eventId}`,
                 { method: "PUT", headers: { "Content-Type": "application/json" } }
             );
             const data = await res.json();

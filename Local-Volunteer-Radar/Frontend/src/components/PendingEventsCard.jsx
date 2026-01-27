@@ -9,7 +9,7 @@ export default function PendingEventsCard({ event, onActionComplete }) {
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/events/approve/${event.eventId}`,
+                `http://localhost:5000/api/admin/events/approve/${event.eventId}`,
                 { method: "PUT", headers: { "Content-Type": "application/json" } }
             );
             const data = await res.json();
@@ -27,7 +27,7 @@ export default function PendingEventsCard({ event, onActionComplete }) {
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/events/reject/${event.eventId}`,
+                `http://localhost:5000/api/admin/events/reject/${event.eventId}`,
                 { method: "DELETE" }
             );
             const data = await res.json();

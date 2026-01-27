@@ -9,6 +9,8 @@ const loginRoutes = require('./routes/loginRoutes');
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
+const userApproveRejectRoutes = require('./routes/userApproveRejectRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -51,6 +53,8 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 app.use('/api', loginRoutes);
+app.use('/api/admin', userApproveRejectRoutes);
+app.use('/api/admin', eventRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });

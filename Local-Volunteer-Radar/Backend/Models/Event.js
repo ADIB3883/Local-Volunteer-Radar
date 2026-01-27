@@ -69,6 +69,11 @@ const EventSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+
+  isRejected: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 module.exports = mongoose.model("Event", EventSchema, "Events");

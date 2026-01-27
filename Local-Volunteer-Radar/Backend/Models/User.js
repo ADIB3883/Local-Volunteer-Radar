@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    isApproved: {
+        type: Boolean,
+        default: false
+    },
     profileImage: {
         data: { type: Buffer },
         contentType: { type: String }

@@ -1,4 +1,5 @@
 import React from "react";
+import { Calendar, Clock, MapPin, Ruler, User, FileText, CheckSquare, Tag } from "lucide-react";
 
 export default function AdminEventCard({ event, children }) {
     return (
@@ -8,8 +9,9 @@ export default function AdminEventCard({ event, children }) {
                 borderRadius: "0.75rem",
                 border: "1px solid #e5e7eb",
                 padding: "1rem",
-                maxHeight: "280px",
                 minWidth: "100%",
+                display: "flex",
+                flexDirection: "column",
             }}
         >
             {/* Header */}
@@ -18,12 +20,13 @@ export default function AdminEventCard({ event, children }) {
                     display: "flex",
                     justifyContent: "space-between",
                     marginBottom: "1rem",
+                    alignItems: "center",
                 }}
             >
-                <strong>{event.title}</strong>
+                <strong style={{ fontSize: "1.1rem" }}>{event.title}</strong>
                 <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-          ID: {event.eventId}
-        </span>
+                    ID: {event.eventId}
+                </span>
             </div>
 
             {/* Content */}
@@ -32,53 +35,50 @@ export default function AdminEventCard({ event, children }) {
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
                     gap: "1.25rem",
+                    flex: 1,
+                    overflow: "auto",
+                    marginBottom: "1rem",
                 }}
             >
                 {/* Left */}
                 <div style={{ fontSize: "0.8rem" }}>
-                    <p>
-                        <strong>Date:</strong> {event.date}
-                    </p>
-                    <p>
-                        <strong>Time:</strong> {event.time}
-                    </p>
-                    <p>
-                        <strong>Location:</strong> {event.location}
-                    </p>
-                    <p>
-                        <strong>Distance:</strong> {event.distance} km
-                    </p>
-                    <p>
-                        <strong>Organizer ID:</strong> {event.organizerId}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <Calendar size={14} color="#6b7280" />
+                        <span><strong>Date:</strong> {event.date}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <Clock size={14} color="#6b7280" />
+                        <span><strong>Time:</strong> {event.time}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <MapPin size={14} color="#6b7280" />
+                        <span><strong>Location:</strong> {event.location}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <Ruler size={14} color="#6b7280" />
+                        <span><strong>Distance:</strong> {event.distance} km</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <User size={14} color="#6b7280" />
+                        <span><strong>Organizer ID:</strong> {event.organizerId}</span>
+                    </div>
                 </div>
 
                 {/* Right */}
-                <div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                     <div
                         style={{
                             border: "1px solid #e5e7eb",
                             borderRadius: "0.6rem",
                             padding: "0.6rem",
                             fontSize: "0.75rem",
-                            marginBottom: "0.75rem",
                         }}
                     >
-                        <strong>Description</strong>
-                        <p>{event.description}</p>
-                    </div>
-
-                    <div
-                        style={{
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "0.6rem",
-                            padding: "0.6rem",
-                            fontSize: "0.75rem",
-                            marginBottom: "0.75rem",
-                        }}
-                    >
-                        <strong>Requirements</strong>
-                        <p>{event.requirements}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
+                            <FileText size={12} color="#6b7280" />
+                            <strong>Description</strong>
+                        </div>
+                        <p style={{ margin: 0, color: "#4b5563" }}>{event.description}</p>
                     </div>
 
                     <div
@@ -89,14 +89,56 @@ export default function AdminEventCard({ event, children }) {
                             fontSize: "0.75rem",
                         }}
                     >
-                        <strong>Tags</strong>
-                        <p>{event.tags?.length > 0 ? event.tags.join(", ") : "No tags"}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
+                            <CheckSquare size={12} color="#6b7280" />
+                            <strong>Requirements</strong>
+                        </div>
+                        <p style={{ margin: 0, color: "#4b5563" }}>{event.requirements}</p>
+                    </div>
+
+                    <div
+                        style={{
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "0.6rem",
+                            padding: "0.6rem",
+                            fontSize: "0.75rem",
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
+                            <Tag size={12} color="#6b7280" />
+                            <strong>Tags</strong>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
+                            {event.tags?.length > 0 ? (
+                                event.tags.map((tag, index) => (
+                                    <span
+                                        key={index}
+                                        style={{
+                                            padding: '0.25rem 0.75rem',
+                                            borderRadius: '9999px',
+                                            fontSize: '0.7rem',
+                                            fontWeight: '500',
+                                            border: '1px solid',
+                                            color: '#4b5563',
+                                            background: '#f3f4f6',
+                                            borderColor: '#d1d5db'
+                                        }}
+                                    >
+                                        {tag}
+                                    </span>
+                                ))
+                            ) : (
+                                <span style={{ color: "#9ca3af", fontSize: "0.7rem" }}>No tags</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Footer Buttons */}
-            <div style={{ marginTop: "1rem" }}>{children}</div>
+            <div>
+                {children}
+            </div>
         </div>
     );
 }

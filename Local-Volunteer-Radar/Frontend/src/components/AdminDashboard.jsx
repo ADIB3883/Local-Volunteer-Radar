@@ -5,7 +5,6 @@ import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
 import PendingUserCard from './PendingUserCard.jsx';
-import pendingUserData from './PendingUserData.jsx';
 import PendingEventsCard from "./PendingEventsCard.jsx";
 import Modal from './Modal';
 import TotalVolunteerModal from './TotalVolunteerModal';
@@ -21,18 +20,27 @@ const AdminDashboard = () => {
     const [modalOpen, setModalOpen] = useState(null);
     const [users, setUsers] = useState([]);
     const [pendingEvents, setPendingEvents] = useState([]);
+    const pendingUsers = users.filter(user => !user.isApproved);
     const [loading, setLoading] = useState(true);
 
     // Fetch users from backend API
     useEffect(() => {
         fetch('http://localhost:5000/api/users')
             .then(res => res.json())
-            .then(data => setUsers(data.users)) // <-- use data.users from backend
-            .catch(err => console.error(err));
+            .then(data => setUsers(data.users))
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
     }, []);
 
+    const refetchUsers = () => {
+        fetch('http://localhost:5000/api/users')
+            .then(res => res.json())
+            .then(data => setUsers(data.users))
+            .catch(err => console.error(err));
+    };
+
     useEffect(() => {
-        fetch("http://localhost:5000/api/events/pending") // your backend route
+        fetch("http://localhost:5000/api/admin/events/pending") // your backend route
             .then((res) => res.json())
             .then((data) => {
                 console.log("Fetched events:", data.events); // debug log
@@ -681,27 +689,21 @@ const AdminDashboard = () => {
                         </div>
                     </>
                 )}
+
                 {activeTab === 'pendingRegistrations' && (
                     <>
-                        {pendingUserData.length > 0 ? (
+                        {pendingUsers.length > 0 ? (
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
-                                columnGap: '11.5rem',
-                                rowGap: '1.5rem',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(410px, 410px))',
+                                gap: '1.5rem',
                                 justifyContent: 'start',
                             }}>
-                                {pendingUserData.map((userData) => (
+                                {pendingUsers.map((user) => (
                                     <PendingUserCard
-                                        key={userData.id}
-                                        profilePic={userData.profilePic}
-                                        name={userData.name}
-                                        type={userData.type}
-                                        phone={userData.phone}
-                                        email={userData.email}
-                                        address={userData.address}
-                                        joiningDate={userData.joiningDate}
-                                        skills={userData.skills}
+                                        key={user.id}
+                                        user={user}
+                                        onActionComplete={refetchUsers}
                                     />
                                 ))}
                             </div>
@@ -712,7 +714,7 @@ const AdminDashboard = () => {
                                 color: '#6b7280',
                                 fontSize: '1rem'
                             }}>
-                                No pending registrations found
+                                No pending registrations
                             </div>
                         )}
                     </>
