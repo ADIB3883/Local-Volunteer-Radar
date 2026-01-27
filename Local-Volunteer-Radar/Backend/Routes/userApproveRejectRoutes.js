@@ -16,7 +16,7 @@ router.put('/approve/:userId', async (req, res) => {
             });
         }
 
-        if (user.status === 'Active' || user.isApproved === true) {
+        if (user.status === 'Active' || (user.isPending === false && user.isApproved === true)) {
             return res.status(400).json({
                 success: false,
                 message: 'User is already approved'
@@ -24,6 +24,7 @@ router.put('/approve/:userId', async (req, res) => {
         }
 
         user.status = 'Active';
+        user.isPending = false;
         user.isApproved = true;
         user.approvedAt = new Date();
 
@@ -65,7 +66,7 @@ router.put('/reject/:userId', async (req, res) => {
         }
 
         // Check if user is already rejected
-        if (user.status === 'Rejected' || user.isRejected === true) {
+        if (user.status === 'Rejected' || (user.isPending === false && user.isApproved === false)) {
             return res.status(400).json({
                 success: false,
                 message: 'User is already rejected'
@@ -74,8 +75,8 @@ router.put('/reject/:userId', async (req, res) => {
 
         // Update user status
         user.status = 'Rejected';
+        user.isPending = true;
         user.isApproved = false;
-        user.isRejected = true;
         user.rejectedAt = new Date();
         if (reason) {
             user.rejectionReason = reason;

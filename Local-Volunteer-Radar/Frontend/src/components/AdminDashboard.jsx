@@ -22,6 +22,12 @@ const AdminDashboard = () => {
     const [pendingEvents, setPendingEvents] = useState([]);
     const pendingUsers = users.filter(user => !user.isApproved);
     const [loading, setLoading] = useState(true);
+    const [analytics, setAnalytics] = useState(null);
+    const [pendingSearchQuery, setPendingSearchQuery] = useState('');
+    const [pendingTypeFilter, setPendingTypeFilter] = useState('');
+    const [pendingSortBy, setPendingSortBy] = useState('');
+    const [eventSearchQuery, setEventSearchQuery] = useState('');
+    const [eventSortBy, setEventSortBy] = useState('');
 
     // Fetch users from backend API
     useEffect(() => {
@@ -50,6 +56,18 @@ const AdminDashboard = () => {
                 console.error("Error fetching pending events:", err);
             })
             .finally(() => setLoading(false)); // stop loading spinner
+    }, []);
+
+    useEffect(() => {
+        fetch("http://localhost:5000/api/admin/analytics")
+            .then((res) => res.json())
+            .then((data) => {
+                console.log("Fetched analytics:", data);
+                setAnalytics(data);
+            })
+            .catch((err) => {
+                console.error("Error fetching analytics:", err);
+            });
     }, []);
 
     // Filtered and sorted users
@@ -95,6 +113,91 @@ const AdminDashboard = () => {
 
         return filtered;
     }, [users, searchQuery, selectedType, sortBy]);
+
+    // Filter and sort pending users
+    const filteredAndSortedPendingUsers = useMemo(() => {
+        let filtered = [...pendingUsers];
+
+        // Apply search filter
+        if (pendingSearchQuery) {
+            const query = pendingSearchQuery.toLowerCase();
+            filtered = filtered.filter(user =>
+                user.name?.toLowerCase().includes(query) ||
+                user.email?.toLowerCase().includes(query) ||
+                user.phoneNumber?.toLowerCase().includes(query) ||
+                user.address?.toLowerCase().includes(query)
+            );
+        }
+
+        // Apply type filter
+        if (pendingTypeFilter) {
+            filtered = filtered.filter(user => user.type === pendingTypeFilter);
+        }
+
+        // Apply sorting
+        if (pendingSortBy) {
+            filtered.sort((a, b) => {
+                switch (pendingSortBy) {
+                    case 'name-asc':
+                        return (a.name || '').localeCompare(b.name || '');
+                    case 'name-desc':
+                        return (b.name || '').localeCompare(a.name || '');
+                    case 'date-asc':
+                        return new Date(a.joinedDate || a.createdAt) - new Date(b.joinedDate || b.createdAt);
+                    case 'date-desc':
+                        return new Date(b.joinedDate || b.createdAt) - new Date(a.joinedDate || a.createdAt);
+                    case 'email-asc':
+                        return (a.email || '').localeCompare(b.email || '');
+                    case 'email-desc':
+                        return (b.email || '').localeCompare(a.email || '');
+                    default:
+                        return 0;
+                }
+            });
+        }
+
+        return filtered;
+    }, [pendingUsers, pendingSearchQuery, pendingTypeFilter, pendingSortBy]);
+
+// Filter and sort pending events
+    const filteredAndSortedPendingEvents = useMemo(() => {
+        let filtered = [...pendingEvents];
+
+        // Apply search filter
+        if (eventSearchQuery) {
+            const query = eventSearchQuery.toLowerCase();
+            filtered = filtered.filter(event =>
+                event.title?.toLowerCase().includes(query) ||
+                event.description?.toLowerCase().includes(query) ||
+                event.location?.toLowerCase().includes(query) ||
+                event.organizerName?.toLowerCase().includes(query)
+            );
+        }
+
+        // Apply sorting
+        if (eventSortBy) {
+            filtered.sort((a, b) => {
+                switch (eventSortBy) {
+                    case 'title-asc':
+                        return (a.title || '').localeCompare(b.title || '');
+                    case 'title-desc':
+                        return (b.title || '').localeCompare(a.title || '');
+                    case 'date-asc':
+                        return new Date(a.eventDate || a.date) - new Date(b.eventDate || b.date);
+                    case 'date-desc':
+                        return new Date(b.eventDate || b.date) - new Date(a.eventDate || a.date);
+                    case 'submitted-asc':
+                        return new Date(a.createdAt) - new Date(b.createdAt);
+                    case 'submitted-desc':
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    default:
+                        return 0;
+                }
+            });
+        }
+
+        return filtered;
+    }, [pendingEvents, eventSearchQuery, eventSortBy]);
 
     const navigate = useNavigate();
 
@@ -247,36 +350,36 @@ const AdminDashboard = () => {
                     >
                         Partners
                     </button>
-                    <button
-                        onClick={() => setActiveTab('analytics')}
-                        style={{
-                            padding: '0.5rem 1rem',
-                            borderRadius: '0.625rem',
-                            fontWeight: '500',
-                            fontSize: '0.875rem',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                            color: activeTab === 'analytics' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                            whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'analytics') {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                                e.currentTarget.style.color = '#374151';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'analytics') {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#4b5563';
-                            }
-                        }}
-                    >
-                        Analytics
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setActiveTab('analytics')}*/}
+                    {/*    style={{*/}
+                    {/*        padding: '0.5rem 1rem',*/}
+                    {/*        borderRadius: '0.625rem',*/}
+                    {/*        fontWeight: '500',*/}
+                    {/*        fontSize: '0.875rem',*/}
+                    {/*        border: 'none',*/}
+                    {/*        cursor: 'pointer',*/}
+                    {/*        transition: 'all 0.2s ease',*/}
+                    {/*        background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',*/}
+                    {/*        color: activeTab === 'analytics' ? '#111827' : '#4b5563',*/}
+                    {/*        boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',*/}
+                    {/*        whiteSpace: 'nowrap'*/}
+                    {/*    }}*/}
+                    {/*    onMouseEnter={(e) => {*/}
+                    {/*        if (activeTab !== 'analytics') {*/}
+                    {/*            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';*/}
+                    {/*            e.currentTarget.style.color = '#374151';*/}
+                    {/*        }*/}
+                    {/*    }}*/}
+                    {/*    onMouseLeave={(e) => {*/}
+                    {/*        if (activeTab !== 'analytics') {*/}
+                    {/*            e.currentTarget.style.background = 'transparent';*/}
+                    {/*            e.currentTarget.style.color = '#4b5563';*/}
+                    {/*        }*/}
+                    {/*    }}*/}
+                    {/*>*/}
+                    {/*    Analytics*/}
+                    {/*</button>*/}
                     <button
                         onClick={() => setActiveTab('pendingRegistrations')}
                         style={{
@@ -339,12 +442,11 @@ const AdminDashboard = () => {
                     </button>
                 </div>
 
-                {/* Admin Analytics */}
-                {activeTab === 'analytics' && (
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <AdminAnalytics />
-                    </div>
-                )}
+                {/*{activeTab === 'analytics' && (*/}
+                {/*    <div style={{ marginBottom: '1.5rem' }}>*/}
+                {/*        <AdminAnalytics analytics={analytics} />*/}
+                {/*    </div>*/}
+                {/*)}*/}
 
                 {activeTab === 'partner' && (
                     <>
@@ -690,16 +792,101 @@ const AdminDashboard = () => {
                     </>
                 )}
 
+                {/* Pending Registrations Tab */}
                 {activeTab === 'pendingRegistrations' && (
                     <>
-                        {pendingUsers.length > 0 ? (
+                        {/* Search and Filter Section for Pending Registrations */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                                    <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93' }} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search pending users..."
+                                        value={pendingSearchQuery}
+                                        onChange={(e) => setPendingSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 0.875rem 0.625rem 2.75rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
+                                    <select
+                                        value={pendingTypeFilter}
+                                        onChange={(e) => setPendingTypeFilter(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <option value="">All Types</option>
+                                        <option value="volunteer">Volunteer</option>
+                                        <option value="ngo">NGO</option>
+                                        <option value="organizer">Organizer</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
+                                    <select
+                                        value={pendingSortBy}
+                                        onChange={(e) => setPendingSortBy(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <option value="">Sort By</option>
+                                        <option value="name-asc">Name (A-Z)</option>
+                                        <option value="name-desc">Name (Z-A)</option>
+                                        <option value="date-asc">Submitted (Oldest)</option>
+                                        <option value="date-desc">Submitted (Newest)</option>
+                                        <option value="email-asc">Email (A-Z)</option>
+                                        <option value="email-desc">Email (Z-A)</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {filteredAndSortedPendingUsers.length > 0 ? (
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(410px, 410px))',
                                 gap: '1.5rem',
                                 justifyContent: 'start',
                             }}>
-                                {pendingUsers.map((user) => (
+                                {filteredAndSortedPendingUsers.map((user) => (
                                     <PendingUserCard
                                         key={user.id}
                                         user={user}
@@ -714,49 +901,107 @@ const AdminDashboard = () => {
                                 color: '#6b7280',
                                 fontSize: '1rem'
                             }}>
-                                No pending registrations
+                                {pendingSearchQuery || pendingTypeFilter ? 'No matching registrations found' : 'No pending registrations'}
                             </div>
                         )}
                     </>
                 )}
 
+                {/* Pending Events Tab */}
                 {activeTab === 'pendingEvents' && (
                     <>
-                    {loading ? (
-                        <div style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
-                    ) : pendingEvents.length > 0 ? (
-                        <div
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '1.5rem',
-                                marginBottom: '2rem',
-                            }}
-                        >
-                            {pendingEvents.map((event) => (
-                                <PendingEventsCard
-                                    key={event.eventId}
-                                    event={event}
-                                    onActionComplete={() =>
-                                        setPendingEvents((prev) =>
-                                            prev.filter((e) => e.eventId !== event.eventId)
-                                        )
-                                    }
-                                />
-                            ))}
+                        {/* Search and Filter Section for Pending Events */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                                    <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93' }} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search pending events..."
+                                        value={eventSearchQuery}
+                                        onChange={(e) => setEventSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 0.875rem 0.625rem 2.75rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
+                                    <select
+                                        value={eventSortBy}
+                                        onChange={(e) => setEventSortBy(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <option value="">Sort By</option>
+                                        <option value="title-asc">Title (A-Z)</option>
+                                        <option value="title-desc">Title (Z-A)</option>
+                                        <option value="date-asc">Event Date (Earliest)</option>
+                                        <option value="date-desc">Event Date (Latest)</option>
+                                        <option value="submitted-asc">Submitted (Oldest)</option>
+                                        <option value="submitted-desc">Submitted (Newest)</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+                            </div>
                         </div>
-                    ) : (
-                        <div
-                            style={{
-                                padding: '3rem',
-                                textAlign: 'center',
-                                color: '#6b7280',
-                                fontSize: '1rem',
-                            }}
-                        >
-                            You're done!
-                        </div>
-                    )}
+
+                        {loading ? (
+                            <div style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
+                        ) : filteredAndSortedPendingEvents.length > 0 ? (
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1.5rem',
+                                    marginBottom: '2rem',
+                                }}
+                            >
+                                {filteredAndSortedPendingEvents.map((event) => (
+                                    <PendingEventsCard
+                                        key={event.eventId}
+                                        event={event}
+                                        onActionComplete={() =>
+                                            setPendingEvents((prev) =>
+                                                prev.filter((e) => e.eventId !== event.eventId)
+                                            )
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div
+                                style={{
+                                    padding: '3rem',
+                                    textAlign: 'center',
+                                    color: '#6b7280',
+                                    fontSize: '1rem',
+                                }}
+                            >
+                                {eventSearchQuery ? 'No matching events found' : 'You\'re done!'}
+                            </div>
+                        )}
                     </>
                 )}
             </div>
