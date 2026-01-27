@@ -46,9 +46,16 @@ router.post('/login', async (req, res) => {
             message: 'Login successful',
             user: {
                 id: user._id,
+                fullName: user.name,  // ← Changed to match profile page
                 name: user.name,
                 email: user.email,
-                role: user.type
+                role: user.type,
+                phoneNumber: user.phoneNumber || '',
+                address: user.address || '',
+                skills: user.skills || {},
+                bio: user.bio || '',
+                availability: user.availability || [],
+                profilePicture: user.profilePicture || ''
             }
         });
     } catch (error) {

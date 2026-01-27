@@ -6,6 +6,7 @@ const socketIO = require('socket.io');
 require('dotenv').config();
 
 const loginRoutes = require('./routes/loginRoutes');
+const VolunteerProfileRoutes = require('./routes/VolunteerProfileRoutes');
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
@@ -20,7 +21,8 @@ const io = socketIO(server, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .then(async () => {
@@ -51,6 +53,7 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 app.use('/api', loginRoutes);
+app.use('/api', VolunteerProfileRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
