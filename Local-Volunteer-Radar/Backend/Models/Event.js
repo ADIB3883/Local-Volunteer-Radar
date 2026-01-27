@@ -65,12 +65,12 @@ const EventSchema = new mongoose.Schema({
     default: true,
   },
 
-  isApproved: {
+  isPending: {
     type: Boolean,
-    default: false,
+    default: true,
   },
 
-  isRejected: {
+  isApproved: {
     type: Boolean,
     default: false,
   }
