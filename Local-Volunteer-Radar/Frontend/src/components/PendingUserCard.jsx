@@ -138,7 +138,7 @@ const PendingUserCard = ({
                             fontSize: '0.75rem',
                             textTransform: 'capitalize'
                         }}>
-                            {user.type}
+                            {user.type.toUpperCase()}
                         </span>
                         {user.type === 'ngo' && user.category && (
                             <span style={{

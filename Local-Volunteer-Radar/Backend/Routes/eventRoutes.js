@@ -6,7 +6,10 @@ router.put("/events/approve/:eventId", async (req, res) => {
     try {
         const event = await Event.findOneAndUpdate(
             { eventId: Number(req.params.eventId) },
-            { $set: { isApproved: true } },
+            { $set: {
+                isApproved: true,
+                    isPending: false
+            } },
             { new: true }
         );
 
@@ -20,10 +23,31 @@ router.put("/events/approve/:eventId", async (req, res) => {
     }
 });
 
+router.put("/events/reject/:eventId", async (req, res) => {
+    try {
+        const event = await Event.findOneAndUpdate(
+            { eventId: Number(req.params.eventId) },
+            { $set: {
+                    isApproved: false,
+                    isPending: false
+                } },
+            { new: true }
+        );
+
+        if (!event) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        res.json({ message: "Event rejected", event });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
 // GET /api/events/pending
 router.get("/events/pending", async (req, res) => {
     try {
-        const events = await Event.find({ isApproved: false }).sort({ date: 1 });
+        const events = await Event.find({ isPending: true }).sort({ date: 1 });
         res.json({ events });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });

@@ -28,12 +28,15 @@ export default function PendingEventsCard({ event, onActionComplete }) {
         try {
             const res = await fetch(
                 `http://localhost:5000/api/admin/events/reject/${event.eventId}`,
-                { method: "DELETE" }
+                {
+                    method: "PUT",
+                    headers: { 'Content-Type': 'application/json' }
+                }
             );
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
             setAction("reject");
-            onActionComplete?.(); // optional callback to remove from list
+            onActionComplete?.();
         } catch (err) {
             alert(err.message || "Failed to reject");
         } finally {

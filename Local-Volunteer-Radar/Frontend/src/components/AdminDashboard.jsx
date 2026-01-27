@@ -557,7 +557,9 @@ const AdminDashboard = () => {
                                 </div>
 
                                 {/* Table Rows */}
-                                {filteredAndSortedUsers.map((user) => (
+                                {filteredAndSortedUsers
+                                    .filter(user => user.type !== 'admin')
+                                    .map((user) => (
                                     <div
                                         key={user.id}
                                         onClick={() => setSelectedUser(user)}
@@ -886,7 +888,9 @@ const AdminDashboard = () => {
                                 gap: '1.5rem',
                                 justifyContent: 'start',
                             }}>
-                                {filteredAndSortedPendingUsers.map((user) => (
+                                {filteredAndSortedPendingUsers
+                                    .filter(user => user.type !== 'admin')
+                                    .map((user) => (
                                     <PendingUserCard
                                         key={user.id}
                                         user={user}
