@@ -4,20 +4,13 @@ import {useNavigate} from "react-router-dom";
 import logo from "../assets/logo.png";
 
 
-const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
-
+const VolunteerEditProfile = () => {
     const navigate = useNavigate();
 
     const [profilePicture, setProfilePicture] = useState(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
-
-    const handleBackToProfile = () => {
-        navigate('/volunteer-profile');
-    };
-
-    const handleLogout = () => {
-        navigate('/login');
-    };
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -30,15 +23,64 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
     const [skills, setSkills] = useState([]);
     const [availabilitySlots, setAvailabilitySlots] = useState([]);
 
+    // ✅ MODIFIED: Fetch data from backend
     React.useEffect(() => {
-        const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
-        if (!volunteer) {
-            navigate('/login');
-            return;
-        }
+        const fetchUserProfile = async () => {
+            const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+            if (!loggedInUser) {
+                navigate('/login');
+                return;
+            }
 
+            try {
+                // Fetch fresh data from backend
+                const response = await fetch(`http://localhost:5000/api/auth/profile/${loggedInUser.id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const user = data.user;
+
+                    setFormData({
+                        fullName: user.name || user.fullName || '',
+                        email: user.email || '',
+                        phone: user.phoneNumber || '',
+                        address: user.address || '',
+                        bio: user.bio || ''
+                    });
+
+                    if (user.profilePicture) {
+                        setProfilePicturePreview(user.profilePicture);
+                    }
+
+                    // Convert skills object to array
+                    const activeSkills = user.skills
+                        ? Object.keys(user.skills).filter(key => user.skills[key])
+                        : [];
+                    setSkills(activeSkills);
+
+                    // Load availability
+                    setAvailabilitySlots(user.availability || []);
+                } else {
+                    console.error('Failed to fetch profile:', data.message);
+                    // Fallback to localStorage
+                    loadFromLocalStorage(loggedInUser);
+                }
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                // Fallback to localStorage
+                loadFromLocalStorage(loggedInUser);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserProfile();
+    }, [navigate]);
+
+    // Helper function for localStorage fallback
+    const loadFromLocalStorage = (volunteer) => {
         setFormData({
-            fullName: volunteer.fullName || '',
+            fullName: volunteer.fullName || volunteer.name || '',
             email: volunteer.email || '',
             phone: volunteer.phoneNumber || '',
             address: volunteer.address || '',
@@ -49,15 +91,13 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
             setProfilePicturePreview(volunteer.profilePicture);
         }
 
-        // Convert skills object to array
         const activeSkills = volunteer.skills
             ? Object.keys(volunteer.skills).filter(key => volunteer.skills[key])
             : [];
         setSkills(activeSkills);
 
-        // Load availability if exists
         setAvailabilitySlots(volunteer.availability || []);
-    }, [navigate]);
+    };
 
     const handleInputChange = (e) => {
         setFormData({
@@ -108,23 +148,80 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
         }
     };
 
-    const handleSave = () => {
-        const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
-        if (!volunteer) return;
+    // Save to backend AND localStorage
+    const handleSave = async () => {
+        const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (!loggedInUser) {
+            alert('Please log in again');
+            navigate('/login');
+            return;
+        }
 
-        const updatedVolunteer = {
-            ...volunteer,
-            phoneNumber: formData.phone,
-            address: formData.address,
-            bio: formData.bio,
-            skills: skills.reduce((acc, skill) => ({ ...acc, [skill]: true }), {}),
-            availability: availabilitySlots,
-            profilePicture: profilePicturePreview || volunteer.profilePicture // ADD THIS LINE
-        };
+        setSaving(true);
 
-        localStorage.setItem('loggedInUser', JSON.stringify(updatedVolunteer));
+        try {
+            // Prepare data for backend
+            const updateData = {
+                phoneNumber: formData.phone,
+                address: formData.address,
+                bio: formData.bio,
+                skills: skills.reduce((acc, skill) => ({ ...acc, [skill]: true }), {}),
+                availability: availabilitySlots,
+                profilePicture: profilePicturePreview || ''
+            };
+
+            // Send PUT request to backend
+            const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update localStorage with fresh data from backend
+                const updatedUser = {
+                    ...loggedInUser,
+                    ...data.user,
+                    fullName: data.user.name || data.user.fullName
+                };
+
+                localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+
+                alert('Profile updated successfully!');
+
+                navigate('/volunteer-profile');
+            } else {
+                alert('Failed to update profile: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert('Error updating profile. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleBackToProfile = () => {
         navigate('/volunteer-profile');
     };
+
+    const handleLogout = () => {
+        localStorage.removeItem('loggedInUser');
+        navigate('/login');
+    };
+
+    // ✅ ADD: Loading state
+    if (loading) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p>Loading profile...</p>
+            </div>
+        );
+    }
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
@@ -590,28 +687,33 @@ const VolunteerEditProfile = ({ onBackToDashboard, onLogout, onSave }) => {
 
                     <button
                         onClick={handleSave}
+                        disabled={saving}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
                             padding: '0.75rem 1.5rem',
-                            background: '#3b82f6',
+                            background: saving ? '#9ca3af' : '#3b82f6',
                             color: 'white',
                             border: 'none',
                             borderRadius: '9999px',
-                            cursor: 'pointer',
+                            cursor: saving ? 'not-allowed' : 'pointer',
                             fontSize: '0.875rem',
                             fontWeight: '600',
                             transition: 'background-color 0.2s',
                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
-                        onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                        onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                        onMouseOver={(e) => {
+                            if (!saving) e.currentTarget.style.background = '#2563eb';
+                        }}
+                        onMouseOut={(e) => {
+                            if (!saving) e.currentTarget.style.background = '#3b82f6';
+                        }}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                        <span>Save Changes</span>
+                        <span>{saving ? 'Saving...' : 'Save Changes'}</span>
                     </button>
                 </div>
             </div>

@@ -11,6 +11,18 @@ const UserSchema = new mongoose.Schema({
         type: Object,
         default: {}
     },
+    bio: {
+        type: String,
+        default: ''
+    },
+    availability: {
+        type: Array,
+        default: []
+    },
+    profilePicture: {
+        type: String,
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: Date.now

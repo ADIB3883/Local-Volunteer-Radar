@@ -9,20 +9,66 @@ import { useState } from "react";
 
 const VolunteerProfile = () => {
     const navigate = useNavigate();
-
+    const [volunteer, setVolunteer] = useState(null);
     const [isCalendarConnected, setIsCalendarConnected] = useState(false);
-
-// inside component
-    const volunteer = JSON.parse(localStorage.getItem('loggedInUser'));
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!volunteer) {
-            navigate("/login");
-        }
-    }, [navigate, volunteer]);
+        const fetchUserProfile = async () => {
+            // Get initial user data from localStorage
+            const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
 
-// Then in JSX, just render normally
-    if (!volunteer) return null; // temporary fallback until redirect
+            if (!loggedInUser) {
+                navigate("/login");
+                return;
+            }
+
+            try {
+                // Fetch fresh data from backend
+                const response = await fetch(`http://localhost:5000/api/auth/profile/${loggedInUser.id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update state with fresh data
+                    setVolunteer({
+                        ...data.user,
+                        fullName: data.user.name // Add fullName mapping
+                    });
+
+                    // Optionally update localStorage with fresh data
+                    localStorage.setItem('loggedInUser', JSON.stringify({
+                        ...data.user,
+                        fullName: data.user.name
+                    }));
+                } else {
+                    // If fetch fails, use localStorage data
+                    setVolunteer({
+                        ...loggedInUser,
+                        fullName: loggedInUser.name
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                // Fallback to localStorage data
+                setVolunteer({
+                    ...loggedInUser,
+                    fullName: loggedInUser.name
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserProfile();
+    }, [navigate]);
+
+    if (loading || !volunteer) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p>Loading profile...</p>
+            </div>
+        );
+    }
 
     const handleBackToDashboard = () => {
         navigate('/volunteer-dashboard');
@@ -211,6 +257,23 @@ const VolunteerProfile = () => {
                                     </span>
                                 </div>
                             </div>
+
+                            {/*BIO SECTION*/}
+                            {volunteer.bio && (
+                                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        <h3 style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: 0 }}>
+                                            About Me
+                                        </h3>
+                                    </div>
+                                    <p style={{ fontSize: '0.875rem', color: '#4b5563', lineHeight: '1.5', margin: 0 }}>
+                                        {volunteer.bio}
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Your Skills */}
                             <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
