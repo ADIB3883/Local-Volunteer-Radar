@@ -76,6 +76,6 @@ const EventSchema = new mongoose.Schema({
   }
 });
 
-//Event card must appear in modules other than Admin only when `isPending` is false
+//Event card must appear in modules other than Admin only when `isPending` is false and `isApproved` is true
 
 module.exports = mongoose.model("Event", EventSchema, "Events");
