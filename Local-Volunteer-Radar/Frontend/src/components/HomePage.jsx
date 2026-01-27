@@ -22,27 +22,94 @@ function HomePage() {
             {/* Main Content Wrapper */}
             <main className="copa-main-content">
                 {/* Hero Section */}
-                <section className="copa-hero-section">
-                    <h1 className="copa-hero-title">
-                        Connect with <span className="highlight1">Volunteer</span> <span className="highlight2">Opportunities</span> Near You
-                    </h1>
-                    <p className="copa-hero-description">
-                        Connect with local volunteer opportunities and join a community of change makers
-                        dedicated to build a better tomorrow.
-                    </p>
-                    <div className="copa-hero-buttons">
-                        <button
-                            className="copa-btn-hero-primary"
-                            onClick={() => navigate('/login', { state: { view: 'signup', userType: 'volunteer' } })}
-                        >
-                            Join as Volunteer
-                        </button>
-                        <button
-                            className="copa-btn-hero-secondary"
-                            onClick={() => navigate('/login', { state: { view: 'signup', userType: 'organizer' } })}
-                        >
-                            Register Organization
-                        </button>
+                <section className="copa-hero-section" style={{
+                    position: 'relative',
+                    overflow: 'hidden'
+                }}>
+                    {/* Sliding Background */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        zIndex: 0
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            height: '100%',
+                            animation: 'slideShow 10s ease-in-out infinite',
+                            width: '400vw'
+                        }}>
+                            <div style={{
+                                width: '100vw',
+                                height: '100%',
+                                backgroundImage: 'url(https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=1920&q=80)',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                flexShrink: 0
+                            }}></div>
+                            <div style={{
+                                width: '100vw',
+                                height: '100%',
+                                backgroundImage: 'url(https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=1920&q=80)',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                flexShrink: 0
+                            }}></div>
+                            <div style={{
+                                width: '100vw',
+                                height: '100%',
+                                backgroundImage: 'url(https://images.unsplash.com/photo-1617817546276-80b86dd60151?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                flexShrink: 0
+                            }}></div>
+                            <div style={{
+                                width: '100vw',
+                                height: '100%',
+                                backgroundImage: 'url(https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=1920&q=80)',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                flexShrink: 0
+                            }}></div>
+                        </div>
+                    </div>
+
+                    {/* Dark overlay */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        background: 'rgba(0, 0, 0, 0.68)',
+                        zIndex: 1
+                    }}></div>
+
+                    {/* Content */}
+                    <div style={{ position: 'relative', zIndex: 2 }}>
+                        <h1 className="copa-hero-title">
+                            Connect with <span className="highlight1">Volunteer</span> <span className="highlight2">Opportunities</span> Near You
+                        </h1>
+                        <p className="copa-hero-description">
+                            Connect with local volunteer opportunities and join a community of change makers
+                            dedicated to build a better tomorrow
+                        </p>
+                        <div className="copa-hero-buttons">
+                            <button
+                                className="copa-btn-hero-primary"
+                                onClick={() => navigate('/login', { state: { view: 'signup', userType: 'volunteer' } })}
+                            >
+                                Join as Volunteer
+                            </button>
+                            <button
+                                className="copa-btn-hero-secondary"
+                                onClick={() => navigate('/login', { state: { view: 'signup', userType: 'organizer' } })}
+                            >
+                                Register Organization
+                            </button>
+                        </div>
                     </div>
                 </section>
 
