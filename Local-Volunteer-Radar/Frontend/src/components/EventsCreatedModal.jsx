@@ -6,9 +6,10 @@ const EventsCreatedModal = ({ events }) => {
 
     const myEvents = events.filter(e => e.organizerId === organizerId);
 
-    const activeEvents = myEvents.filter(e => e.status === 'active');
-    const pendingEvents = myEvents.filter(e => e.status === 'pending');
-    const completedEvents = myEvents.filter(e => e.status === 'completed');
+    // Filter based on isPending and isApproved flags
+    const activeEvents = myEvents.filter(e => e.isPending === false && e.isApproved === true);
+    const pendingEvents = myEvents.filter(e => e.isPending === true && e.isApproved === false);
+    const completedEvents = myEvents.filter(e => e.isPending === false && e.isApproved === false);
 
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
@@ -94,10 +95,13 @@ const EventsCreatedModal = ({ events }) => {
                         {myEvents
                             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                             .map((event) => {
-                                const statusColors = getStatusColor(event.status);
+                                // Compute status from isPending and isApproved
+                                const eventStatus = event.isPending === true && event.isApproved === false ? 'pending' :
+                                                    event.isPending === false && event.isApproved === true ? 'active' : 'completed';
+                                const statusColors = getStatusColor(eventStatus);
                                 return (
                                     <div
-                                        key={event.id}
+                                        key={event.eventId || event.id}
                                         style={{
                                             background: 'white',
                                             border: '1px solid #e5e7eb',
@@ -117,12 +121,12 @@ const EventsCreatedModal = ({ events }) => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                                             <div style={{ flex: 1 }}>
                                                 <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
-                                                    {event.eventName}
+                                                    {event.title}
                                                 </h4>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#6b7280' }}>
                                                         <Calendar size={12} />
-                                                        <span>{formatDate(event.startdate)}</span>
+                                                        <span>{formatDate(event.date)}</span>
                                                     </div>
                                                     <span style={{
                                                         fontSize: '0.75rem',
@@ -131,7 +135,7 @@ const EventsCreatedModal = ({ events }) => {
                                                         color: '#4b5563',
                                                         borderRadius: '0.25rem'
                                                     }}>
-                                                        {event.category}
+                                                        {event.tags && event.tags.length > 0 ? event.tags[0] : 'Event'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -144,7 +148,7 @@ const EventsCreatedModal = ({ events }) => {
                                                 fontWeight: '500',
                                                 textTransform: 'capitalize'
                                             }}>
-                                                {event.status}
+                                                {eventStatus}
                                             </span>
                                         </div>
 

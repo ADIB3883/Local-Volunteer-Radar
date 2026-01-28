@@ -54,17 +54,6 @@ const EventCard = ({
             return;
         }
 
-        // Get all events
-        const events = JSON.parse(localStorage.getItem('events')) || [];
-
-        // Find the specific event
-        const eventIndex = events.findIndex(e => e.id === eventId);
-
-        if (eventIndex === -1) {
-            alert("Event not found");
-            return;
-        }
-
         // Get existing registrations or initialize
         const registrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
 
@@ -75,12 +64,6 @@ const EventCard = ({
 
         if (alreadyRegistered) {
             alert("You are already registered for this event");
-            return;
-        }
-
-        // Check if event is full
-        if (events[eventIndex].volunteersRegistered >= events[eventIndex].volunteersNeeded) {
-            alert("Event is full");
             return;
         }
 
@@ -104,15 +87,31 @@ const EventCard = ({
             registeredAt: new Date().toISOString()
         };
 
-        // Add registration
+        // Add registration to localStorage (for local tracking)
         registrations.push(newRegistration);
         localStorage.setItem('eventRegistrations', JSON.stringify(registrations));
 
-        // Update event volunteer count
-        events[eventIndex].volunteersRegistered = (events[eventIndex].volunteersRegistered || 0) + 1;
-        localStorage.setItem('events', JSON.stringify(events));
+        // Call backend API to increment volunteersRegistered in database
+        fetch(`http://localhost:5000/api/events/${eventId}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                volunteerEmail: loggedInUser.email,
+                volunteerName: loggedInUser.fullName || loggedInUser.name || "Volunteer"
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.message) {
+                console.log('✅ Registered successfully. Updated count:', data.volunteersRegistered);
+            }
+        })
+        .catch(err => {
+            console.error('Error registering with backend:', err);
+            // Still show success even if backend call fails, since we saved to localStorage
+        });
 
-        alert("Successfully registered for the event! Your registration is pending organizer approval.");
+        alert("Successfully registered for the event! Your registration is pending approval.");
 
         // Update local status
         setRegistrationStatus('Pending');

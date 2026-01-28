@@ -11,6 +11,7 @@ const Conversation = require('./models/Conversation');
 const User = require('./models/User');
 const userApproveRejectRoutes = require('./routes/userApproveRejectRoutes');
 const eventRoutes = require('./routes/eventRoutes');
+const generalEventRoutes = require('./routes/generalEventRoutes');
 const adminAnalyticsRoutes = require('./routes/adminAnalyticsRoutes');
 
 const app = express();
@@ -54,6 +55,7 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 app.use('/api', loginRoutes);
+app.use('/api', generalEventRoutes);
 app.use('/api/admin', userApproveRejectRoutes);
 app.use('/api/admin', eventRoutes);
 app.use("/api/admin", adminAnalyticsRoutes);

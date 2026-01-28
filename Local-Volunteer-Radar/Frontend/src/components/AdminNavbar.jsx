@@ -1,22 +1,11 @@
-import React, { useState } from 'react';
-import { User, LogOut, MegaphoneIcon } from 'lucide-react';
-import AnnouncementPopup from './AnnouncementPopup.jsx';
+import React from 'react';
+import { LogOut } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const AdminNavbar = ({
                          title = "Default Dashboard",
-                         onAnnouncementsClick,
                          onLogoutClick
                      }) => {
-    // 👈 ADD THIS STATE (line ~12)
-    const [isAnnouncementOpen, setIsAnnouncementOpen] = useState(false);
-
-    // 👈 ADD THIS FUNCTION (line ~15)
-    const handleAnnouncementsClick = (e) => {
-        e.stopPropagation();
-        setIsAnnouncementOpen(true);
-        if (onAnnouncementsClick) onAnnouncementsClick(e);
-    };
 
     return (
         <>
@@ -43,28 +32,6 @@ const AdminNavbar = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
 
                             <button
-                                onClick={handleAnnouncementsClick}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    padding: '0.5rem 1rem',
-                                    color: '#374151',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    borderRadius: '0.5rem',
-                                    cursor: 'pointer',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '500',
-                                    transition: 'background-color 0.2s'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#f3f4f6'}
-                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <MegaphoneIcon size={20} />
-                                <span>Announcements</span>
-                            </button>
-                            <button
                                 onClick={onLogoutClick}
                                 style={{
                                     display: 'flex',
@@ -90,11 +57,6 @@ const AdminNavbar = ({
                     </div>
                 </div>
             </nav>
-
-            <AnnouncementPopup
-                isOpen={isAnnouncementOpen}
-                onClose={() => setIsAnnouncementOpen(false)}
-            />
         </>
     );
 };

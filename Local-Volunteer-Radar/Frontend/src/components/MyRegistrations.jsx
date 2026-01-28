@@ -39,6 +39,7 @@ const MyRegistrations = () => {
         const styles = {
             Pending: { bg: '#FEF3C7', color: '#92400E', icon: AlertCircle },
             Approved: { bg: '#D1FAE5', color: '#065F46', icon: CheckCircle },
+            Completed: { bg: '#DBEAFE', color: '#1E40AF', icon: CheckCircle },
             Rejected: { bg: '#FEE2E2', color: '#991B1B', icon: XCircle }
         };
 
@@ -89,7 +90,7 @@ const MyRegistrations = () => {
                 marginBottom: '1.5rem',
                 flexWrap: 'wrap'
             }}>
-                {['All', 'Pending', 'Approved', 'Rejected'].map((filterOption) => (
+                {['All', 'Pending', 'Approved', 'Completed', 'Rejected'].map((filterOption) => (
                     <button
                         key={filterOption}
                         onClick={() => setFilter(filterOption)}
@@ -197,7 +198,8 @@ const MyRegistrations = () => {
                             paddingTop: '1rem',
                             borderTop: '1px solid #e5e7eb',
                             fontSize: '0.75rem',
-                            color: '#9ca3af'
+                            color: '#9ca3af',
+                            marginBottom: '1rem'
                         }}>
                             Registered on {new Date(reg.registeredAt).toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -205,6 +207,53 @@ const MyRegistrations = () => {
                             day: 'numeric'
                         })}
                         </div>
+
+                        {/* Action Buttons */}
+                        {reg.status === 'Approved' && (
+                            <div style={{
+                                display: 'flex',
+                                gap: '0.75rem',
+                                borderTop: '1px solid #e5e7eb',
+                                paddingTop: '1rem'
+                            }}>
+                                <button
+                                    onClick={() => {
+                                        // Update event status in backend
+                                        fetch(`http://localhost:5000/api/events/${reg.eventId}/complete`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' }
+                                        })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            // Update localStorage registration status
+                                            const allRegistrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
+                                            const updatedRegistrations = allRegistrations.map(r =>
+                                                r.id === reg.id ? { ...r, status: 'Completed' } : r
+                                            );
+                                            localStorage.setItem('eventRegistrations', JSON.stringify(updatedRegistrations));
+                                            loadRegistrations();
+                                        })
+                                        .catch(err => console.error('Error marking event complete:', err));
+                                    }}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.5rem 1rem',
+                                        background: '#10b981',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '0.5rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        transition: 'background 0.2s'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.background = '#059669'}
+                                    onMouseOut={(e) => e.currentTarget.style.background = '#10b981'}
+                                >
+                                    Mark as Complete
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )})}
             </div>

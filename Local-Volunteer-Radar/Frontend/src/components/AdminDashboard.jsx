@@ -45,8 +45,8 @@ const AdminDashboard = () => {
             .catch(err => console.error(err));
     };
 
-    useEffect(() => {
-        fetch("http://localhost:5000/api/admin/events/pending") // your backend route
+    const refetchPendingEvents = () => {
+        fetch("http://localhost:5000/api/admin/events/pending")
             .then((res) => res.json())
             .then((data) => {
                 console.log("Fetched events:", data.events); // debug log
@@ -54,8 +54,16 @@ const AdminDashboard = () => {
             })
             .catch((err) => {
                 console.error("Error fetching pending events:", err);
-            })
-            .finally(() => setLoading(false)); // stop loading spinner
+            });
+    };
+
+    useEffect(() => {
+        refetchPendingEvents();
+        
+        // Poll for pending events updates every 5 seconds
+        const interval = setInterval(refetchPendingEvents, 5000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -201,59 +209,51 @@ const AdminDashboard = () => {
 
     const navigate = useNavigate();
 
-    const handleAnnouncementsClick = () => {
-
-    };
-
     const handleLogoutClick = () => {
         navigate('/login');
     };
 
-    const totalVolunteers = useMemo(
-        () => users?.filter(u => u.type === 'volunteer').length || 0,
-        [users]
-    );
+    const [stats, setStats] = useState([
+        { id: 'volunteers', title: 'Total Volunteers', value: 0, subtitle: 'Volunteers across the country', icon: Users, iconColor: '#3b82f6', iconBg: '#dbeafe', modalTitle: 'Total Volunteers', modalContent: null },
+        { id: 'organizers', title: 'Total Organizers', value: 0, subtitle: 'Organizers registered', icon: Building, iconColor: '#06b6d4', iconBg: '#cffafe', modalTitle: 'Total Organizers', modalContent: null },
+        { id: 'events', title: 'Active Events', value: 0, subtitle: 'Events taking place', icon: Sparkles, iconColor: '#a855f7', iconBg: '#f3e8ff', modalTitle: 'Active Events', modalContent: null }
+    ]);
+    const [volunteersList, setVolunteersList] = useState([]);
+    const [organizersList, setOrganizersList] = useState([]);
+    const [activeEventsList, setActiveEventsList] = useState([]);
 
-    const totalOrganizers = useMemo(
-        () => users?.filter(u => u.type === 'organizer').length || 0,
-        [users]
-    );
+    // Fetch stats from backend
+    useEffect(() => {
+        fetch('http://localhost:5000/api/admin/counts')
+            .then(res => res.json())
+            .then(data => {
+                setStats(prev => prev.map(stat => {
+                    if (stat.id === 'volunteers') return { ...stat, value: data.totalVolunteers };
+                    if (stat.id === 'organizers') return { ...stat, value: data.totalOrganizers };
+                    if (stat.id === 'events') return { ...stat, value: data.activeEvents };
+                    return stat;
+                }));
+            })
+            .catch(err => console.error('Error fetching counts:', err));
 
-    const stats = [
-        {
-            id: 'volunteers',
-            title: 'Total Volunteers',
-            value: totalVolunteers,
-            subtitle: 'Volunteers across the country',
-            icon: Users,
-            iconColor: '#3b82f6',
-            iconBg: '#dbeafe',
-            modalTitle: 'Total Volunteers',
-            modalContent: <TotalVolunteerModal />
-        },
-        {
-            id: 'organizers',
-            title: 'Total Organizers',
-            value: totalOrganizers,
-            subtitle: 'Organizers registered',
-            icon: Building,
-            iconColor: '#06b6d4',
-            iconBg: '#cffafe',
-            modalTitle: 'Total Organizers',
-            modalContent: <TotalOrganizerModal />
-        },
-        {
-            id: 'events',
-            title: 'Active Events',
-            value: '2',
-            subtitle: 'Events taking place',
-            icon: Sparkles,
-            iconColor: '#a855f7',
-            iconBg: '#f3e8ff',
-            modalTitle: 'Ongoing Events',
-            modalContent: <ActiveEventsModal />
-        }
-    ];
+        // Fetch volunteers list
+        fetch('http://localhost:5000/api/admin/users/volunteers')
+            .then(res => res.json())
+            .then(data => setVolunteersList(data.users || []))
+            .catch(err => console.error('Error fetching volunteers:', err));
+
+        // Fetch organizers list
+        fetch('http://localhost:5000/api/admin/users/organizers')
+            .then(res => res.json())
+            .then(data => setOrganizersList(data.users || []))
+            .catch(err => console.error('Error fetching organizers:', err));
+
+        // Fetch active events
+        fetch('http://localhost:5000/api/admin/events/active')
+            .then(res => res.json())
+            .then(data => setActiveEventsList(data.events || []))
+            .catch(err => console.error('Error fetching active events:', err));
+    }, []);
 
     const getInitials = (name) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase();
@@ -274,7 +274,6 @@ const AdminDashboard = () => {
             {/* Navbar */}
             <AdminNavbar
                 title="Admin Dashboard"
-                onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
             />
 
@@ -286,7 +285,6 @@ const AdminDashboard = () => {
                     {stats.map((stat) => (
                         <StatCard
                             key={stat.id}
-                            onClick={() => setModalOpen(stat.id)}
                             title={stat.title}
                             value={stat.value}
                             subtitle={stat.subtitle}
@@ -296,17 +294,6 @@ const AdminDashboard = () => {
                         />
                     ))}
                 </div>
-
-                {stats.map((stat) => (
-                    <Modal
-                        key={stat.id}
-                        isOpen={modalOpen === stat.id}
-                        onClose={() => setModalOpen(null)}
-                        title={stat.modalTitle}
-                    >
-                        {stat.modalContent}
-                    </Modal>
-                ))}
 
                 {/* Tabs */}
                 <div style={{

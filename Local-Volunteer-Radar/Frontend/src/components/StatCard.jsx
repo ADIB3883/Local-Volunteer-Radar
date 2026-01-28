@@ -1,6 +1,6 @@
 import React from 'react';
 
-const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg, onClick }) => {
+const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg }) => {
     return (
         <div
             style={{
@@ -10,7 +10,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg, onCli
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                 transition: 'all 0.3s',
                 borderLeft: `4px solid ${iconColor}`,
-                cursor: 'pointer'
+                cursor: 'default'
             }}
             onMouseOver={(e) => {
                 e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)';
@@ -20,7 +20,6 @@ const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg, onCli
                 e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
                 e.currentTarget.style.transform = 'translateY(0)';
             }}
-            onClick={onClick}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4b5563', margin: 0 }}>

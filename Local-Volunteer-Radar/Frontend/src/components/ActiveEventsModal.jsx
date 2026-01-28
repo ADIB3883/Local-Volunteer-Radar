@@ -1,36 +1,9 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, Users, Building2 } from 'lucide-react';
 
-const ActiveEventsModal = ({ events }) => {
-    // Sample data - replace with actual data
-    const sampleEvents = [
-        {
-            id: 1,
-            name: 'Beach Cleanup Drive',
-            organization: 'Green Earth Foundation',
-            date: 'Jan 15, 2026',
-            time: '8:00 AM - 12:00 PM',
-            location: 'Cox\'s Bazar Beach',
-            category: 'Environment',
-            volunteersRegistered: 15,
-            volunteersNeeded: 20,
-            status: 'active'
-        },
-        {
-            id: 2,
-            name: 'Food Distribution Campaign',
-            organization: 'Food For All',
-            date: 'Jan 16, 2026',
-            time: '2:00 PM - 6:00 PM',
-            location: 'Mirpur Community Center',
-            category: 'Distribution',
-            volunteersRegistered: 12,
-            volunteersNeeded: 15,
-            status: 'active'
-        },
-    ];
-
-    const data = events || sampleEvents;
+const ActiveEventsModal = ({ events = [] }) => {
+    // Use passed events data, fallback to empty array
+    const data = events && events.length > 0 ? events : [];
 
     return (
         <div>
@@ -102,23 +75,13 @@ const ActiveEventsModal = ({ events }) => {
                         <div style={{ marginBottom: '1rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                                 <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                                    {event.name}
+                                    {event.title}
                                 </h4>
-                                <span style={{
-                                    fontSize: '0.75rem',
-                                    padding: '0.25rem 0.5rem',
-                                    background: '#f3e8ff',
-                                    color: '#7c3aed',
-                                    borderRadius: '0.25rem',
-                                    fontWeight: '500'
-                                }}>
-                                    {event.category}
-                                </span>
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
                                 <Building2 size={14} />
-                                <span>{event.organization}</span>
+                                <span>Organizer ID: {event.organizerId}</span>
                             </div>
                         </div>
 

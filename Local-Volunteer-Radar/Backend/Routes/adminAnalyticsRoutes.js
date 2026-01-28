@@ -87,4 +87,55 @@ router.get('/', async (req, res) => {
     }
 });
 
+// GET /api/admin/users/volunteers - Get all approved volunteers
+router.get('/users/volunteers', async (req, res) => {
+    try {
+        const volunteers = await User.find({ type: 'volunteer', isApproved: true }).select('name email type joinedDate isApproved hoursVolunteered');
+        res.json({ users: volunteers });
+    } catch (error) {
+        console.error('❌ Error fetching volunteers:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// GET /api/admin/users/organizers - Get all approved organizers
+router.get('/users/organizers', async (req, res) => {
+    try {
+        const organizers = await User.find({ type: 'organizer', isApproved: true }).select('name email type joinedDate isApproved');
+        res.json({ users: organizers });
+    } catch (error) {
+        console.error('❌ Error fetching organizers:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// GET /api/admin/events/active - Get active events
+router.get('/events/active', async (req, res) => {
+    try {
+        const activeEvents = await Event.find({ isPending: false, isApproved: true });
+        res.json({ events: activeEvents });
+    } catch (error) {
+        console.error('❌ Error fetching active events:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// GET /api/admin/counts - Get stats counts
+router.get('/counts', async (req, res) => {
+    try {
+        const totalVolunteers = await User.countDocuments({ type: 'volunteer' });
+        const totalOrganizers = await User.countDocuments({ type: 'organizer' });
+        const activeEvents = await Event.countDocuments({ isPending: false, isApproved: true });
+        
+        res.json({ 
+            totalVolunteers,
+            totalOrganizers,
+            activeEvents
+        });
+    } catch (error) {
+        console.error('❌ Error fetching counts:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 module.exports = router;

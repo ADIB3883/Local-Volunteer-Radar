@@ -14,9 +14,8 @@ const EventSchema = new mongoose.Schema({
   },
 
   organizerId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     required: true,
-    ref: "User",
   },
 
   description: {
@@ -60,6 +59,21 @@ const EventSchema = new mongoose.Schema({
     trim: true,
   },
 
+  volunteersNeeded: {
+    type: Number,
+    default: 10,
+  },
+
+  volunteersRegistered: {
+    type: Number,
+    default: 0,
+  },
+
+  registrationsClosed: {
+    type: Boolean,
+    default: false,
+  },
+
   onRegister: {
     type: Boolean,
     default: true,
@@ -73,6 +87,11 @@ const EventSchema = new mongoose.Schema({
   isApproved: {
     type: Boolean,
     default: false,
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now,
   }
 });
 

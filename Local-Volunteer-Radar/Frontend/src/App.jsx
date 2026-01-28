@@ -1,5 +1,6 @@
 // javascript
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import VolunteerDashboard from './components/VolunteerDashboard';
@@ -22,6 +23,11 @@ import LoginSuccessPopUp from "./components/LoginSuccessPopUp.jsx";
 // import VolunteerConversation from './pages/volunteer/VolunteerConversation';
 
 function App() {
+    useEffect(() => {
+        // Clear all localStorage data on app initialization
+        localStorage.clear();
+    }, []);
+
     return (
         <Router>
             <div className="App">

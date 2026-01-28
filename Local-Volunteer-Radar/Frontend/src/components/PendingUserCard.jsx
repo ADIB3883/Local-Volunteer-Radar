@@ -28,7 +28,7 @@ const PendingUserCard = ({
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/admin/users/approve/${user.id}`,
+                `http://localhost:5000/api/admin/approve/${user.id}`,
                 { method: "PUT", headers: { "Content-Type": "application/json" } }
             );
 
@@ -53,7 +53,7 @@ const PendingUserCard = ({
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/admin/users/reject/${user.id}`,
+                `http://localhost:5000/api/admin/reject/${user.id}`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
@@ -157,27 +157,10 @@ const PendingUserCard = ({
 
             {/* Info */}
             <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>
-                <div><strong>Phone:</strong> {user.phoneNumber || 'N/A'}</div>
                 <div><strong>Email:</strong> {user.email}</div>
+                <div><strong>Phone:</strong> {user.phoneNumber || 'N/A'}</div>
                 <div><strong>Address:</strong> {user.address || 'N/A'}</div>
                 <div><strong>Joined:</strong> {new Date(user.joinedDate || user.createdAt).toLocaleDateString()}</div>
-
-                {/* NGO-specific fields */}
-                {user.type === 'ngo' && (
-                    <>
-                        {user.registrationNumber && (
-                            <div><strong>Registration:</strong> {user.registrationNumber}</div>
-                        )}
-                        {user.membersCount > 0 && (
-                            <div><strong>Members:</strong> {user.membersCount}</div>
-                        )}
-                    </>
-                )}
-
-                {/* Volunteer-specific fields */}
-                {user.type === 'volunteer' && user.hoursVolunteered > 0 && (
-                    <div><strong>Hours Volunteered:</strong> {user.hoursVolunteered}</div>
-                )}
             </div>
 
             {/* Divider */}

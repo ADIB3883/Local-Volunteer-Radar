@@ -1,7 +1,12 @@
 import React from "react";
-import { Calendar, Clock, MapPin, Ruler, User, FileText, CheckSquare, Tag } from "lucide-react";
+import { Calendar, Clock, MapPin, Ruler, User, FileText, CheckSquare, Tag, Users } from "lucide-react";
 
 export default function AdminEventCard({ event, children }) {
+    // Calculate participation percentage
+    const participationPercentage = event.volunteersRegistered && event.volunteersNeeded 
+        ? (event.volunteersRegistered / event.volunteersNeeded) * 100 
+        : 0;
+
     return (
         <div
             style={{
@@ -134,6 +139,32 @@ export default function AdminEventCard({ event, children }) {
                     </div>
                 </div>
             </div>
+
+            {/* Participation Progress Bar - Only show for approved events */}
+            {!event.isPending && (
+            <div style={{ marginBottom: "1rem", paddingBottom: "0.75rem", borderBottom: "1px solid #e5e7eb" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", fontWeight: "500", color: "#374151" }}>
+                        <Users size={14} color="#3b82f6" />
+                        <span>Volunteer Participation</span>
+                    </div>
+                    <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#1f2937" }}>
+                        {event.volunteersRegistered || 0} / {event.volunteersNeeded || 0}
+                    </span>
+                </div>
+                <div style={{ width: "100%", background: "#e5e7eb", borderRadius: "9999px", height: "8px", overflow: "hidden" }}>
+                    <div
+                        style={{
+                            background: "#3b82f6",
+                            height: "100%",
+                            borderRadius: "9999px",
+                            transition: "width 0.3s ease",
+                            width: `${Math.min(participationPercentage, 100)}%`
+                        }}
+                    ></div>
+                </div>
+            </div>
+            )}
 
             {/* Footer Buttons */}
             <div>

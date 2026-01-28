@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, Clock, Calendar, TrendingUp, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, ChevronDown } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 import Navbar from './Navbar';
 import StatCard from './StatCard';
 import EventCard from './EventCard';
@@ -248,24 +248,44 @@ const VolunteerDashboard = () => {
 
 
   // const [filteredEvents, setFilteredEvents] = useState([]);
-    // Load events from localStorage on mount
+    // Load events from MongoDB on mount
     React.useEffect(() => {
-        const stored = localStorage.getItem('events');
-        if (stored) {
-            const parsedEvents = JSON.parse(stored);
+        const fetchApprovedEvents = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/events/approved');
+                const data = await response.json();
+                
+                if (data.events && Array.isArray(data.events)) {
+                    // Transform MongoDB events to match EventCard props
+                    const transformedEvents = data.events.map(event => ({
+                        id: event.eventId,
+                        title: event.title,
+                        organizerId: event.organizerId,
+                        description: event.description,
+                        tags: event.tags || [],
+                        date: event.date,
+                        time: event.time,
+                        location: event.location,
+                        distance: event.distance || 0,
+                        requirements: event.requirements || "",
+                        status: 'active'
+                    }));
+                    
+                    setAllEvents(transformedEvents);
+                    setRecommendedEvents(transformedEvents.slice(0, 2));
+                    setFilteredEvents(transformedEvents);
+                }
+            } catch (error) {
+                console.error('Error fetching approved events:', error);
+            }
+        };
 
-            // Filter for active events only
-            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
-
-            // Set all events
-            setAllEvents(activeEvents);
-
-            // Set recommended events (first 2)
-            setRecommendedEvents(activeEvents.slice(0, 2));
-
-            // Set initial filtered events
-            setFilteredEvents(activeEvents);
-        }
+        fetchApprovedEvents();
+        
+        // Poll for new approved events every 5 seconds
+        const interval = setInterval(fetchApprovedEvents, 5000);
+        
+        return () => clearInterval(interval);
     }, []);
 
 
@@ -277,7 +297,7 @@ const VolunteerDashboard = () => {
         // Filter by search query
         if (searchQuery.trim() !== '') {
             filtered = filtered.filter(event =>
-                event.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (event.requirements && event.requirements.toLowerCase().includes(searchQuery.toLowerCase()))
             );
@@ -286,7 +306,7 @@ const VolunteerDashboard = () => {
         // Filter by category
         if (selectedCategory !== 'All Category') {
             filtered = filtered.filter(event => {
-                return event.category?.toLowerCase() === selectedCategory.toLowerCase() ||
+                return event.tags?.some(tag => tag.toLowerCase() === selectedCategory.toLowerCase()) ||
                     (event.requirements && event.requirements.toLowerCase().includes(selectedCategory.toLowerCase()));
             });
         }
@@ -497,49 +517,6 @@ const VolunteerDashboard = () => {
                 {/* Show events only on Discover tab */}
                 {activeTab === 'discover' && (
                     <>
-
-                        {/* Recommended Section */}
-                        <div style={{ background: 'linear-gradient(to right, #eff6ff, #eef2ff)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid #dbeafe', boxShadow: '0 10px 20px -3px rgba(0, 0, 0, 0.15)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                <Sparkles size={20} style={{ color: '#3b82f6' }} />
-                                <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Recommended For You</h2>
-                            </div>
-                            <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>Events matching your skills and location</p>
-                        </div>
-
-                        {/* Event Cards - Recommended */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem', maxWidth: '100%' }}>
-                            {recommendedEvents.map((event) => (
-                                <EventCard
-                                    key={event.id}
-                                    eventId={event.id}
-                                    organizerId={event.organizerId}
-                                    title={event.eventName}
-                                    description={event.description}
-                                    tags={[
-                                        { name: event.category || 'general', type: 'skill' },
-                                        { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
-                                    ]}
-                                    date={new Date(event.startdate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                                    time={`${event.startTime} - ${event.endTime}`}
-                                    location={event.location}
-                                    distance="Calculating..."
-                                    requirements={event.requirements || 'No specific requirements'}
-                                    onRegister={() => {
-                                        // Refresh events after registration
-                                        const stored = localStorage.getItem('events');
-                                        if (stored) {
-                                            const parsedEvents = JSON.parse(stored);
-                                            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
-                                            setAllEvents(activeEvents);
-                                            setRecommendedEvents(activeEvents.slice(0, 2));
-                                            setFilteredEvents(activeEvents);
-                                        }
-                                    }}
-                                />
-                            ))}
-                        </div>
-
                         {/* Search and Filter Section */}
                         <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', alignItems: 'center' }}>
@@ -603,16 +580,13 @@ const VolunteerDashboard = () => {
                                     key={event.id}
                                     eventId={event.id}
                                     organizerId={event.organizerId}
-                                    title={event.eventName}
+                                    title={event.title}
                                     description={event.description}
-                                    tags={[
-                                        { name: event.category || 'general', type: 'skill' },
-                                        { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
-                                    ]}
-                                    date={new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                                    time={`${event.startTime} - ${event.endTime}`}
+                                    tags={event.tags || []}
+                                    date={event.date}
+                                    time={event.time}
                                     location={event.location}
-                                    distance="Calculating..."
+                                    distance={event.distance || "Calculating..."}
                                     requirements={event.requirements || 'No specific requirements'}
                                     onRegister={() => {
                                         // Refresh events after registration

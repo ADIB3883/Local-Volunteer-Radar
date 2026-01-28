@@ -98,11 +98,11 @@ const TotalVolunteersOrganizerModal = ({ events }) => {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                                         <div style={{ flex: 1 }}>
                                             <h4 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', margin: '0 0 0.25rem 0' }}>
-                                                {event.eventName}
+                                                {event.title}
                                             </h4>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#6b7280' }}>
                                                 <Calendar size={12} />
-                                                <span>{formatDate(event.startdate)}</span>
+                                                <span>{formatDate(event.date)}</span>
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>

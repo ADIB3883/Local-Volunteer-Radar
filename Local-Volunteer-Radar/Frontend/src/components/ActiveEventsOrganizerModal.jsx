@@ -4,9 +4,9 @@ import { Calendar, Clock, MapPin, Users, TrendingUp } from 'lucide-react';
 const ActiveEventsOrganizerModal = ({ events }) => {
     const organizerId = "org_123";
 
-    // Filter for active events by this organizer
+    // Filter for active events by this organizer (isPending=false AND isApproved=true)
     const activeEvents = events.filter(e =>
-        e.organizerId === organizerId && e.status === 'active'
+        e.organizerId === organizerId && e.isPending === false && e.isApproved === true
     );
 
     const formatDate = (dateStr) => {
@@ -88,7 +88,7 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                 <div style={{ marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                                         <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                                            {event.eventName}
+                                            {event.title}
                                         </h4>
                                         <span style={{
                                             fontSize: '0.75rem',
@@ -98,7 +98,7 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                             borderRadius: '0.25rem',
                                             fontWeight: '500'
                                         }}>
-                                            {event.category}
+                                            {event.tags && event.tags.length > 0 ? event.tags[0] : 'Event'}
                                         </span>
                                     </div>
                                 </div>
@@ -106,11 +106,11 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
                                         <Calendar size={16} />
-                                        <span>{formatDate(event.startdate)}</span>
+                                        <span>{formatDate(event.date)}</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
                                         <Clock size={16} />
-                                        <span>{event.startTime} - {event.endTime}</span>
+                                        <span>{event.time}</span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
                                         <MapPin size={16} />

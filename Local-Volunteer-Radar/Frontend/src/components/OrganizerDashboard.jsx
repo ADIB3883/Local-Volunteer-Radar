@@ -12,25 +12,34 @@ import io from 'socket.io-client';
 const socket = io('http://localhost:5000');
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('active');
+    const [activeTab, setActiveTab] = useState('pending');
     const [modalOpen, setModalOpen] = useState(null);
 
-    const [events, setEvents] = useState(() => {
-        const stored = localStorage.getItem('events');
-        return stored ? JSON.parse(stored) : [];
-    });
+    const [events, setEvents] = useState([]);
 
-    // Initialize volunteersRegistered for existing events
+    // Fetch organizer's events from database and poll for updates
     React.useEffect(() => {
-        const stored = localStorage.getItem('events');
-        if (stored) {
-            const parsedEvents = JSON.parse(stored);
-            const updated = parsedEvents.map(event => ({
-                ...event,
-                volunteersRegistered: event.volunteersRegistered || 0
-            }));
-            localStorage.setItem('events', JSON.stringify(updated));
-        }
+        const fetchOrganizerEvents = async () => {
+            try {
+                const organizerId = "org_123";
+                const response = await fetch(`http://localhost:5000/api/events/organizer/${organizerId}`);
+                const data = await response.json();
+                
+                if (data.events && Array.isArray(data.events)) {
+                    setEvents(data.events);
+                }
+            } catch (error) {
+                console.error('Error fetching organizer events:', error);
+                setEvents([]);
+            }
+        };
+
+        fetchOrganizerEvents();
+        
+        // Poll for updates every 5 seconds to reflect volunteer registrations
+        const interval = setInterval(fetchOrganizerEvents, 5000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -99,28 +108,62 @@ const OrganizerDashboard = () => {
         const organizerId = "org_123";
 
         const newEvent = {
-            id: Date.now(),
+            title: formData.eventName,
             organizerId: organizerId,
-            ...formData,
-            status: 'pending',
-            volunteersRegistered: 0,
-            createdAt: new Date().toISOString()
+            description: formData.description,
+            tags: [formData.category],
+            date: formData.startdate,
+            time: formData.startTime,
+            location: formData.location,
+            distance: 0,
+            requirements: formData.requirements || "",
+            volunteersNeeded: parseInt(formData.volunteersNeeded) || 10
         };
-        const updatedEvents = [...events, newEvent];
-        setEvents(updatedEvents);
-        localStorage.setItem('events', JSON.stringify(updatedEvents));
-        setShowCreateModal(false);
-        setFormData({
-            eventName: '',
-            description: '',
-            startdate: '',
-            enddate: '',
-            location: '',
-            volunteersNeeded: '',
-            category: '',
-            startTime: '',
-            endTime:'',
-            requirements: ''
+
+        // Save to database
+        fetch('http://localhost:5000/api/events', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newEvent)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.event) {
+                // Refresh events list from database instead of adding local copy
+                const organizerId = "org_123";
+                fetch(`http://localhost:5000/api/events/organizer/${organizerId}`)
+                    .then(res => res.json())
+                    .then(refreshData => {
+                        if (refreshData.events) {
+                            setEvents(refreshData.events);
+                        }
+                    })
+                    .catch(err => console.error('Error refreshing events:', err));
+                alert('Event created successfully! Pending admin approval.');
+            } else {
+                alert('Error creating event: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(err => {
+            console.error('Error creating event:', err);
+            alert('Error creating event. Please try again.');
+        })
+        .finally(() => {
+            setShowCreateModal(false);
+            setFormData({
+                eventName: '',
+                description: '',
+                startdate: '',
+                enddate: '',
+                location: '',
+                volunteersNeeded: '',
+                category: '',
+                startTime: '',
+                endTime:'',
+                requirements: ''
+            });
         });
     };
     const handleLogout = () => {
@@ -132,22 +175,61 @@ const OrganizerDashboard = () => {
     const handleMessages = () => {
         setShowMessagesModal(true);
     };
+    const handleCloseRegistrations = async (eventId) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/events/${eventId}/close-registrations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Registrations closed! Event sent to admin for approval.');
+                // Refresh events list
+                const organizerId = "org_123";
+                const refreshResponse = await fetch(`http://localhost:5000/api/events/organizer/${organizerId}`);
+                const refreshData = await refreshResponse.json();
+                if (refreshData.events) {
+                    setEvents(refreshData.events);
+                }
+            } else {
+                alert('Error: ' + (data.message || 'Failed to close registrations'));
+            }
+        } catch (error) {
+            console.error('Error closing registrations:', error);
+            alert('Error closing registrations. Please try again.');
+        }
+    };
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     };
     const getFilteredEvents = () => {
         const organizerId = "org_123";
-        return events.filter(event =>
-            event.organizerId === organizerId && event.status === activeTab
-        );
+        return events.filter(event => {
+            if (event.organizerId !== organizerId) return false;
+            
+            // Categorize based on isPending and isApproved flags
+            if (activeTab === 'pending') {
+                // Waiting for admin approval: isPending=true, isApproved=false
+                return event.isPending === true && event.isApproved === false;
+            } else if (activeTab === 'active') {
+                // Admin approved: isPending=false, isApproved=true
+                return event.isPending === false && event.isApproved === true;
+            } else if (activeTab === 'completed') {
+                // Admin rejected or event date passed: isPending=false, isApproved=false
+                return event.isPending === false && event.isApproved === false;
+            }
+            return false;
+        });
     };
     const getStats = () => {
         const organizerId = "org_123"; // Same organizerId
         const myEvents = events.filter(e => e.organizerId === organizerId);
 
-        const activeEvents = myEvents.filter(e => e.status === 'active').length;
-        const totalVolunteers = myEvents.reduce((sum, e) => sum + e.volunteersRegistered, 0);
+        // Count active events: isPending=false AND isApproved=true
+        const activeEvents = myEvents.filter(e => e.isPending === false && e.isApproved === true).length;
+        const totalVolunteers = myEvents.reduce((sum, e) => sum + (e.volunteersRegistered || 0), 0);
         const totalEvents = myEvents.length;
 
         return { activeEvents, totalVolunteers, totalEvents };
@@ -156,18 +238,23 @@ const OrganizerDashboard = () => {
         switch(activeTab) {
             case 'pending':
                 return {
-                    title: 'No events pending approval',
-                    description: 'Events you create will appear here while awaiting admin approval'
+                    title: 'No pending events',
+                    description: 'Events you created will appear here while waiting for admin approval'
+                };
+            case 'active':
+                return {
+                    title: 'No active events yet',
+                    description: 'Create your first volunteer event and start making an impact in your community'
                 };
             case 'completed':
                 return {
                     title: 'No completed events yet',
-                    description: 'Events that have finished will appear here for your records'
+                    description: 'Events that have finished or been rejected will appear here'
                 };
             default:
                 return {
-                    title: 'No active events yet',
-                    description: 'Create your first volunteer event and start making an impact in your community'
+                    title: 'No events',
+                    description: 'Start creating events to get started'
                 };
         }
     };
@@ -323,7 +410,7 @@ const OrganizerDashboard = () => {
                 {/* Tabs */}
                 <div className="flex gap-8 px-8 " style={{paddingLeft: '48px', marginTop: '32px',marginBottom: '12px'}} >
                     <div className="inline-flex gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
-                        {['active', 'pending', 'completed'].map((tab) => (
+                        {['pending', 'active', 'completed'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -333,7 +420,7 @@ const OrganizerDashboard = () => {
                                         : 'bg-gray text-gray border-white'
                                 }`}
                             >
-                                {tab === 'active' ? 'Active' : tab === 'pending' ? 'Pending Approval' : 'Completed'}
+                                {tab === 'pending' ? 'Pending Approval' : tab === 'active' ? 'Active' : 'Completed'}
 
                             </button>
                         ))}
@@ -344,21 +431,23 @@ const OrganizerDashboard = () => {
                     <div className="h-80 px-8 py-8">
                         {filteredEvents.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredEvents.map((event) => (
-                                    <div key={event.id} className="bg-white rounded-xl border-2 border-blue-400 hover:shadow-md transition-shadow" style={{padding: '24px'}}>
+                                {filteredEvents.map((event) => {
+                                    const eventStatus = event.isPending ? 'pending' : (event.isApproved ? 'active' : 'completed');
+                                    return (
+                                    <div key={event.eventId || event.id} className="bg-white rounded-xl border-2 border-blue-400 hover:shadow-md transition-shadow" style={{padding: '24px'}}>
                                         {/* Event Header */}
                                         <div className="flex items-start justify-between" style={{marginBottom: '16px', paddingLeft: '4px', paddingRight: '4px'}}>
-                                            <h3 className="text-xl font-bold text-gray-900">{event.eventName}</h3>
+                                            <h3 className="text-xl font-bold text-gray-900">{event.title}</h3>
                                             <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                                                event.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                                    event.status === 'active' ? 'bg-green-100 text-green-700' :
+                                                eventStatus === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                    eventStatus === 'active' ? 'bg-green-100 text-green-700' :
                                                         'bg-gray-100 text-gray-700'
                                             }`}>
-                                                {event.status}
+                                                {eventStatus}
                                             </span>
                                         </div>
 
-                                        {/* Volunteers Progress */}
+                                        {/* Volunteers Progress - Placeholder since DB doesn't track yet */}
                                         <div style={{marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px'}}>
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -366,13 +455,13 @@ const OrganizerDashboard = () => {
                                                     <span>Volunteers</span>
                                                 </div>
                                                 <span className="text-sm font-semibold text-gray-900">
-                    {event.volunteersRegistered} / {event.volunteersNeeded}
+                    {event.volunteersRegistered || 0} / {event.volunteersNeeded || 10}
                 </span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div
                                                     className="bg-blue-500 h-2 rounded-full transition-all"
-                                                    style={{width: `${(event.volunteersRegistered / event.volunteersNeeded) * 100}%`}}
+                                                    style={{width: `${((event.volunteersRegistered || 0) / (event.volunteersNeeded || 10)) * 100}%`}}
                                                 ></div>
                                             </div>
                                         </div>
@@ -381,13 +470,13 @@ const OrganizerDashboard = () => {
                                         <div className="space-y-2" style={{marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px'}}>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <Calendar className="w-4 h-4 text-blue-500" />
-                                                <span>{formatDate(event.startdate)}</span>
+                                                <span>{formatDate(event.date)}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
-                                                <span>{event.startTime} - {event.endTime}</span>
+                                                <span>{event.time}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -398,20 +487,47 @@ const OrganizerDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* View Details Button */}
-                                        <div className="flex justify-center" style={{paddingLeft: '4px', paddingRight: '4px'}}>
+                                        {/* Action Buttons */}
+                                        <div style={{display: 'flex', gap: '8px', paddingLeft: '4px', paddingRight: '4px'}}>
+                                            {eventStatus === 'pending' && !event.registrationsClosed && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm('Close registrations and send to admin for approval?')) {
+                                                            handleCloseRegistrations(event.eventId);
+                                                        }
+                                                    }}
+                                                    className="flex-1 py-2 border border-orange-300 rounded-lg text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors">
+                                                    Close & Submit
+                                                </button>
+                                            )}
+                                            {eventStatus === 'active' && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm('Close this event and move to completed?')) {
+                                                            fetch(`http://localhost:5000/api/events/${event.id || event.eventId}/complete`, {
+                                                                method: 'PUT',
+                                                                headers: { 'Content-Type': 'application/json' }
+                                                            })
+                                                            .then(res => res.json())
+                                                            .then(data => {
+                                                                fetchOrganizerEvents();
+                                                            })
+                                                            .catch(err => console.error('Error closing event:', err));
+                                                        }
+                                                    }}
+                                                    className="flex-1 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 transition-colors">
+                                                    Close Event
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={() => handleViewDetails(event.id)}
-                                                className="w-3/4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 mx-auto">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                </svg>
-                                                View Details & Manage
+                                                onClick={() => handleViewDetails(event.eventId || event.id)}
+                                                className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                                Details
                                             </button>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center text-center py-6">

@@ -1,45 +1,9 @@
 import React from 'react';
-import { Building2, MapPin, Calendar, Award, CheckCircle } from 'lucide-react';
+import { Building2, Calendar } from 'lucide-react';
 
-const TotalOrganizersModal = ({ organizers }) => {
-    // Sample data - replace with actual data
-    const sampleOrganizers = [
-        {
-            id: 1,
-            name: 'Green Earth Foundation',
-            email: 'contact@greenearth.org',
-            location: 'Dhaka',
-            joinedDate: 'Oct 15, 2024',
-            eventsCreated: 12,
-            totalVolunteers: 85,
-            category: 'Environment',
-            status: 'verified'
-        },
-        {
-            id: 2,
-            name: 'Food For All',
-            email: 'info@foodforall.org',
-            location: 'Chittagong',
-            joinedDate: 'Nov 1, 2024',
-            eventsCreated: 8,
-            totalVolunteers: 62,
-            category: 'Distribution',
-            status: 'verified'
-        },
-        {
-            id: 3,
-            name: 'Education First Initiative',
-            email: 'hello@educationfirst.org',
-            location: 'Sylhet',
-            joinedDate: 'Nov 20, 2024',
-            eventsCreated: 5,
-            totalVolunteers: 34,
-            category: 'Education',
-            status: 'verified'
-        },
-    ];
-
-    const data = organizers || sampleOrganizers;
+const TotalOrganizersModal = ({ organizers = [] }) => {
+    // Use passed organizers data, fallback to empty array
+    const data = organizers && organizers.length > 0 ? organizers : [];
 
     return (
         <div>
@@ -109,26 +73,6 @@ const TotalOrganizersModal = ({ organizers }) => {
                             e.currentTarget.style.borderColor = '#e5e7eb';
                         }}
                     >
-                        {organizer.status === 'verified' && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '1rem',
-                                right: '1rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                                background: '#d1fae5',
-                                padding: '0.25rem 0.5rem',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.75rem',
-                                color: '#065f46',
-                                fontWeight: '500'
-                            }}>
-                                <CheckCircle size={14} />
-                                <span>Verified</span>
-                            </div>
-                        )}
-
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'start' }}>
                             <div style={{
                                 width: '3rem',
@@ -153,41 +97,30 @@ const TotalOrganizersModal = ({ organizers }) => {
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem', fontSize: '0.75rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#6b7280' }}>
-                                        <MapPin size={14} />
-                                        <span>{organizer.location}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#6b7280' }}>
                                         <Calendar size={14} />
-                                        <span>Joined {organizer.joinedDate}</span>
+                                        <span>Joined {new Date(organizer.joinedDate).toLocaleDateString()}</span>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
                                     <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                                        <strong style={{ color: '#a855f7' }}>{organizer.eventsCreated}</strong> events created
+                                        Type: <strong style={{ color: '#06b6d4' }}>{organizer.type}</strong>
                                     </span>
                                     <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                                        <strong style={{ color: '#3b82f6' }}>{organizer.totalVolunteers}</strong> volunteers engaged
+                                        Status: <strong style={{ color: organizer.isApproved ? '#10b981' : '#ef4444' }}>{organizer.isApproved ? 'Approved' : 'Pending'}</strong>
                                     </span>
                                 </div>
-
-                                <span
-                                    style={{
-                                        display: 'inline-block',
-                                        fontSize: '0.75rem',
-                                        padding: '0.25rem 0.5rem',
-                                        background: '#f3f4f6',
-                                        color: '#4b5563',
-                                        borderRadius: '0.25rem'
-                                    }}
-                                >
-                                    {organizer.category}
-                                </span>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
+
+            {data.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                    <p>No organizers found</p>
+                </div>
+            )}
         </div>
     );
 };

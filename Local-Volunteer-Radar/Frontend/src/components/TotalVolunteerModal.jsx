@@ -1,62 +1,9 @@
 import React from 'react';
-import { User, MapPin, Calendar, Award } from 'lucide-react';
+import { User, Calendar } from 'lucide-react';
 
-const TotalVolunteersModal = ({ volunteers }) => {
-    // Sample data - replace with actual data
-    const sampleVolunteers = [
-        {
-            id: 1,
-            name: 'Sarah Ahmed',
-            email: 'sarah.ahmed@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Dec 1, 2024',
-            eventsCompleted: 5,
-            hoursContributed: 20,
-            skills: ['Teaching', 'Community Outreach']
-        },
-        {
-            id: 2,
-            name: 'Karim Rahman',
-            email: 'karim.r@email.com',
-            location: 'Chittagong',
-            joinedDate: 'Nov 15, 2024',
-            eventsCompleted: 8,
-            hoursContributed: 32,
-            skills: ['First-Aid', 'Distribution']
-        },
-        {
-            id: 3,
-            name: 'Nadia Islam',
-            email: 'nadia.islam@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Nov 20, 2024',
-            eventsCompleted: 3,
-            hoursContributed: 12,
-            skills: ['Education', 'Environment']
-        },
-        {
-            id: 4,
-            name: 'Fahim Hassan',
-            email: 'fahim.h@email.com',
-            location: 'Sylhet',
-            joinedDate: 'Dec 5, 2024',
-            eventsCompleted: 6,
-            hoursContributed: 24,
-            skills: ['Technology', 'Teaching']
-        },
-        {
-            id: 5,
-            name: 'Tasnim Chowdhury',
-            email: 'tasnim.c@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Oct 28, 2024',
-            eventsCompleted: 10,
-            hoursContributed: 40,
-            skills: ['Community Outreach', 'Distribution']
-        },
-    ];
-
-    const data = volunteers || sampleVolunteers;
+const TotalVolunteersModal = ({ volunteers = [] }) => {
+    // Use passed volunteers data, fallback to empty array
+    const data = volunteers && volunteers.length > 0 ? volunteers : [];
 
     return (
         <div>
@@ -138,45 +85,35 @@ const TotalVolunteersModal = ({ volunteers }) => {
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem', fontSize: '0.75rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#6b7280' }}>
-                                        <MapPin size={14} />
-                                        <span>{volunteer.location}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#6b7280' }}>
                                         <Calendar size={14} />
-                                        <span>Joined {volunteer.joinedDate}</span>
+                                        <span>Joined {new Date(volunteer.joinedDate).toLocaleDateString()}</span>
                                     </div>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
                                     <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                                        <strong style={{ color: '#3b82f6' }}>{volunteer.eventsCompleted}</strong> events
+                                        Type: <strong style={{ color: '#3b82f6' }}>{volunteer.type}</strong>
                                     </span>
                                     <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                                        <strong style={{ color: '#10b981' }}>{volunteer.hoursContributed}</strong> hours
+                                        Status: <strong style={{ color: volunteer.isApproved ? '#10b981' : '#ef4444' }}>{volunteer.isApproved ? 'Approved' : 'Pending'}</strong>
                                     </span>
-                                </div>
-
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    {volunteer.skills.map((skill, idx) => (
-                                        <span
-                                            key={idx}
-                                            style={{
-                                                fontSize: '0.75rem',
-                                                padding: '0.25rem 0.5rem',
-                                                background: '#f3f4f6',
-                                                color: '#4b5563',
-                                                borderRadius: '0.25rem'
-                                            }}
-                                        >
-                                            {skill}
+                                    {volunteer.hoursVolunteered && (
+                                        <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
+                                            Hours: <strong style={{ color: '#10b981' }}>{volunteer.hoursVolunteered}</strong>
                                         </span>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
+
+            {data.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                    <p>No volunteers found</p>
+                </div>
+            )}
         </div>
     );
 };
