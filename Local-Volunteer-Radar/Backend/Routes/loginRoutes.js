@@ -94,7 +94,7 @@ router.post('/signup', async (req, res) => {
         const newUser = new User({
             name,
             email,
-            password, // Note: In production, you should hash passwords!
+            password,
             type: userType,
             phoneNumber,
             address,
@@ -137,7 +137,7 @@ router.get('/users', async (req, res) => {
                 name: u.name,
                 email: u.email,
                 type: u.type,
-                password: u.password // Show password for debugging (remove in production!)
+                password: u.password
             }))
         });
     } catch (error) {

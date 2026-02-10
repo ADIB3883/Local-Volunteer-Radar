@@ -10,6 +10,9 @@ const VolunteerProfileRoutes = require('./routes/VolunteerProfileRoutes');
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
 const User = require('./models/User');
+const userApproveRejectRoutes = require('./routes/userApproveRejectRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const adminAnalyticsRoutes = require('./routes/adminAnalyticsRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -54,6 +57,9 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
 
 app.use('/api', loginRoutes);
 app.use('/api', VolunteerProfileRoutes);
+app.use('/api/admin', userApproveRejectRoutes);
+app.use('/api/admin', eventRoutes);
+app.use("/api/admin", adminAnalyticsRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
