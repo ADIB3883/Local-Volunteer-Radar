@@ -8,6 +8,7 @@ const socketIO = require('socket.io');
 require('dotenv').config();
 
 const loginRoutes = require('./routes/loginRoutes');
+const signupRoutes = require('./routes/signupRoutes');
 const VolunteerProfileRoutes = require('./routes/VolunteerProfileRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
@@ -55,6 +56,7 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 app.use('/api', loginRoutes);
+app.use('/api', signupRoutes);
 app.use('/api', VolunteerProfileRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);

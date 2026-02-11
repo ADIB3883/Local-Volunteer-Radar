@@ -1,105 +1,95 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const Volunteer = require('../models/Volunteer');
 
-router.put('/profile/:userId', async (req, res) => {
+router.get('/profile/:id', async (req, res) => {
     try {
-        const { userId } = req.params;
-        const { phoneNumber, address, bio, skills, availability, profilePicture } = req.body;
+        const loggedInUser = JSON.parse(req.headers['user-data'] || '{}');
+        const email = loggedInUser.email;
 
-        console.log('Update profile attempt for:', userId);
-        console.log('Received data:', req.body);
-
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({
+        if (!email) {
+            return res.status(401).json({
                 success: false,
-                message: 'User not found'
+                message: 'Unauthorized'
             });
         }
 
-        // Update fields - only if they exist
-        if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
-        if (address !== undefined) user.address = address;
-        if (bio !== undefined) user.bio = bio;
-        if (skills !== undefined) {
-            user.skills = typeof skills === 'object' ? skills : {};
-        }
-        if (availability !== undefined) {
-            user.availability = availability.map(slot => ({
-                day: slot.day,
-                startTime: slot.startTime,
-                endTime: slot.endTime
-            }));
-        }
-        if (profilePicture !== undefined) user.profilePicture = profilePicture;
+        const volunteer = await Volunteer.findOne({ email });
 
-        await user.save();
-        console.log('Profile updated successfully for:', user.email);
+        if (!volunteer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Volunteer profile not found'
+            });
+        }
 
-        return res.json({
+        res.json({
             success: true,
-            message: 'Profile updated successfully',
-            user: {
-                id: user._id,
-                name: user.name,
-                fullName: user.name,
-                email: user.email,
-                role: user.type,
-                phoneNumber: user.phoneNumber,
-                address: user.address,
-                bio: user.bio,
-                skills: user.skills,
-                availability: user.availability || [],
-                profilePicture: user.profilePicture
-            }
+            user: volunteer
         });
     } catch (error) {
-        console.error('Profile update error:', error);
+        console.error('Error fetching profile:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error during profile update',
-            error: error.message // ADD THIS FOR DEBUGGING
+            message: 'Server error'
         });
     }
 });
 
-// Get user profile
-router.get('/profile/:userId', async (req, res) => {
+router.put('/profile/:id', async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { phoneNumber, address, bio, skills, availability, profilePicture } = req.body;
+        const loggedInUser = JSON.parse(req.headers['user-data'] || '{}');
+        const email = loggedInUser.email;
 
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({
+        if (!email) {
+            return res.status(401).json({
                 success: false,
-                message: 'User not found'
+                message: 'Unauthorized'
             });
         }
 
-        return res.json({
+        console.log('Update profile attempt for:', email);
+        console.log('Received data:', req.body);
+
+        const updateData = {
+            phoneNumber,
+            address,
+            bio,
+            skills,
+            availability: availability.map(slot => ({
+                day: slot.day,
+                startTime: slot.startTime,
+                endTime: slot.endTime
+            })),
+            profilePicture
+        };
+
+        const volunteer = await Volunteer.findOneAndUpdate(
+            { email },
+            updateData,
+            { new: true, runValidators: true }
+        );
+
+        if (!volunteer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Volunteer profile not found'
+            });
+        }
+
+        console.log('✅ Profile updated successfully for:', email);
+
+        res.json({
             success: true,
-            user: {
-                id: user._id,
-                name: user.name,
-                fullName: user.name,
-                email: user.email,
-                role: user.type,
-                phoneNumber: user.phoneNumber || '',
-                address: user.address || '',
-                bio: user.bio || '',
-                skills: user.skills || {},
-                availability: user.availability || [],
-                profilePicture: user.profilePicture || ''
-            }
+            message: 'Profile updated successfully',
+            user: volunteer
         });
     } catch (error) {
-        console.error('Profile fetch error:', error);
+        console.error('❌ Profile update error:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error fetching profile'
+            message: 'Server error during profile update'
         });
     }
 });
