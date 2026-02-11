@@ -160,7 +160,6 @@ const VolunteerEditProfile = () => {
         setSaving(true);
 
         try {
-            // Prepare data for backend
             const updateData = {
                 phoneNumber: formData.phone,
                 address: formData.address,
@@ -170,11 +169,11 @@ const VolunteerEditProfile = () => {
                 profilePicture: profilePicturePreview || ''
             };
 
-            // Send PUT request to backend
             const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'user-data': JSON.stringify(loggedInUser)
                 },
                 body: JSON.stringify(updateData)
             });
@@ -182,17 +181,19 @@ const VolunteerEditProfile = () => {
             const data = await response.json();
 
             if (data.success) {
-                // Update localStorage with fresh data from backend
                 const updatedUser = {
                     ...loggedInUser,
-                    ...data.user,
-                    fullName: data.user.name || data.user.fullName
+                    name: data.user.name,
+                    phoneNumber: data.user.phoneNumber,
+                    address: data.user.address,
+                    bio: data.user.bio,
+                    skills: data.user.skills,
+                    availability: data.user.availability,
+                    profilePicture: data.user.profilePicture
                 };
 
                 localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
-
                 alert('Profile updated successfully!');
-
                 navigate('/volunteer-profile');
             } else {
                 alert('Failed to update profile: ' + data.message);

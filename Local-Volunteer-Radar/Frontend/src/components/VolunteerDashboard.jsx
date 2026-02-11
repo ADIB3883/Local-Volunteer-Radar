@@ -303,7 +303,7 @@ const VolunteerDashboard = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Navbar */}
             <Navbar
-                userName={loggedInUser?.fullName || "Volunteer"}
+                userName={loggedInUser?.name || "Volunteer"}
                 onProfileClick={handleProfileClick}
                 onLogoutClick={handleLogoutClick}
             />
