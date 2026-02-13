@@ -4,12 +4,13 @@ import HomeButton from './HomeButton';
 import LoginForm from './LoginForm';
 import SignUpForm from './SignUpForm';
 import LoginSuccessPopUp from "./LoginSuccessPopUp.jsx";
-
+import AlertModal from './AlertModal';
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [selected, setSelected] = useState('login');
+    const [showPendingModal, setShowPendingModal] = useState(false);
 
     //for POPUP
     const [showNotification, setShowNotification] = useState(false);
@@ -19,10 +20,19 @@ const LoginPage = () => {
         message: 'Login Successful!'
     });
 
-    // Check if navigation state specifies signup view
+    const handleModalClose = () => {
+        setShowPendingModal(false);
+        navigate('/login', { replace: true, state: {} });
+        setSelected('login');
+    };
+
+    // Check if navigation state specifies signup view or pending approval
     useEffect(() => {
         if (location.state?.view === 'signup') {
             setSelected('signup');
+        }
+        if (location.state?.pendingApproval) {
+            setShowPendingModal(true);
         }
     }, [location.state]);
 
@@ -33,6 +43,16 @@ const LoginPage = () => {
                 borderColor={notificationConfig.borderColor}
                 bgColor={notificationConfig.bgColor}
                 message={notificationConfig.message}
+            />
+            <AlertModal
+                isOpen={showPendingModal}
+                onClose={() => setShowPendingModal(false)}
+                onCloseRedirect={handleModalClose}
+                title="Registration Pending Approval"
+                message="Your registration has been submitted successfully! Your account is now pending admin approval."
+                email={location.state?.email}
+                icon="pending"
+                buttonText="Got it"
             />
             <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl grid grid-rows-[auto_auto_1fr] gap-6 p-12">
                 {/* Home Button Row */}

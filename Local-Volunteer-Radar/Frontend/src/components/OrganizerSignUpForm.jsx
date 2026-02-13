@@ -42,7 +42,7 @@ const OrganizerSignUpForm = () => {
             });
 
             if (response.success) {
-                // Also store in localStorage for backward compatibility
+                // Store in localStorage for backward compatibility
                 const existingOrganizers = JSON.parse(localStorage.getItem("allOrganizers")) || [];
                 const newOrganizer = {
                     id: response.user.id,
@@ -56,23 +56,16 @@ const OrganizerSignUpForm = () => {
                     JSON.stringify([...existingOrganizers, newOrganizer])
                 );
 
-                // Store logged in user
-                localStorage.setItem(
-                    "loggedInUser",
-                    JSON.stringify({
-                        ...response.user,
-                        organizationName: response.user.name,
-                        phoneNumber: formData.phoneNumber,
-                        address: formData.address,
-                        organizationType: formData.organizationType,
-                        description: formData.description
-                    })
-                );
-
-                console.log('Organizer Sign Up Data:', response.user);
-                alert("Account created successfully!");
-                navigate('/organizer-dashboard');
+                // Navigate to login with pending state
+                navigate('/login', {
+                    state: {
+                        pendingApproval: true,
+                        email: formData.email,
+                        userType: 'organizer'
+                    }
+                });
             }
+
         } catch (error) {
             console.error('Signup error:', error);
             let errorMessage = 'An error occurred during signup. Please try again.';
@@ -172,19 +165,40 @@ const OrganizerSignUpForm = () => {
                     Phone Number
                 </label>
                 <div className="relative">
-                    <img
-                        src={phoneIcon}
-                        alt="Phone icon"
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 z-10"
-                    />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10 pointer-events-none">
+                        <img
+                            src={phoneIcon}
+                            alt="Phone icon"
+                            className="w-5 h-5"
+                        />
+                        <span className="text-gray-400 text-sm">+88</span>
+                        <span className="text-gray-300">|</span>
+                    </div>
                     <input
                         type="tel"
                         id="phoneNumber"
                         value={formData.phoneNumber}
-                        onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900"
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || /^\d+$/.test(value)) {
+                                setFormData({...formData, phoneNumber: value});
+                            }
+                        }}
+                        className="w-full pl-32 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900"
+                        placeholder="1XXXXXXXXX"
+                        maxLength="11"
                         required
                     />
+
+                    {formData.phoneNumber && formData.phoneNumber.length !== 11 && (
+                        <div className="absolute left-0 -bottom-8 bg-red-500 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-20">
+                            {/^\d+$/.test(formData.phoneNumber)
+                                ? `Please enter exactly 11 digits (${formData.phoneNumber.length}/11)`
+                                : 'Only numeric characters allowed'
+                            }
+                            <div className="absolute left-4 -top-1 w-2 h-2 bg-red-500 transform rotate-45"></div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -251,8 +265,8 @@ const OrganizerSignUpForm = () => {
             <div className="grid mt-2">
                 <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full cursor-pointer py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-400 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isSubmitting || formData.phoneNumber.length !== 11}
+                    className="w-full cursor-pointer py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </button>

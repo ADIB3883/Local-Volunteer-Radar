@@ -41,6 +41,8 @@ router.post('/signup', async (req, res) => {
                 phoneNumber,
                 address,
                 skills,
+                isPending: true,
+                isApproved: false,
                 type: userType
             });
             await volunteer.save();
@@ -59,6 +61,8 @@ router.post('/signup', async (req, res) => {
                 address,
                 organizationType,
                 description,
+                isPending: true,
+                isApproved: false,
                 type: userType
             });
             await organizer.save();

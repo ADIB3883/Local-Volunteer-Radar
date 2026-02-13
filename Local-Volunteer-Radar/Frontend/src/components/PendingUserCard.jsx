@@ -1,26 +1,88 @@
 import {useState} from "react";
 
 const PendingUserCard = ({
-                      profilePic,
-                      name,
-                      type,          // "Volunteer" | "NGO"
-                      status,        // "Active" | "Inactive"
-                      phone,
-                      email,
-                      address,
-                      joiningDate,
-                      skills = []
-                  }) => {
+                             id,
+                             name,
+                             type,
+                             status,
+                             phone,
+                             email,
+                             address,
+                             joiningDate,
+                             description = type === 'Organizer' ? '' : undefined,
+                             skills = type === 'Volunteer' ? {} : undefined,
+                             onApprove,
+                             onReject
+                         }) => {
     const [action, setAction] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const badgeStyles = {
         Volunteer: {
             background: '#fef3c7',
             color: '#92400e',
         },
-        NGO: {
+        Organizer: {
             background: '#e9d5ff',
             color: '#6b21a8',
+        }
+    };
+
+    const skillsArray = type === 'Volunteer' && skills
+        ? Object.entries(skills).filter(([_, value]) => value === true).map(([key]) => key)
+        : [];
+
+    const handleApprove = async () => {
+        setLoading(true);
+        try {
+            const userType = type.toLowerCase();
+            const response = await fetch(`http://localhost:5000/api/users/approve/${userType}/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setAction('accept');
+                if (onApprove) onApprove(id, name);
+            } else {
+                alert('Failed to approve user');
+            }
+        } catch (error) {
+            console.error('Error approving user:', error);
+            alert('Error approving user');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReject = async () => {
+        setLoading(true);
+        try {
+            const userType = type.toLowerCase();
+            const response = await fetch(`http://localhost:5000/api/users/reject/${userType}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setAction('reject');
+                if (onReject) onReject(id, name);
+            } else {
+                alert('Failed to reject user');
+            }
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            alert('Error rejecting user');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -37,17 +99,6 @@ const PendingUserCard = ({
         >
             {/* Header */}
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <img
-                    src={profilePic}
-                    alt={name}
-                    style={{
-                        width: '64px',
-                        height: '64px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                    }}
-                />
-
                 <div style={{ flex: 1 }}>
                     <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
                         {name}
@@ -55,9 +106,6 @@ const PendingUserCard = ({
                     <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
             <span style={{ ...badgeStyles[type], padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem' }}>
               {type}
-            </span>
-                        <span style={{ ...badgeStyles[status], padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem' }}>
-              {status}
             </span>
                     </div>
                 </div>
@@ -74,26 +122,43 @@ const PendingUserCard = ({
             {/* Divider */}
             <hr style={{ margin: '1rem 0', borderColor: '#e5e7eb' }} />
 
-            {/* Skills */}
-            <div>
-                <strong style={{ fontSize: '0.875rem' }}>Skills:</strong>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                    {skills.map((skill, i) => (
-                        <span
-                            key={i}
-                            style={{
-                                background: '#f3f4f6',
-                                color: '#111827',
-                                padding: '0.25rem 0.6rem',
-                                borderRadius: '0.5rem',
-                                fontSize: '0.75rem',
-                            }}
-                        >
-                          {skill}
-                        </span>
-                    ))}
+            {/* Skills (only for Volunteers) */}
+            {type === 'Volunteer' && skillsArray.length > 0 && (
+                <div>
+                    <strong style={{ fontSize: '0.875rem' }}>Skills:</strong>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        {skillsArray.map((skill, i) => (
+                            <span
+                                key={i}
+                                style={{
+                                    background: '#f3f4f6',
+                                    color: '#111827',
+                                    padding: '0.25rem 0.6rem',
+                                    borderRadius: '0.5rem',
+                                    fontSize: '0.75rem',
+                                }}
+                            >
+                              {skill}
+                            </span>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Description (only for Organizers) */}
+            {type === 'Organizer' && (
+                <div>
+                    <strong style={{ fontSize: '0.875rem' }}>Description:</strong>
+                    <p style={{
+                        fontSize: '0.875rem',
+                        color: '#374151',
+                        marginTop: '0.85rem',
+                        lineHeight: 1.5
+                    }}>
+                        {description}
+                    </p>
+                </div>
+            )}
 
             {/* Accept/Reject */}
             <div
@@ -105,44 +170,46 @@ const PendingUserCard = ({
             >
                 {(action === null || action === 'accept') && (
                     <button
-                        onClick={() => setAction('accept')}
+                        onClick={handleApprove}
+                        disabled={loading}
                         style={{
                             flex: action === 'accept' ? 2 : 1,
                             padding: '0.6rem',
                             borderRadius: '0.5rem',
                             border: 'none',
-                            cursor: 'pointer',
+                            cursor: loading ? 'not-allowed' : 'pointer',
                             background: '#22c55e',
                             color: '#ffffff',
                             fontWeight: 600,
                             transition: 'all 0.3s ease',
+                            opacity: loading ? 0.7 : 1
                         }}
                     >
-                        {action === 'accept' ? 'Accepted!' : 'Accept'}
+                        {action === 'accept' ? 'Accepted!' : loading ? 'Processing...' : 'Accept'}
                     </button>
                 )}
 
                 {(action === null || action === 'reject') && (
                     <button
-                        onClick={() => setAction('reject')}
+                        onClick={handleReject}
+                        disabled={loading}
                         style={{
                             flex: action === 'reject' ? 2 : 1,
                             padding: '0.6rem',
                             borderRadius: '0.5rem',
                             border: 'none',
-                            cursor: 'pointer',
+                            cursor: loading ? 'not-allowed' : 'pointer',
                             background: '#ef4444',
                             color: '#ffffff',
                             fontWeight: 600,
                             transition: 'all 0.3s ease',
+                            opacity: loading ? 0.7 : 1
                         }}
                     >
-                        {action === 'reject' ? 'Rejected!' : 'Reject'}
+                        {action === 'reject' ? 'Rejected!' : loading ? 'Processing...' : 'Reject'}
                     </button>
                 )}
-            </div>
-
-        </div>
+            </div></div>
     );
 };
 
