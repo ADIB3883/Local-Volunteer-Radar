@@ -1,38 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus,X,MessageCircle} from 'lucide-react';
+import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X, MessageCircle } from 'lucide-react';
 import logo from "../assets/logo.png";
 import Modal from './Modal';
 import ActiveEventsOrganizerModal from './ActiveEventsOrganizerModal';
 import TotalVolunteersOrganizerModal from './TotalVolunteersOrganizerModal';
 import EventsCreatedModal from './EventsCreatedModal';
 import MessagesTab from './MessageTab';
-import io from 'socket.io-client';
+import axios from "axios";
 
-const socket = io('http://localhost:5000');
+const API_URL = 'http://localhost:5000/api/events';
+
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
     const [modalOpen, setModalOpen] = useState(null);
-
-    const [events, setEvents] = useState(() => {
-        const stored = localStorage.getItem('events');
-        return stored ? JSON.parse(stored) : [];
-    });
-
-    // Initialize volunteersRegistered for existing events
-    React.useEffect(() => {
-        const stored = localStorage.getItem('events');
-        if (stored) {
-            const parsedEvents = JSON.parse(stored);
-            const updated = parsedEvents.map(event => ({
-                ...event,
-                volunteersRegistered: event.volunteersRegistered || 0
-            }));
-            localStorage.setItem('events', JSON.stringify(updated));
-        }
-    }, []);
-
+    const [events, setEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [organizerId, setOrganizerId] = useState(null);
+    const [organizerName, setOrganizerName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showMessagesModal, setShowMessagesModal] = useState(false);
     const [formData, setFormData] = useState({
@@ -44,9 +30,74 @@ const OrganizerDashboard = () => {
         volunteersNeeded: '',
         category: '',
         startTime: '',
-        endTime:'',
+        endTime: '',
         requirements: ''
     });
+
+    // Check authentication and get organizer data
+    useEffect(() => {
+        const userStr = localStorage.getItem('loggedInUser'); // Changed from 'user' to 'loggedInUser'
+        console.log('User from localStorage:', userStr); // Debug log
+
+        if (!userStr) {
+            console.log('No user found, redirecting to login');
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const user = JSON.parse(userStr);
+            console.log('Parsed user:', user); // Debug log
+
+            if (user.role !== 'organizer') {
+                console.log('User is not organizer, role:', user.role);
+                alert('Access denied. This page is for organizers only.');
+                navigate('/login');
+                return;
+            }
+
+            if (user.id) {
+                setOrganizerId(user.id);
+                setOrganizerName(user.name || 'Organization');
+                console.log('Organizer ID set:', user.id);
+            } else {
+                console.log('No user ID found');
+                alert('User ID not found. Please login again.');
+                navigate('/login');
+            }
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+            navigate('/login');
+        }
+    }, [navigate]);
+
+    // Fetch events when organizerId is available
+    useEffect(() => {
+        if (organizerId) {
+            fetchEvents();
+        }
+    }, [organizerId]);
+
+    const fetchEvents = async () => {
+        try {
+            setLoading(true);
+            console.log('Fetching events for organizer:', organizerId);
+            const response = await axios.get(`${API_URL}/organizer/${organizerId}`);
+            console.log('Events fetched:', response.data);
+            setEvents(response.data);
+        } catch (error) {
+            console.error('Error fetching events:', error);
+            if (error.response?.status === 404) {
+                // No events found, set empty array
+                setEvents([]);
+            } else {
+                alert('Failed to load events');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -54,9 +105,10 @@ const OrganizerDashboard = () => {
             [name]: value
         }));
     };
-    const handleSubmit = () => {
-        // Required fields validation (everything except `requirements`)
-        const requiredFields = ['eventName','description','startdate','enddate','location','volunteersNeeded','category','startTime','endTime'];
+
+    const handleSubmit = async () => {
+        // Required fields validation
+        const requiredFields = ['eventName', 'description', 'startdate', 'enddate', 'location', 'volunteersNeeded', 'category', 'startTime', 'endTime'];
         for (const f of requiredFields) {
             const v = formData[f];
             if (v === undefined || v === null || String(v).trim() === '') {
@@ -64,96 +116,102 @@ const OrganizerDashboard = () => {
                 return;
             }
         }
-        // ensure volunteersNeeded is a positive number
+
         if (isNaN(Number(formData.volunteersNeeded)) || Number(formData.volunteersNeeded) <= 0) {
-            alert('Fill all necessary information');
+            alert('Please enter a valid number of volunteers needed');
             return;
         }
 
-        // Validation: ensure end date is same or after start date.
-        // If dates are equal, ensure end time is at least 15 minutes after start time.
+        // Date validation
         if (!formData.startdate || !formData.enddate) {
             alert('Please provide both start and end dates.');
             return;
         }
 
-        // Build full ISO-like datetimes using provided times (fallback to 00:00 when missing).
         const startTimePart = formData.startTime || '00:00';
         const endTimePart = formData.endTime || '00:00';
         const startDateTime = new Date(`${formData.startdate}T${startTimePart}`);
         const endDateTime = new Date(`${formData.enddate}T${endTimePart}`);
 
         if (endDateTime < startDateTime) {
-            alert('The event end must come after the start. If the end is in the same day, pick an end time at least 15 minutes later.');
+            alert('The event end must come after the start.');
             return;
         }
 
         if (formData.startdate === formData.enddate) {
-            const diffMinutes = (endDateTime - startDateTime) / 60000; // milliseconds -> minutes
+            const diffMinutes = (endDateTime - startDateTime) / 60000;
             if (diffMinutes < 15) {
                 alert('When start and end date are the same, end time must be at least 15 minutes after start time.');
                 return;
             }
         }
 
-        const organizerId = "org_123";
+        try {
+            const newEvent = {
+                organizerId: organizerId,
+                ...formData,
+            };
 
-        const newEvent = {
-            id: Date.now(),
-            organizerId: organizerId,
-            ...formData,
-            status: 'pending',
-            volunteersRegistered: 0,
-            createdAt: new Date().toISOString()
-        };
-        const updatedEvents = [...events, newEvent];
-        setEvents(updatedEvents);
-        localStorage.setItem('events', JSON.stringify(updatedEvents));
-        setShowCreateModal(false);
-        setFormData({
-            eventName: '',
-            description: '',
-            startdate: '',
-            enddate: '',
-            location: '',
-            volunteersNeeded: '',
-            category: '',
-            startTime: '',
-            endTime:'',
-            requirements: ''
-        });
+            console.log('Creating event:', newEvent);
+            const response = await axios.post(API_URL, newEvent);
+            console.log('Event created:', response.data);
+
+            // Refresh events list
+            await fetchEvents();
+
+            setShowCreateModal(false);
+            setFormData({
+                eventName: '',
+                description: '',
+                startdate: '',
+                enddate: '',
+                location: '',
+                volunteersNeeded: '',
+                category: '',
+                startTime: '',
+                endTime: '',
+                requirements: ''
+            });
+
+            alert('Event created successfully!');
+        } catch (error) {
+            console.error('Error creating event:', error);
+            alert(error.response?.data?.message || 'Failed to create event. Please try again.');
+        }
     };
+
     const handleLogout = () => {
+        localStorage.removeItem('loggedInUser'); // Changed from 'user' to 'loggedInUser'
         navigate('/login');
     };
+
     const handleAnnouncements = () => {
         navigate('/announcements');
     };
+
     const handleMessages = () => {
         setShowMessagesModal(true);
     };
+
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     };
-    const getFilteredEvents = () => {
-        const organizerId = "org_123";
-        return events.filter(event =>
-            event.organizerId === organizerId && event.status === activeTab
-        );
-    };
-    const getStats = () => {
-        const organizerId = "org_123"; // Same organizerId
-        const myEvents = events.filter(e => e.organizerId === organizerId);
 
-        const activeEvents = myEvents.filter(e => e.status === 'active').length;
-        const totalVolunteers = myEvents.reduce((sum, e) => sum + e.volunteersRegistered, 0);
-        const totalEvents = myEvents.length;
+    const getFilteredEvents = () => {
+        return events.filter(event => event.status === activeTab);
+    };
+
+    const getStats = () => {
+        const activeEvents = events.filter(e => e.status === 'active').length;
+        const totalVolunteers = events.reduce((sum, e) => sum + (e.volunteersRegistered || 0), 0);
+        const totalEvents = events.length;
 
         return { activeEvents, totalVolunteers, totalEvents };
     };
+
     const getEmptyStateContent = () => {
-        switch(activeTab) {
+        switch (activeTab) {
             case 'pending':
                 return {
                     title: 'No events pending approval',
@@ -171,10 +229,19 @@ const OrganizerDashboard = () => {
                 };
         }
     };
-    // View Details Navigate
+
     const handleViewDetails = (eventId) => {
         navigate(`/event-details/${eventId}`);
     };
+
+    if (loading || !organizerId) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-xl text-gray-600">Loading...</div>
+            </div>
+        );
+    }
+
     const stats = getStats();
     const filteredEvents = getFilteredEvents();
     const emptyState = getEmptyStateContent();
@@ -182,10 +249,8 @@ const OrganizerDashboard = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 h-24 flex items-center "  style={{paddingLeft: '80px', paddingRight: '80px'}}>
+            <header className="bg-white border-b border-gray-200 h-24 flex items-center" style={{ paddingLeft: '80px', paddingRight: '80px' }}>
                 <div className="w-full flex items-center justify-between">
-
-                    {/* Left - Logo and title */}
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-white-100 flex items-center justify-center">
                             <img
@@ -196,17 +261,15 @@ const OrganizerDashboard = () => {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Organization Dashboard</h1>
-                            <p className="text-base text-gray-500 mt-0.5">Swapno</p>
+                            <p className="text-base text-gray-500 mt-0.5">{organizerName}</p>
                         </div>
                     </div>
-                    {/* Right - Status & actions */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-medium">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Pending Verification
+                            Active
                         </div>
 
-                        {/* MESSAGES BUTTON - NEW */}
                         <button onClick={handleMessages} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
                             <MessageCircle className="w-5 h-5 text-gray-600" />
                         </button>
@@ -216,6 +279,7 @@ const OrganizerDashboard = () => {
                             <Megaphone className="w-5 h-5 text-gray-600" />
                         </button>
                         <span onClick={handleAnnouncements} className="text-sm text-gray-700 font-medium cursor-pointer hover:text-gray-900">Announcements</span>
+
                         <button onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900 transition-colors">
                             <LogOut className="w-4 h-4" />
                             <span className="font-medium">Logout</span>
@@ -223,17 +287,17 @@ const OrganizerDashboard = () => {
                     </div>
                 </div>
             </header>
+
             {/* Main Content */}
-            <main className="w-full  py-12"  style={{paddingLeft: '110px', paddingRight: '110px'}}>
+            <main className="w-full py-12" style={{ paddingLeft: '110px', paddingRight: '110px' }}>
                 {/* Stats Cards */}
-                <div className="grid grid-cols-3 gap-6" style={{marginBottom: '32px',paddingTop: '24px'}}>
-                    {/* Active Events */}
+                <div className="grid grid-cols-3 gap-6" style={{ marginBottom: '32px', paddingTop: '24px' }}>
                     <div
                         className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
-                        style={{borderLeft: '4px solid #3b82f6'}}
+                        style={{ borderLeft: '4px solid #3b82f6' }}
                         onClick={() => setModalOpen('active-events')}
                     >
-                        <div className="flex items-start justify-between " style={{marginBottom: '32px'}}>
+                        <div className="flex items-start justify-between" style={{ marginBottom: '32px' }}>
                             <span className="text-base font-medium text-gray-600">Active Events</span>
                             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <Calendar className="w-5 h-5 text-blue-500" />
@@ -245,10 +309,10 @@ const OrganizerDashboard = () => {
 
                     <div
                         className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
-                        style={{borderLeft: '4px solid #00AF44'}}
+                        style={{ borderLeft: '4px solid #00AF44' }}
                         onClick={() => setModalOpen('total-volunteers')}
                     >
-                        <div className="flex items-start justify-between " style={{marginBottom: '32px'}}>
+                        <div className="flex items-start justify-between" style={{ marginBottom: '32px' }}>
                             <span className="text-sm font-medium text-gray-600">Total Volunteers</span>
                             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <Users className="w-5 h-5 text-green-500" />
@@ -258,13 +322,12 @@ const OrganizerDashboard = () => {
                         <p className="text-sm text-gray-500">Across all events</p>
                     </div>
 
-                    {/* Events Created */}
                     <div
                         className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
-                        style={{borderLeft: '4px solid #00AF44'}}
+                        style={{ borderLeft: '4px solid #00AF44' }}
                         onClick={() => setModalOpen('events-created')}
                     >
-                        <div className="flex items-start justify-between " style={{marginBottom: '32px'}}>
+                        <div className="flex items-start justify-between" style={{ marginBottom: '32px' }}>
                             <span className="text-sm font-medium text-gray-600">Events Created</span>
                             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <TrendingUp className="w-5 h-5 text-green-500" />
@@ -300,12 +363,10 @@ const OrganizerDashboard = () => {
                 </Modal>
 
                 {/* Manage Events Section */}
-
-                {/* Header */}
-                <div className="px-8 py-6  flex items-center justify-between">
+                <div className="px-8 py-6 flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900" style={{marginBottom: '2px'}}>Manage Events</h2>
-                        <p className="text-sm text-gray-500 "  style={{marginBottom: '32px'}}>Create and track your volunteer opportunities</p>
+                        <h2 className="text-xl font-bold text-gray-900" style={{ marginBottom: '2px' }}>Manage Events</h2>
+                        <p className="text-sm text-gray-500" style={{ marginBottom: '32px' }}>Create and track your volunteer opportunities</p>
                     </div>
                     <button
                         onClick={(e) => {
@@ -321,64 +382,58 @@ const OrganizerDashboard = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-8 px-8 " style={{paddingLeft: '48px', marginTop: '32px',marginBottom: '12px'}} >
-                    <div className="inline-flex  gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
+                <div className="flex gap-8 px-8" style={{ paddingLeft: '48px', marginTop: '32px', marginBottom: '12px' }}>
+                    <div className="inline-flex gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
                         {['active', 'pending', 'completed'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`h-9 px-6 cursor-pointer  text-base font-semibold transition-colors rounded-lg border ${
-                                    activeTab === tab
-                                        ? 'bg-white text-black-900 border-white'
-                                        : 'bg-gray text-gray border-white'
+                                className={`h-9 px-6 cursor-pointer text-base font-semibold transition-colors rounded-lg border ${activeTab === tab
+                                    ? 'bg-white text-black-900 border-white'
+                                    : 'bg-gray text-gray border-white'
                                 }`}
                             >
                                 {tab === 'active' ? 'Active' : tab === 'pending' ? 'Pending Approval' : 'Completed'}
-
                             </button>
                         ))}
                     </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 " >
-                    {/* Event Cards or Empty State */}
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                     <div className="h-80 px-8 py-8">
                         {filteredEvents.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {filteredEvents.map((event) => (
-                                    <div key={event.id} className="bg-white rounded-xl border-2 border-blue-400 hover:shadow-md transition-shadow" style={{padding: '24px'}}>
-                                        {/* Event Header */}
-                                        <div className="flex items-start justify-between" style={{marginBottom: '16px', paddingLeft: '4px', paddingRight: '4px'}}>
+                                    <div key={event._id} className="bg-white rounded-xl border-2 border-blue-400 hover:shadow-md transition-shadow" style={{ padding: '24px' }}>
+                                        <div className="flex items-start justify-between" style={{ marginBottom: '16px', paddingLeft: '4px', paddingRight: '4px' }}>
                                             <h3 className="text-xl font-bold text-gray-900">{event.eventName}</h3>
-                                            <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                                                event.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                                    event.status === 'active' ? 'bg-green-100 text-green-700' :
-                                                        'bg-gray-100 text-gray-700'
+                                            <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${event.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                event.status === 'active' ? 'bg-green-100 text-green-700' :
+                                                    'bg-gray-100 text-gray-700'
                                             }`}>
                                                 {event.status}
                                             </span>
                                         </div>
 
-                                        {/* Volunteers Progress */}
-                                        <div style={{marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px'}}>
+                                        <div style={{ marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px' }}>
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                                     <Users className="w-4 h-4" />
                                                     <span>Volunteers</span>
                                                 </div>
                                                 <span className="text-sm font-semibold text-gray-900">
-                    {event.volunteersRegistered} / {event.volunteersNeeded}
-                </span>
+                                                    {event.volunteersRegistered || 0} / {event.volunteersNeeded}
+                                                </span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div
                                                     className="bg-blue-500 h-2 rounded-full transition-all"
-                                                    style={{width: `${(event.volunteersRegistered / event.volunteersNeeded) * 100}%`}}
+                                                    style={{ width: `${((event.volunteersRegistered || 0) / event.volunteersNeeded) * 100}%` }}
                                                 ></div>
                                             </div>
                                         </div>
 
-                                        {/* Event Details */}
-                                        <div className="space-y-2" style={{marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px'}}>
+                                        <div className="space-y-2" style={{ marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px' }}>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <Calendar className="w-4 h-4 text-blue-500" />
                                                 <span>{formatDate(event.startdate)}</span>
@@ -398,11 +453,11 @@ const OrganizerDashboard = () => {
                                             </div>
                                         </div>
 
-                                        {/* View Details Button */}
-                                        <div className="flex justify-center" style={{paddingLeft: '4px', paddingRight: '4px'}}>
+                                        <div className="flex justify-center" style={{ paddingLeft: '4px', paddingRight: '4px' }}>
                                             <button
-                                                onClick={() => handleViewDetails(event.id)}
-                                                className="w-3/4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 mx-auto">
+                                                onClick={() => handleViewDetails(event._id)}
+                                                className="w-3/4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 mx-auto"
+                                            >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -415,13 +470,13 @@ const OrganizerDashboard = () => {
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center text-center py-6">
-                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{marginBottom: '24px'}}>
+                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{ marginBottom: '24px' }}>
                                     <Calendar className="w-7 h-7 text-blue-500" />
                                 </div>
                                 <h3 className="text-base font-semibold text-gray-900">
                                     {emptyState.title}
                                 </h3>
-                                <p className="text-sm text-gray-500 mb-5 max-w-sm" style={{marginBottom: '12px'}}>
+                                <p className="text-sm text-gray-500 mb-5 max-w-sm" style={{ marginBottom: '12px' }}>
                                     {emptyState.description}
                                 </p>
                                 {activeTab === 'active' && (
@@ -443,19 +498,25 @@ const OrganizerDashboard = () => {
                 </div>
             </main>
 
+            {/* Create Event Modal - Keep your existing modal JSX */}
+            {showCreateModal && (
+                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
+                    if (e.target === e.currentTarget) setShowCreateModal(false);
+                }}>
+                    {/* Your existing Create Event Modal JSX */}
+                </div>
+            )}
+
             {/* Create Event Modal */}
             {showCreateModal && (
                 <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
                     if (e.target === e.currentTarget) setShowCreateModal(false);
                 }}>
-                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl  h-[95vh] overflow-y-auto" style={{paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px'}} onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[95vh] overflow-y-auto" style={{paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px'}} onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between p-8 border-b border-gray-200 sticky top-0 bg-white" style={{marginBottom: '20px'}}>
                             <div className="flex items-center gap-2">
                                 <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <Calendar
-                                        className="w-12 h-12 rounded-xl bg-gradient-to-r from-[#0072c5] to-[#00c57b]"
-                                    />
-
+                                    <Calendar className="w-12 h-12 text-blue-500" />
                                 </div>
                                 <div className="flex flex-col">
                                     <h2 className="text-2xl font-bold text-gray-900 leading-tight">
@@ -484,7 +545,8 @@ const OrganizerDashboard = () => {
                                     name="eventName"
                                     value={formData.eventName}
                                     onChange={handleInputChange}
-                                    className=" w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{marginBottom: '16px'}}
+                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    style={{marginBottom: '16px'}}
                                     placeholder="Enter event name"
                                 />
                             </div>
@@ -498,10 +560,12 @@ const OrganizerDashboard = () => {
                                     value={formData.description}
                                     onChange={handleInputChange}
                                     rows="4"
-                                    className=" w-full  px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{paddingRight: '16px', marginBottom: '16px'}}
+                                    className="w-full px-6 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    style={{marginBottom: '16px'}}
                                     placeholder="Describe your volunteer event"
                                 />
                             </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 {/* First Row: Start Date and Start Time */}
                                 <div>
@@ -601,6 +665,7 @@ const OrganizerDashboard = () => {
                                     </div>
                                 </div>
                             </div>
+
                             <div>
                                 <label className="block text-base font-semibold text-gray-700 mb-2">
                                     Location *
@@ -610,7 +675,8 @@ const OrganizerDashboard = () => {
                                     name="location"
                                     value={formData.location}
                                     onChange={handleInputChange}
-                                    className="w-full  h-10 px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{marginBottom: '16px'}}
+                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    style={{marginBottom: '16px'}}
                                     placeholder="Event location"
                                 />
                             </div>
@@ -624,14 +690,15 @@ const OrganizerDashboard = () => {
                                         name="category"
                                         value={formData.category}
                                         onChange={handleInputChange}
-                                        className=" h-10 px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{marginBottom: '16px'}}
+                                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        style={{marginBottom: '16px'}}
                                     >
                                         <option value="">Select category</option>
                                         <option value="education">Education</option>
                                         <option value="environment">Environment</option>
                                         <option value="health">Health</option>
                                         <option value="community">Community</option>
-                                        <option value="other">Distribution</option>
+                                        <option value="distribution">Distribution</option>
                                         <option value="other">Other</option>
                                     </select>
                                 </div>
@@ -646,7 +713,8 @@ const OrganizerDashboard = () => {
                                         value={formData.volunteersNeeded}
                                         onChange={handleInputChange}
                                         min="1"
-                                        className=" h-10 px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{marginBottom: '16px'}}
+                                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        style={{marginBottom: '16px'}}
                                         placeholder="Number of volunteers"
                                     />
                                 </div>
@@ -661,7 +729,8 @@ const OrganizerDashboard = () => {
                                     value={formData.requirements}
                                     onChange={handleInputChange}
                                     rows="2"
-                                    className="  w-full px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" style={{marginBottom: '16px'}}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    style={{marginBottom: '16px'}}
                                     placeholder="Any specific requirements or skills needed"
                                 />
                             </div>
@@ -669,7 +738,7 @@ const OrganizerDashboard = () => {
                             <div className="flex justify-center gap-3 pt-4">
                                 <button
                                     onClick={() => setShowCreateModal(false)}
-                                    className=" px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                                 >
                                     Cancel
                                 </button>
@@ -701,7 +770,7 @@ const OrganizerDashboard = () => {
                             </button>
                         </div>
                         <div className="p-6">
-                            <MessagesTab currentUser={{ email: "org_123", role: "organizer", fullName: "Swapno" }} />
+                            <MessagesTab currentUser={{ email: organizerId, role: "organizer", fullName: organizerName }} />
                         </div>
                     </div>
                 </div>
@@ -711,4 +780,3 @@ const OrganizerDashboard = () => {
 };
 
 export default OrganizerDashboard;
-
