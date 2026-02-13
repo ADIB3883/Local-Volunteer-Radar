@@ -1,12 +1,11 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, HandFist, Building, Dumbbell, Search, ChevronDown, X, Sparkles } from 'lucide-react';
+import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
 import PendingUserCard from './PendingUserCard.jsx';
-import pendingUserData from './PendingUserData.jsx';
 import PendingEventsCard from "./PendingEventsCard.jsx";
 import pendingEventsData from './PendingEventsData.jsx';
 import Modal from './Modal';
@@ -22,6 +21,14 @@ const AdminDashboard = () => {
     const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
     const [modalOpen, setModalOpen] = useState(null);
+    const [pendingUsers, setPendingUsers] = useState([]);
+    const [loadingPending, setLoadingPending] = useState(false);
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationConfig, setNotificationConfig] = useState({
+        borderColor: '',
+        bgColor: '',
+        message: ''
+    });
     //Filtered state needed?
 
     const filteredAndSortedUsers = useMemo(() => {
@@ -76,6 +83,87 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     const [selectedStat, setSelectedStat] = useState(null);
+
+    // Fetch pending users when the tab changes to pendingRegistrations
+    useEffect(() => {
+        if (activeTab === 'pendingRegistrations') {
+            fetchPendingUsers();
+        }
+    }, [activeTab]);
+
+    // Function to fetch pending users from the backend
+    const fetchPendingUsers = async () => {
+        setLoadingPending(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/users/pending');
+            const data = await response.json();
+
+            if (data.success) {
+                // Transform the data to match the card component's expected format
+                const transformedData = [
+                    ...data.data.volunteers.map(v => ({
+                        id: v._id,
+                        name: v.name,
+                        type: 'Volunteer',
+                        status: 'Pending',
+                        phone: v.phoneNumber,
+                        email: v.email,
+                        address: v.address,
+                        joiningDate: new Date(v.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        }),
+                        skills: v.skills
+                    })),
+                    ...data.data.organizers.map(o => ({
+                        id: o._id,
+                        name: o.name,
+                        type: 'Organizer',
+                        status: 'Pending',
+                        phone: o.phoneNumber,
+                        email: o.email,
+                        address: o.address,
+                        joiningDate: new Date(o.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        }),
+                        description: o.description || 'No description provided'
+                    }))
+                ];
+                setPendingUsers(transformedData);
+            }
+        } catch (error) {
+            console.error('Error fetching pending users:', error);
+        } finally {
+            setLoadingPending(false);
+        }
+    };
+
+    // Handler for user approval
+    const handleUserApprove = (userId, userName) => {
+        setPendingUsers(prev => prev.filter(user => user.id !== userId));
+        setNotificationConfig({
+            borderColor: 'border-green-500',
+            bgColor: 'bg-green-500',
+            message: `${userName} approved successfully!`
+        });
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+    };
+
+    // Handler for user rejection
+    const handleUserReject = (userId, userName) => {
+        setPendingUsers(prev => prev.filter(user => user.id !== userId));
+        setNotificationConfig({
+            borderColor: 'border-red-500',
+            bgColor: 'bg-red-500',
+            message: `${userName} rejected successfully!`
+        });
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+    };
 
     const handleAnnouncementsClick = () => {
 
@@ -145,6 +233,20 @@ const AdminDashboard = () => {
                 onLogoutClick={handleLogoutClick}
             />
 
+            {showNotification && (
+                <div
+                    className={`fixed top-6 left-6 bg-white rounded-lg shadow-2xl p-4 flex items-center gap-3 border-l-4 ${notificationConfig.borderColor} transform transition-all duration-500 z-50 ${
+                        showNotification ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+                    }`}
+                >
+                    <div className={`w-10 h-10 ${notificationConfig.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
+                        <span className="text-white text-3xl font-bold leading-none">!</span>
+                    </div>
+                    <div>
+                        <p className="font-bold text-gray-900">{notificationConfig.message}</p>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content */}
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
@@ -713,7 +815,16 @@ const AdminDashboard = () => {
                 )}
                 {activeTab === 'pendingRegistrations' && (
                     <>
-                        {pendingUserData.length > 0 ? (
+                        {loadingPending ? (
+                            <div style={{
+                                padding: '3rem',
+                                textAlign: 'center',
+                                color: '#6b7280',
+                                fontSize: '1rem'
+                            }}>
+                                Loading pending registrations...
+                            </div>
+                        ) : pendingUsers.length > 0 ? (
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
@@ -721,17 +832,21 @@ const AdminDashboard = () => {
                                 rowGap: '1.5rem',
                                 justifyContent: 'start',
                             }}>
-                                {pendingUserData.map((userData) => (
+                                {pendingUsers.map((userData) => (
                                     <PendingUserCard
                                         key={userData.id}
-                                        profilePic={userData.profilePic}
+                                        id={userData.id}
                                         name={userData.name}
                                         type={userData.type}
+                                        status={userData.status}
                                         phone={userData.phone}
                                         email={userData.email}
                                         address={userData.address}
                                         joiningDate={userData.joiningDate}
+                                        description={userData.description}
                                         skills={userData.skills}
+                                        onApprove={handleUserApprove}
+                                        onReject={handleUserReject}
                                     />
                                 ))}
                             </div>

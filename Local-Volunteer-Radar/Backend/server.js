@@ -12,6 +12,7 @@ const signupRoutes = require('./routes/signupRoutes');
 const VolunteerProfileRoutes = require('./routes/VolunteerProfileRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const userApproveRejectRoutes = require('./routes/userApproveRejectRoutes');
 const User = require('./models/User');
 const eventRoutes = require("./routes/eventRoutes");
 
@@ -61,6 +62,7 @@ app.use('/api', signupRoutes);
 app.use('/api', VolunteerProfileRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userApproveRejectRoutes);
 require('./sockets/chatSocket')(io);
 app.use("/api/events", eventRoutes);
 
