@@ -13,6 +13,7 @@ const VolunteerProfileRoutes = require('./routes/VolunteerProfileRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const User = require('./models/User');
+const eventRoutes = require("./routes/eventRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -61,6 +62,7 @@ app.use('/api', VolunteerProfileRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 require('./sockets/chatSocket')(io);
+app.use("/api/events", eventRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
