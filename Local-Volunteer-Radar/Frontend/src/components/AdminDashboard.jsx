@@ -1,4 +1,4 @@
-import React, {useMemo, useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
 import StatCard from './StatCard.jsx';
@@ -18,6 +18,15 @@ const AdminDashboard = () => {
     const [selectedType, setSelectedType] = useState('');
     const [sortBy, setSortBy] = useState('');
     const [modalOpen, setModalOpen] = useState(null);
+    const [pendingUsers, setPendingUsers] = useState([]);
+    const [loadingPending, setLoadingPending] = useState(false);
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationConfig, setNotificationConfig] = useState({
+        borderColor: '',
+        bgColor: '',
+        message: ''
+    });
+    //Filtered state needed?
     const [users, setUsers] = useState([]);
     const [pendingEvents, setPendingEvents] = useState([]);
     const pendingUsers = users.filter(user => !user.isApproved);
@@ -76,20 +85,17 @@ const AdminDashboard = () => {
 
         let filtered = [...users];
 
-        // Search by name
         if (searchQuery.trim()) {
             filtered = filtered.filter(u =>
                 u.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
-        // Filter by type
         if (selectedType) {
             const typeValue = selectedType.charAt(0).toLowerCase() + selectedType.slice(1);
             filtered = filtered.filter(u => u.type === typeValue);
         }
 
-        // Sorting
         if (sortBy) {
             filtered.sort((a, b) => {
                 switch (sortBy) {
@@ -201,6 +207,89 @@ const AdminDashboard = () => {
 
     const navigate = useNavigate();
 
+    const [selectedStat, setSelectedStat] = useState(null);
+
+    // Fetch pending users when the tab changes to pendingRegistrations
+    useEffect(() => {
+        if (activeTab === 'pendingRegistrations') {
+            fetchPendingUsers();
+        }
+    }, [activeTab]);
+
+    // Function to fetch pending users from the backend
+    const fetchPendingUsers = async () => {
+        setLoadingPending(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/users/pending');
+            const data = await response.json();
+
+            if (data.success) {
+                // Transform the data to match the card component's expected format
+                const transformedData = [
+                    ...data.data.volunteers.map(v => ({
+                        id: v._id,
+                        name: v.name,
+                        type: 'Volunteer',
+                        status: 'Pending',
+                        phone: v.phoneNumber,
+                        email: v.email,
+                        address: v.address,
+                        joiningDate: new Date(v.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        }),
+                        skills: v.skills
+                    })),
+                    ...data.data.organizers.map(o => ({
+                        id: o._id,
+                        name: o.name,
+                        type: 'Organizer',
+                        status: 'Pending',
+                        phone: o.phoneNumber,
+                        email: o.email,
+                        address: o.address,
+                        joiningDate: new Date(o.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                        }),
+                        description: o.description || 'No description provided'
+                    }))
+                ];
+                setPendingUsers(transformedData);
+            }
+        } catch (error) {
+            console.error('Error fetching pending users:', error);
+        } finally {
+            setLoadingPending(false);
+        }
+    };
+
+    // Handler for user approval
+    const handleUserApprove = (userId, userName) => {
+        setPendingUsers(prev => prev.filter(user => user.id !== userId));
+        setNotificationConfig({
+            borderColor: 'border-green-500',
+            bgColor: 'bg-green-500',
+            message: `${userName} approved successfully!`
+        });
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+    };
+
+    // Handler for user rejection
+    const handleUserReject = (userId, userName) => {
+        setPendingUsers(prev => prev.filter(user => user.id !== userId));
+        setNotificationConfig({
+            borderColor: 'border-red-500',
+            bgColor: 'bg-red-500',
+            message: `${userName} rejected successfully!`
+        });
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+    };
+
     const handleAnnouncementsClick = () => {
 
     };
@@ -278,6 +367,20 @@ const AdminDashboard = () => {
                 onLogoutClick={handleLogoutClick}
             />
 
+            {showNotification && (
+                <div
+                    className={`fixed top-6 left-6 bg-white rounded-lg shadow-2xl p-4 flex items-center gap-3 border-l-4 ${notificationConfig.borderColor} transform transition-all duration-500 z-50 ${
+                        showNotification ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+                    }`}
+                >
+                    <div className={`w-10 h-10 ${notificationConfig.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
+                        <span className="text-white text-3xl font-bold leading-none">!</span>
+                    </div>
+                    <div>
+                        <p className="font-bold text-gray-900">{notificationConfig.message}</p>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content */}
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
@@ -797,106 +900,40 @@ const AdminDashboard = () => {
                 {/* Pending Registrations Tab */}
                 {activeTab === 'pendingRegistrations' && (
                     <>
-                        {/* Search and Filter Section for Pending Registrations */}
-                        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
-                                    <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93' }} size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search pending users..."
-                                        value={pendingSearchQuery}
-                                        onChange={(e) => setPendingSearchQuery(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.625rem 0.875rem 0.625rem 2.75rem',
-                                            border: 'none',
-                                            borderRadius: '0.625rem',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: '400',
-                                            background: 'rgba(142, 142, 147, 0.12)',
-                                            color: '#000',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    />
-                                </div>
-
-                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
-                                    <select
-                                        value={pendingTypeFilter}
-                                        onChange={(e) => setPendingTypeFilter(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
-                                            border: 'none',
-                                            borderRadius: '0.625rem',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: '400',
-                                            background: 'rgba(142, 142, 147, 0.12)',
-                                            color: '#000',
-                                            cursor: 'pointer',
-                                            appearance: 'none',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <option value="">All Types</option>
-                                        <option value="volunteer">Volunteer</option>
-                                        <option value="ngo">NGO</option>
-                                        <option value="organizer">Organizer</option>
-                                    </select>
-                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
-                                </div>
-
-                                <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
-                                    <select
-                                        value={pendingSortBy}
-                                        onChange={(e) => setPendingSortBy(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
-                                            border: 'none',
-                                            borderRadius: '0.625rem',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: '400',
-                                            background: 'rgba(142, 142, 147, 0.12)',
-                                            color: '#000',
-                                            cursor: 'pointer',
-                                            appearance: 'none',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <option value="">Sort By</option>
-                                        <option value="name-asc">Name (A-Z)</option>
-                                        <option value="name-desc">Name (Z-A)</option>
-                                        <option value="date-asc">Submitted (Oldest)</option>
-                                        <option value="date-desc">Submitted (Newest)</option>
-                                        <option value="email-asc">Email (A-Z)</option>
-                                        <option value="email-desc">Email (Z-A)</option>
-                                    </select>
-                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
-                                </div>
+                        {loadingPending ? (
+                            <div style={{
+                                padding: '3rem',
+                                textAlign: 'center',
+                                color: '#6b7280',
+                                fontSize: '1rem'
+                            }}>
+                                Loading pending registrations...
                             </div>
-                        </div>
-
-                        {filteredAndSortedPendingUsers.length > 0 ? (
+                        ) : pendingUsers.length > 0 ? (
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(410px, 410px))',
-                                gap: '1.5rem',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
+                                columnGap: '11.5rem',
+                                rowGap: '1.5rem',
                                 justifyContent: 'start',
                             }}>
-                                {filteredAndSortedPendingUsers
-                                    .filter(user => user.type !== 'admin')
-                                    .map((user) => (
-                                        <PendingUserCard
-                                            key={user.id}
-                                            user={user}
-                                            onActionComplete={refetchUsers}
-                                        />
-                                    ))}
+                                {pendingUsers.map((userData) => (
+                                    <PendingUserCard
+                                        key={userData.id}
+                                        id={userData.id}
+                                        name={userData.name}
+                                        type={userData.type}
+                                        status={userData.status}
+                                        phone={userData.phone}
+                                        email={userData.email}
+                                        address={userData.address}
+                                        joiningDate={userData.joiningDate}
+                                        description={userData.description}
+                                        skills={userData.skills}
+                                        onApprove={handleUserApprove}
+                                        onReject={handleUserReject}
+                                    />
+                                ))}
                             </div>
                         ) : (
                             <div style={{
@@ -911,7 +948,6 @@ const AdminDashboard = () => {
                     </>
                 )}
 
-                {/* Pending Events Tab */}
                 {activeTab === 'pendingEvents' && (
                     <>
                         {/* Search and Filter Section for Pending Events */}

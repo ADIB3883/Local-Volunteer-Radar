@@ -1,47 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import EventDetails from "./EventDetails.jsx";
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 
-// ============================================
-// 1. UPDATE QuickAction.jsx
-// ============================================
-// Replace your QuickAction component with this:
+const API_URL = 'http://localhost:5000/api/events';
 
 const QuickAction = () => {
+    const { eventId } = useParams();
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [announcementTitle, setAnnouncementTitle] = useState("");
     const [announcementMessage, setAnnouncementMessage] = useState("");
-    const [eventStatus, setEventStatus] = useState("");
-
-    // Get current event from URL
-    const eventId = window.location.pathname.split('/').pop();
+    const [event, setEvent] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const events = JSON.parse(localStorage.getItem("events") || "[]");
-        const event = events.find(e => e.id === parseInt(eventId));
-
-        if (event) {
-            setEventStatus(event.status);
-        }
+        fetchEvent();
     }, [eventId]);
 
+    const fetchEvent = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`${API_URL}/${eventId}`);
+            setEvent(response.data);
+        } catch (error) {
+            console.error('Error fetching event:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-
-    const handleSendAnnouncement = () => {
+    const handleSendAnnouncement = async () => {
         if (!announcementTitle.trim() || !announcementMessage.trim()) {
             alert("Please fill in both title and message");
             return;
         }
 
-        const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        const events = JSON.parse(localStorage.getItem("events") || "[]");
-        const registrations = JSON.parse(localStorage.getItem("eventRegistrations") || "[]");
-
-        const event = events.find(e => e.id === parseInt(eventId));
-        if (!event) return;
-
-        // Get only approved volunteers
-        const approvedVolunteers = registrations.filter(
-            reg => reg.eventId === parseInt(eventId) && reg.status === "Approved"
+        // Check for approved volunteers
+        const approvedVolunteers = event.registrations.filter(
+            reg => reg.status === 'approved'
         );
 
         if (approvedVolunteers.length === 0) {
@@ -49,50 +44,26 @@ const QuickAction = () => {
             return;
         }
 
-        const timestamp = new Date().toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
+        try {
+            const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
-        // Create announcement for organization
-        const announcement = {
-            id: Date.now().toString(),
-            title: announcementTitle,
-            message: announcementMessage,
-            eventName: event.eventName,
-            timestamp: timestamp,
-            recipientCount: approvedVolunteers.length
-        };
-
-        const announcements = JSON.parse(localStorage.getItem("announcements") || "[]");
-        announcements.push(announcement);
-        localStorage.setItem("announcements", JSON.stringify(announcements));
-
-        // Create notifications for each approved volunteer
-        const notifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-
-        approvedVolunteers.forEach(volunteer => {
-            notifications.push({
-                id: `${Date.now()}-${volunteer.volunteerId}`,
-                volunteerId: volunteer.volunteerEmail,
-                eventName: event.eventName,
-                organizationName: loggedInUser?.organizationName || loggedInUser?.fullName || "Organization",
+            await axios.post(`${API_URL}/${eventId}/announcements`, {
                 title: announcementTitle,
                 message: announcementMessage,
-                timestamp: timestamp,
-                read: false
+                sentBy: loggedInUser.id
             });
-        });
 
-        localStorage.setItem("notifications", JSON.stringify(notifications));
+            alert(`Announcement sent to ${approvedVolunteers.length} approved volunteer(s)!`);
+            setAnnouncementTitle("");
+            setAnnouncementMessage("");
+            setIsPopupOpen(false);
 
-        alert(`Announcement sent to ${approvedVolunteers.length} approved volunteer(s)!`);
-        setAnnouncementTitle("");
-        setAnnouncementMessage("");
-        setIsPopupOpen(false);
+            // Refresh event data
+            await fetchEvent();
+        } catch (error) {
+            console.error('Error sending announcement:', error);
+            alert(error.response?.data?.message || 'Failed to send announcement');
+        }
     };
 
     const formatSkills = (skills) => {
@@ -102,32 +73,21 @@ const QuickAction = () => {
             .filter(([_, value]) => value === true)
             .map(([key]) =>
                 key
-                    .replace(/([A-Z])/g, " $1") // camelCase → words
+                    .replace(/([A-Z])/g, " $1")
                     .replace(/^./, str => str.toUpperCase())
             )
             .join(" | ");
     };
 
     const handleExportApprovedVolunteers = () => {
-        const registrations = JSON.parse(
-            localStorage.getItem("eventRegistrations") || "[]"
-        );
-
-        const events = JSON.parse(
-            localStorage.getItem("events") || "[]"
-        );
-
-        const event = events.find(e => e.id === parseInt(eventId));
         if (!event) {
             alert("Event not found");
             return;
         }
 
-        // ✅ Only approved volunteers
-        const approvedVolunteers = registrations.filter(
-            reg =>
-                reg.eventId === parseInt(eventId) &&
-                reg.status === "Approved"
+        // Only approved volunteers
+        const approvedVolunteers = event.registrations.filter(
+            reg => reg.status === 'approved'
         );
 
         if (approvedVolunteers.length === 0) {
@@ -135,35 +95,34 @@ const QuickAction = () => {
             return;
         }
 
-        // -------- Event info rows (TOP) --------
+        // Event info rows
         const eventInfoRows = [
             ["Event Name", event.eventName],
-            ["Event Date", event.date || ""],
+            ["Event Date", event.startdate || ""],
             ["Event Location", event.location || ""],
             ["Total Approved Volunteers", approvedVolunteers.length],
-            [] // empty row
+            []
         ];
 
-        // -------- Volunteer table --------
+        // Headers
         const headers = [
             "Name",
             "Email",
             "Phone",
             "Registered Date",
-            "Hours Volunteered",
-            "Skills"
+            "Status"
         ];
 
+        // Rows
         const rows = approvedVolunteers.map(v => [
-            v.volunteerName,
-            v.volunteerEmail,
-            v.volunteerPhone,
+            v.volunteer?.name || "N/A",
+            v.volunteer?.email || "N/A",
+            v.volunteer?.phone || "N/A",
             new Date(v.registeredAt).toLocaleDateString("en-GB"),
-            v.hoursVolunteered || 0,
-            formatSkills(v.volunteerSkills)
+            v.status
         ]);
 
-        // -------- Build CSV --------
+        // Build CSV
         const csvContent = [
             ...eventInfoRows.map(row => row.join(",")),
             headers.join(","),
@@ -186,59 +145,47 @@ const QuickAction = () => {
         URL.revokeObjectURL(url);
     };
 
-
-    const handleMarkAsComplete = () => {
+    const handleMarkAsComplete = async () => {
         const confirmAction = window.confirm(
             "Are you sure you want to mark this event as completed?"
         );
 
         if (!confirmAction) return;
 
-        const events = JSON.parse(localStorage.getItem("events") || "[]");
-
-        const updatedEvents = events.map(event =>
-            event.id === parseInt(eventId)
-                ? { ...event, status: "completed", completedAt: new Date().toISOString() }
-                : event
-        );
-
-        localStorage.setItem("events", JSON.stringify(updatedEvents));
-
-        setEventStatus("completed"); // ✅ update UI instantly
-
-        alert("Event marked as completed");
+        try {
+            await axios.put(`${API_URL}/${eventId}/complete`);
+            alert("Event marked as completed");
+            await fetchEvent();
+        } catch (error) {
+            console.error('Error completing event:', error);
+            alert(error.response?.data?.message || 'Failed to complete event');
+        }
     };
-    const handleCancelEvent = () => {
+
+    const handleCancelEvent = async () => {
         const confirmAction = window.confirm(
             "Are you sure you want to cancel this event? This action cannot be undone."
         );
 
         if (!confirmAction) return;
 
-        const events = JSON.parse(localStorage.getItem("events") || "[]");
-
-        const updatedEvents = events.map(event =>
-            event.id === parseInt(eventId)
-                ? {
-                    ...event,
-                    status: "cancelled",
-                    cancelledAt: new Date().toISOString()
-                }
-                : event
-        );
-
-        localStorage.setItem("events", JSON.stringify(updatedEvents));
-
-        setEventStatus("cancelled"); // ✅ hide buttons instantly
-
-        alert("Event has been cancelled");
+        try {
+            await axios.put(`${API_URL}/${eventId}/cancel`);
+            alert("Event has been cancelled");
+            await fetchEvent();
+        } catch (error) {
+            console.error('Error cancelling event:', error);
+            alert(error.response?.data?.message || 'Failed to cancel event');
+        }
     };
 
-
-
-
-
-
+    if (loading || !event) {
+        return (
+            <div className="relative top-[25vh] left-[5.5vw] w-[90vw] py-3 bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)] flex items-center justify-center p-8">
+                <div className="text-xl text-gray-600">Loading...</div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -259,7 +206,7 @@ const QuickAction = () => {
                         <span className="font-normal text-[16px]">Send Announcement</span>
                     </button>
 
-                    <button  onClick={handleExportApprovedVolunteers} className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors">
+                    <button onClick={handleExportApprovedVolunteers} className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
@@ -268,9 +215,8 @@ const QuickAction = () => {
                         <span className="font-normal text-[16px]">Export volunteer list</span>
                     </button>
 
-                    {!["completed", "cancelled"].includes(eventStatus) && (
+                    {!["completed", "cancelled"].includes(event.status) && (
                         <>
-                            {/* Mark as complete */}
                             <button
                                 onClick={handleMarkAsComplete}
                                 className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors"
@@ -281,7 +227,6 @@ const QuickAction = () => {
                                 <span className="font-normal text-[16px]">Mark as complete</span>
                             </button>
 
-                            {/* Cancel Event */}
                             <button
                                 onClick={handleCancelEvent}
                                 className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors"
@@ -295,11 +240,10 @@ const QuickAction = () => {
                             </button>
                         </>
                     )}
-
-
                 </div>
             </div>
 
+            {/* Announcement Popup */}
             {isPopupOpen && (
                 <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50">
                     <div className="bg-white rounded-[20px] w-[475px] p-6">

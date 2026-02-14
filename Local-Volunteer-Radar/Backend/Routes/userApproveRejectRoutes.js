@@ -1,13 +1,40 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const mongoose = require("mongoose");
+const Volunteer = mongoose.model('Volunteer');
+const Organizer = mongoose.model('Organizer');
+const User = mongoose.model('User');
 
-// PUT /api/admin/users/approve/:userId
-router.put('/approve/:userId', async (req, res) => {
+// Approve a user (Volunteer or Organizer)
+router.patch('/approve/:type/:id', async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { type, id } = req.params;
 
-        const user = await User.findById(userId);
+        let user;
+        if (type === 'volunteer') {
+            user = await Volunteer.findByIdAndUpdate(
+                id,
+                {
+                    isPending: false,
+                    isApproved: true
+                },
+                { new: true }
+            );
+        } else if (type === 'organizer') {
+            user = await Organizer.findByIdAndUpdate(
+                id,
+                {
+                    isPending: false,
+                    isApproved: true
+                },
+                { new: true }
+            );
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid user type'
+            });
+        }
 
         if (!user) {
             return res.status(404).json({
@@ -16,47 +43,46 @@ router.put('/approve/:userId', async (req, res) => {
             });
         }
 
-        if (user.status === 'Active' || (user.isPending === false && user.isApproved === true)) {
-            return res.status(400).json({
-                success: false,
-                message: 'User is already approved'
-            });
-        }
-
-        user.status = 'Active';
-        user.isPending = false;
-        user.isApproved = true;
-        user.approvedAt = new Date();
-
-        await user.save();
-
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: 'User approved successfully',
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                status: user.status
-            }
+            message: `${type.charAt(0).toUpperCase() + type.slice(1)} approved successfully`,
+            data: user
         });
-
     } catch (error) {
-        console.error('Error approving user:', error);
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
-            message: 'Internal server error',
+            message: 'Error approving user',
             error: error.message
         });
     }
 });
 
-// PUT /api/admin/users/reject/:userId
-router.put('/reject/:userId', async (req, res) => {
+// Reject a user (Volunteer or Organizer)
+router.delete('/reject/:type/:id', async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { type, id } = req.params;
 
-        const user = await User.findById(userId);
+        let user;
+        let email;
+
+        if (type === 'volunteer') {
+            user = await Volunteer.findById(id);
+            if (user) {
+                email = user.email;
+                await Volunteer.findByIdAndDelete(id);
+            }
+        } else if (type === 'organizer') {
+            user = await Organizer.findById(id);
+            if (user) {
+                email = user.email;
+                await Organizer.findByIdAndDelete(id);
+            }
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid user type'
+            });
+        }
 
         if (!user) {
             return res.status(404).json({
@@ -65,41 +91,41 @@ router.put('/reject/:userId', async (req, res) => {
             });
         }
 
-        // Check if user is already rejected
-        if (user.status === 'Rejected' || (user.isPending === false && user.isApproved === false)) {
-            return res.status(400).json({
-                success: false,
-                message: 'User is already rejected'
-            });
+        // Delete from Users collection using email
+        if (email) {
+            await User.findOneAndDelete({ email: email });
         }
 
-        // Update user status
-        user.status = 'Rejected';
-        user.isPending = true;
-        user.isApproved = false;
-        user.rejectedAt = new Date();
-        if (reason) {
-            user.rejectionReason = reason;
-        }
-
-        await user.save();
-
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: 'User rejected successfully',
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                status: user.status
+            message: `${type.charAt(0).toUpperCase() + type.slice(1)} rejected and removed successfully`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error rejecting user',
+            error: error.message
+        });
+    }
+});
+
+// Get all pending users
+router.get('/pending', async (req, res) => {
+    try {
+        const pendingVolunteers = await Volunteer.find({ isPending: true });
+        const pendingOrganizers = await Organizer.find({ isPending: true });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                volunteers: pendingVolunteers,
+                organizers: pendingOrganizers
             }
         });
-
     } catch (error) {
-        console.error('Error rejecting user:', error);
-        return res.status(500).json({
+        res.status(500).json({
             success: false,
-            message: 'Internal server error',
+            message: 'Error fetching pending users',
             error: error.message
         });
     }

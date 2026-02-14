@@ -58,7 +58,7 @@ const VolunteerSignUpForm = () => {
             });
 
             if (response.success) {
-                // Also store in localStorage for backward compatibility
+                // Store in localStorage for backward compatibility
                 const existingVolunteers = JSON.parse(localStorage.getItem("allVolunteers")) || [];
                 const newVolunteer = {
                     id: response.user.id,
@@ -72,22 +72,16 @@ const VolunteerSignUpForm = () => {
                     JSON.stringify([...existingVolunteers, newVolunteer])
                 );
 
-                // Store logged in user
-                localStorage.setItem(
-                    "loggedInUser",
-                    JSON.stringify({
-                        ...response.user,
-                        fullName: response.user.name,
-                        phoneNumber: formData.phoneNumber,
-                        address: formData.address,
-                        skills: formData.skills
-                    })
-                );
-
-                alert("Account created successfully!");
-                console.log('Volunteer Sign Up Data:', response.user);
-                navigate('/volunteer-dashboard');
+                // Navigate to login with pending state
+                navigate('/login', {
+                    state: {
+                        pendingApproval: true,
+                        email: formData.email,
+                        userType: 'volunteer'
+                    }
+                });
             }
+
         } catch (error) {
             console.error('Signup error:', error);
             let errorMessage = 'An error occurred during signup. Please try again.';
@@ -193,7 +187,7 @@ const VolunteerSignUpForm = () => {
                             alt="Phone icon"
                             className="w-5 h-5"
                         />
-                        <span className="text-gray-400 text-sm">+880</span>
+                        <span className="text-gray-400 text-sm">+88</span>
                         <span className="text-gray-300">|</span>
                     </div>
                     <input
@@ -208,14 +202,14 @@ const VolunteerSignUpForm = () => {
                         }}
                         className="w-full pl-32 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900"
                         placeholder="1XXXXXXXXX"
-                        maxLength="10"
+                        maxLength="11"
                         required
                     />
 
-                    {formData.phoneNumber && formData.phoneNumber.length !== 10 && (
+                    {formData.phoneNumber && formData.phoneNumber.length !== 11 && (
                         <div className="absolute left-0 -bottom-8 bg-red-500 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-20">
                             {/^\d+$/.test(formData.phoneNumber)
-                                ? `Please enter exactly 10 digits (${formData.phoneNumber.length}/10)`
+                                ? `Please enter exactly 11 digits (${formData.phoneNumber.length}/11)`
                                 : 'Only numeric characters allowed'
                             }
                             <div className="absolute left-4 -top-1 w-2 h-2 bg-red-500 transform rotate-45"></div>
@@ -335,7 +329,7 @@ const VolunteerSignUpForm = () => {
             <div className="grid mt-2">
                 <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || formData.phoneNumber.length !== 11}
                     className="w-full cursor-pointer py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
