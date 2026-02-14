@@ -58,17 +58,17 @@ const AdminDashboard = () => {
             .finally(() => setLoading(false)); // stop loading spinner
     }, []);
 
-    useEffect(() => {
-        fetch("http://localhost:5000/api/admin/analytics")
-            .then((res) => res.json())
-            .then((data) => {
-                console.log("Fetched analytics:", data);
-                setAnalytics(data);
-            })
-            .catch((err) => {
-                console.error("Error fetching analytics:", err);
-            });
-    }, []);
+    // useEffect(() => {
+    //     fetch("http://localhost:5000/api/admin/analytics")
+    //         .then((res) => res.json())
+    //         .then((data) => {
+    //             console.log("Fetched analytics:", data);
+    //             setAnalytics(data);
+    //         })
+    //         .catch((err) => {
+    //             console.error("Error fetching analytics:", err);
+    //         });
+    // }, []);
 
     // Filtered and sorted users
     const filteredAndSortedUsers = useMemo(() => {
