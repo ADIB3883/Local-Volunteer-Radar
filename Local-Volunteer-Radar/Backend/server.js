@@ -57,19 +57,15 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-app.use('/api', loginRoutes);
-app.use('/api', signupRoutes);
-app.use('/api', VolunteerProfileRoutes);
+app.use('/api/users', userApproveRejectRoutes);
+app.use('/api/admin/events', eventRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/users', userApproveRejectRoutes);
-require('./sockets/chatSocket')(io);
-app.use("/api/events", eventRoutes);
+app.use('/api', loginRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
 });
-
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {

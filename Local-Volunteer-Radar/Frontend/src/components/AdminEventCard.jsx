@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, Clock, MapPin, Ruler, User, FileText, CheckSquare, Tag } from "lucide-react";
+import { Calendar, Clock, MapPin, User, FileText, CheckSquare, Tag } from "lucide-react";
 
 export default function AdminEventCard({ event, children }) {
     return (
@@ -14,7 +14,6 @@ export default function AdminEventCard({ event, children }) {
                 flexDirection: "column",
             }}
         >
-            {/* Header */}
             <div
                 style={{
                     display: "flex",
@@ -23,13 +22,12 @@ export default function AdminEventCard({ event, children }) {
                     alignItems: "center",
                 }}
             >
-                <strong style={{ fontSize: "1.1rem" }}>{event.title}</strong>
+                <strong style={{ fontSize: "1.1rem" }}>{event.eventName || 'N/A'}</strong>
                 <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                    ID: {event.eventId}
+                    ID: {event._id?.$oid || 'N/A'}
                 </span>
             </div>
 
-            {/* Content */}
             <div
                 style={{
                     display: "grid",
@@ -40,31 +38,25 @@ export default function AdminEventCard({ event, children }) {
                     marginBottom: "1rem",
                 }}
             >
-                {/* Left */}
                 <div style={{ fontSize: "0.8rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                         <Calendar size={14} color="#6b7280" />
-                        <span><strong>Date:</strong> {event.date}</span>
+                        <span><strong>Date:</strong> {event.startdate || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                         <Clock size={14} color="#6b7280" />
-                        <span><strong>Time:</strong> {event.time}</span>
+                        <span><strong>Time:</strong> {event.startTime || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
                         <MapPin size={14} color="#6b7280" />
-                        <span><strong>Location:</strong> {event.location}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <Ruler size={14} color="#6b7280" />
-                        <span><strong>Distance:</strong> {event.distance} km</span>
+                        <span><strong>Location:</strong> {event.location || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <User size={14} color="#6b7280" />
-                        <span><strong>Organizer ID:</strong> {event.organizerId}</span>
+                        <span><strong>Organizer ID:</strong> {event.organizerId?.$oid || 'N/A'}</span>
                     </div>
                 </div>
 
-                {/* Right */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                     <div
                         style={{
@@ -78,7 +70,7 @@ export default function AdminEventCard({ event, children }) {
                             <FileText size={12} color="#6b7280" />
                             <strong>Description</strong>
                         </div>
-                        <p style={{ margin: 0, color: "#4b5563" }}>{event.description}</p>
+                        <p style={{ margin: 0, color: "#4b5563" }}>{event.description || 'N/A'}</p>
                     </div>
 
                     <div
@@ -93,7 +85,7 @@ export default function AdminEventCard({ event, children }) {
                             <CheckSquare size={12} color="#6b7280" />
                             <strong>Requirements</strong>
                         </div>
-                        <p style={{ margin: 0, color: "#4b5563" }}>{event.requirements}</p>
+                        <p style={{ margin: 0, color: "#4b5563" }}>{event.requirements || 'N/A'}</p>
                     </div>
 
                     <div
@@ -106,36 +98,13 @@ export default function AdminEventCard({ event, children }) {
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
                             <Tag size={12} color="#6b7280" />
-                            <strong>Tags</strong>
+                            <strong>Category</strong>
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.4rem' }}>
-                            {event.tags?.length > 0 ? (
-                                event.tags.map((tag, index) => (
-                                    <span
-                                        key={index}
-                                        style={{
-                                            padding: '0.25rem 0.75rem',
-                                            borderRadius: '9999px',
-                                            fontSize: '0.7rem',
-                                            fontWeight: '500',
-                                            border: '1px solid',
-                                            color: '#4b5563',
-                                            background: '#f3f4f6',
-                                            borderColor: '#d1d5db'
-                                        }}
-                                    >
-                                        {tag}
-                                    </span>
-                                ))
-                            ) : (
-                                <span style={{ color: "#9ca3af", fontSize: "0.7rem" }}>No tags</span>
-                            )}
-                        </div>
+                        <span style={{ color: "#4b5563", fontSize: "0.8rem" }}>{event.category || 'N/A'}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Footer Buttons */}
             <div>
                 {children}
             </div>

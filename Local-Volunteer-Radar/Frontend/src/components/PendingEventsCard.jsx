@@ -6,11 +6,24 @@ export default function PendingEventsCard({ event, onActionComplete }) {
     const [loading, setLoading] = useState(false);
 
     const handleApprove = async () => {
+        const eventId = event._id || event._id?.$oid;
+        if (!eventId) {
+            alert("Invalid event ID");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/admin/events/approve/${event.eventId}`,
-                { method: "PUT", headers: { "Content-Type": "application/json" } }
+                `http://localhost:5000/api/admin/events/${eventId}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        isApproved: true,
+                        status: "active"
+                    })
+                }
             );
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
@@ -24,13 +37,22 @@ export default function PendingEventsCard({ event, onActionComplete }) {
     };
 
     const handleReject = async () => {
+        const eventId = event._id || event._id?.$oid;
+        if (!eventId) {
+            alert("Invalid event ID");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/admin/events/reject/${event.eventId}`,
+                `http://localhost:5000/api/admin/events/${eventId}`,
                 {
                     method: "PUT",
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        isApproved: false
+                    })
                 }
             );
             const data = await res.json();

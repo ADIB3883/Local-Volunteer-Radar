@@ -26,10 +26,8 @@ const AdminDashboard = () => {
         bgColor: '',
         message: ''
     });
-    //Filtered state needed?
     const [users, setUsers] = useState([]);
     const [pendingEvents, setPendingEvents] = useState([]);
-    const pendingUsers = users.filter(user => !user.isApproved);
     const [loading, setLoading] = useState(true);
     const [analytics, setAnalytics] = useState(null);
     const [pendingSearchQuery, setPendingSearchQuery] = useState('');
@@ -38,34 +36,31 @@ const AdminDashboard = () => {
     const [eventSearchQuery, setEventSearchQuery] = useState('');
     const [eventSortBy, setEventSortBy] = useState('');
 
-    // Fetch users from backend API
-    useEffect(() => {
-        fetch('http://localhost:5000/api/users')
-            .then(res => res.json())
-            .then(data => setUsers(data.users))
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
-    }, []);
-
-    const refetchUsers = () => {
-        fetch('http://localhost:5000/api/users')
-            .then(res => res.json())
-            .then(data => setUsers(data.users))
-            .catch(err => console.error(err));
+    const fetchUsers = async (endpoint, setter) => {
+        try {
+            const res = await fetch(`http://localhost:5000/api${endpoint}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setter(data.data || data.users || []);
+        } catch (err) {
+            console.error(err);
+            setter([]);
+        }
     };
 
     useEffect(() => {
-        fetch("http://localhost:5000/api/admin/events/pending") // your backend route
-            .then((res) => res.json())
-            .then((data) => {
-                console.log("Fetched events:", data.events); // debug log
-                setPendingEvents(data.events || []); // set state
-            })
-            .catch((err) => {
-                console.error("Error fetching pending events:", err);
-            })
-            .finally(() => setLoading(false)); // stop loading spinner
+        setLoading(true);
+        Promise.all([
+            fetchUsers('/users', setUsers),
+            fetchUsers('/users/pending', setPendingUsers)
+        ]).finally(() => setLoading(false));
     }, []);
+
+    // Simplified refetch
+    const refetchUsers = () => {
+        fetchUsers('/users', setUsers);
+        fetchUsers('/users/pending', setPendingUsers);
+    };
 
     // useEffect(() => {
     //     fetch("http://localhost:5000/api/admin/analytics")
@@ -79,79 +74,91 @@ const AdminDashboard = () => {
     //         });
     // }, []);
 
-    // Filtered and sorted users
+    useEffect(() => {
+        const fetchPendingEvents = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("http://localhost:5000/api/admin/events?status=pending");
+                const data = await res.json();
+                setPendingEvents(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Failed to fetch pending events:", err);
+                setPendingEvents([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPendingEvents();
+    }, []);
+
+    // Helper to safely extract date from schema format
+    const getCreatedAtDate = (createdAt) => {
+        if (!createdAt) return new Date(0);
+        if (createdAt.$date) return new Date(createdAt.$date);
+        return new Date(createdAt);
+    };
+
+    // Helper for consistent field access
+    const getUserDisplayName = (user) => user.name || '';
+    const getUserType = (user) => user.type?.toLowerCase() || '';
+
+    const formatDate = (createdAt) => {
+        if (!createdAt) return 'Unknown';
+        const date = createdAt.$date ? new Date(createdAt.$date) : new Date(createdAt);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+
+    const getSkillsDisplay = (skills) => {
+        if (Array.isArray(skills)) return skills;
+        if (typeof skills === 'object') {
+            return Object.keys(skills).filter(key => skills[key]);
+        }
+        return [];
+    };
+
+    const getInitials = (name) => name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'UN';
+    const getAvatarColor = (name) => {
+        const colors = ['#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
+
     const filteredAndSortedUsers = useMemo(() => {
-        if (!users || users.length === 0) return [];
+        const baseUsers = Array.isArray(users) ? [...users] : [];
 
-        let filtered = [...users];
+        return baseUsers
+            .filter(user => {
+                // Search filter
+                if (searchQuery.trim()) {
+                    const query = searchQuery.toLowerCase();
+                    const name = getUserDisplayName(user).toLowerCase();
+                    const email = user.email?.toLowerCase() || '';
+                    return name.includes(query) || email.includes(query);
+                }
+                return true;
+            })
+            .filter(user => {
+                // Type filter
+                if (selectedType) {
+                    return getUserType(user) === selectedType.toLowerCase();
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                // Sort logic
+                if (!sortBy) return 0;
 
-        if (searchQuery.trim()) {
-            filtered = filtered.filter(u =>
-                u.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        if (selectedType) {
-            const typeValue = selectedType.charAt(0).toLowerCase() + selectedType.slice(1);
-            filtered = filtered.filter(u => u.type === typeValue);
-        }
-
-        if (sortBy) {
-            filtered.sort((a, b) => {
                 switch (sortBy) {
                     case 'name-asc':
-                        return a.name.localeCompare(b.name);
+                        return getUserDisplayName(a).localeCompare(getUserDisplayName(b));
                     case 'name-desc':
-                        return b.name.localeCompare(a.name);
+                        return getUserDisplayName(b).localeCompare(getUserDisplayName(a));
                     case 'date-asc':
-                        return new Date(a.joinedDate) - new Date(b.joinedDate);
+                        return getCreatedAtDate(a.createdAt) - getCreatedAtDate(b.createdAt);
                     case 'date-desc':
-                        return new Date(b.joinedDate) - new Date(a.joinedDate);
-                    case 'email-asc':
-                        return a.email.localeCompare(b.email);
-                    case 'email-desc':
-                        return b.email.localeCompare(a.email);
-                    default:
-                        return 0;
-                }
-            });
-        }
-
-        return filtered;
-    }, [users, searchQuery, selectedType, sortBy]);
-
-    // Filter and sort pending users
-    const filteredAndSortedPendingUsers = useMemo(() => {
-        let filtered = [...pendingUsers];
-
-        // Apply search filter
-        if (pendingSearchQuery) {
-            const query = pendingSearchQuery.toLowerCase();
-            filtered = filtered.filter(user =>
-                user.name?.toLowerCase().includes(query) ||
-                user.email?.toLowerCase().includes(query) ||
-                user.phoneNumber?.toLowerCase().includes(query) ||
-                user.address?.toLowerCase().includes(query)
-            );
-        }
-
-        // Apply type filter
-        if (pendingTypeFilter) {
-            filtered = filtered.filter(user => user.type === pendingTypeFilter);
-        }
-
-        // Apply sorting
-        if (pendingSortBy) {
-            filtered.sort((a, b) => {
-                switch (pendingSortBy) {
-                    case 'name-asc':
-                        return (a.name || '').localeCompare(b.name || '');
-                    case 'name-desc':
-                        return (b.name || '').localeCompare(a.name || '');
-                    case 'date-asc':
-                        return new Date(a.joinedDate || a.createdAt) - new Date(b.joinedDate || b.createdAt);
-                    case 'date-desc':
-                        return new Date(b.joinedDate || b.createdAt) - new Date(a.joinedDate || a.createdAt);
+                        return getCreatedAtDate(b.createdAt) - getCreatedAtDate(a.createdAt);
                     case 'email-asc':
                         return (a.email || '').localeCompare(b.email || '');
                     case 'email-desc':
@@ -160,42 +167,87 @@ const AdminDashboard = () => {
                         return 0;
                 }
             });
-        }
+    }, [users, searchQuery, selectedType, sortBy]);
 
-        return filtered;
+    const filteredAndSortedPendingUsers = useMemo(() => {
+        return Array.isArray(pendingUsers) ? [...pendingUsers] : []
+            .filter(user => {
+                if (pendingSearchQuery) {
+                    const query = pendingSearchQuery.toLowerCase();
+                    return [
+                        getUserDisplayName(user),
+                        user.email || '',
+                        user.phoneNumber || '',
+                        user.address || ''
+                    ].some(field => field.toLowerCase().includes(query));
+                }
+                return true;
+            })
+            .filter(user => {
+                if (pendingTypeFilter) {
+                    return getUserType(user) === pendingTypeFilter.toLowerCase();
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                if (!pendingSortBy) return 0;
+
+                switch (pendingSortBy) {
+                    case 'name-asc':
+                        return getUserDisplayName(a).localeCompare(getUserDisplayName(b));
+                    case 'name-desc':
+                        return getUserDisplayName(b).localeCompare(getUserDisplayName(a));
+                    case 'date-asc':
+                        return getCreatedAtDate(a.createdAt) - getCreatedAtDate(b.createdAt);
+                    case 'date-desc':
+                        return getCreatedAtDate(b.createdAt) - getCreatedAtDate(a.createdAt);
+                    case 'email-asc':
+                        return (a.email || '').localeCompare(b.email || '');
+                    case 'email-desc':
+                        return (b.email || '').localeCompare(a.email || '');
+                    default:
+                        return 0;
+                }
+            });
     }, [pendingUsers, pendingSearchQuery, pendingTypeFilter, pendingSortBy]);
-
-// Filter and sort pending events
     const filteredAndSortedPendingEvents = useMemo(() => {
-        let filtered = [...pendingEvents];
+        let filtered = Array.isArray(pendingEvents)
+            ? pendingEvents
+            : pendingEvents.data?.volunteers?.concat(pendingEvents.data?.organizers) || [];
 
-        // Apply search filter
+        filtered = filtered.filter(event => {
+            const isApproved = event.isApproved ?? false;
+            return !isApproved;
+        });
+
         if (eventSearchQuery) {
             const query = eventSearchQuery.toLowerCase();
             filtered = filtered.filter(event =>
-                event.title?.toLowerCase().includes(query) ||
+                event.eventName?.toLowerCase().includes(query) ||
                 event.description?.toLowerCase().includes(query) ||
-                event.location?.toLowerCase().includes(query) ||
-                event.organizerName?.toLowerCase().includes(query)
+                event.location?.toLowerCase().includes(query)
             );
         }
 
-        // Apply sorting
         if (eventSortBy) {
             filtered.sort((a, b) => {
                 switch (eventSortBy) {
                     case 'title-asc':
-                        return (a.title || '').localeCompare(b.title || '');
+                        return (a.eventName || '').localeCompare(b.eventName || '');
                     case 'title-desc':
-                        return (b.title || '').localeCompare(a.title || '');
+                        return (b.eventName || '').localeCompare(a.eventName || '');
                     case 'date-asc':
-                        return new Date(a.eventDate || a.date) - new Date(b.eventDate || b.date);
+                        return new Date(`${a.startdate || ''}T${a.startTime || ''}`) - new Date(`${b.startdate || ''}T${b.startTime || ''}`);
                     case 'date-desc':
-                        return new Date(b.eventDate || b.date) - new Date(a.eventDate || a.date);
+                        return new Date(`${b.startdate || ''}T${b.startTime || ''}`) - new Date(`${a.startdate || ''}T${a.startTime || ''}`);
                     case 'submitted-asc':
-                        return new Date(a.createdAt) - new Date(b.createdAt);
+                        const aDate = a.createdAt?.$date || a.createdAt || 0;
+                        const bDate = b.createdAt?.$date || b.createdAt || 0;
+                        return new Date(aDate) - new Date(bDate);
                     case 'submitted-desc':
-                        return new Date(b.createdAt) - new Date(a.createdAt);
+                        const aDateDesc = a.createdAt?.$date || a.createdAt || 0;
+                        const bDateDesc = b.createdAt?.$date || b.createdAt || 0;
+                        return new Date(bDateDesc) - new Date(aDateDesc);
                     default:
                         return 0;
                 }
@@ -216,53 +268,16 @@ const AdminDashboard = () => {
         }
     }, [activeTab]);
 
-    // Function to fetch pending users from the backend
     const fetchPendingUsers = async () => {
-        setLoadingPending(true);
         try {
-            const response = await fetch('http://localhost:5000/api/users/pending');
-            const data = await response.json();
+            const res = await fetch('http://localhost:5000/api/users/pending');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
 
-            if (data.success) {
-                // Transform the data to match the card component's expected format
-                const transformedData = [
-                    ...data.data.volunteers.map(v => ({
-                        id: v._id,
-                        name: v.name,
-                        type: 'Volunteer',
-                        status: 'Pending',
-                        phone: v.phoneNumber,
-                        email: v.email,
-                        address: v.address,
-                        joiningDate: new Date(v.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                        }),
-                        skills: v.skills
-                    })),
-                    ...data.data.organizers.map(o => ({
-                        id: o._id,
-                        name: o.name,
-                        type: 'Organizer',
-                        status: 'Pending',
-                        phone: o.phoneNumber,
-                        email: o.email,
-                        address: o.address,
-                        joiningDate: new Date(o.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                        }),
-                        description: o.description || 'No description provided'
-                    }))
-                ];
-                setPendingUsers(transformedData);
-            }
-        } catch (error) {
-            console.error('Error fetching pending users:', error);
-        } finally {
-            setLoadingPending(false);
+            setPendingUsers(data.data || data.pendingUsers || []);
+        } catch (err) {
+            console.error('Error fetching pending users:', err);
+            setPendingUsers([]);
         }
     };
 
@@ -343,16 +358,6 @@ const AdminDashboard = () => {
             modalContent: <ActiveEventsModal />
         }
     ];
-
-    const getInitials = (name) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase();
-    };
-
-    const getAvatarColor = (name) => {
-        const colors = ['#7c3aed', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
-        const index = name.charCodeAt(0) % colors.length;
-        return colors[index];
-    };
 
     const closeModal = () => {
         setSelectedUser(null);
@@ -528,18 +533,6 @@ const AdminDashboard = () => {
                             boxShadow: activeTab === 'pendingEvents' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
                             whiteSpace: 'nowrap'
                         }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'pendingEvents') {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                                e.currentTarget.style.color = '#374151';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'pendingEvents') {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#4b5563';
-                            }
-                        }}
                     >
                         Pending Events
                     </button>
@@ -599,7 +592,6 @@ const AdminDashboard = () => {
                                     >
                                         <option value="">All Types</option>
                                         <option value="volunteer">Volunteer</option>
-                                        <option value="ngo">NGO</option>
                                         <option value="organizer">Organizer</option>
                                     </select>
                                     <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
@@ -637,21 +629,19 @@ const AdminDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Partners' List Section */}
+                        {/* Partners List */}
                         <div style={{ margin: '0 auto' }}>
                             <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
                                 {/* Table Header */}
                                 <div style={{
                                     display: 'grid',
-                                    gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+                                    gridTemplateColumns: '2fr 2fr 1fr 1fr',
                                     gap: '1rem',
                                     padding: '1rem 1.5rem',
                                     borderBottom: '1px solid #f3f4f6',
                                     fontSize: '0.75rem',
                                     fontWeight: '600',
-                                    color: '#6b7280',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.05em'
+                                    color: '#6b7280'
                                 }}>
                                     <div>NAME</div>
                                     <div>EMAIL</div>
@@ -664,230 +654,132 @@ const AdminDashboard = () => {
                                     .filter(user => user.type !== 'admin')
                                     .map((user) => (
                                         <div
-                                            key={user.id}
+                                            key={user._id.$oid}
                                             onClick={() => setSelectedUser(user)}
                                             style={{
                                                 display: 'grid',
-                                                gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+                                                gridTemplateColumns: '2fr 2fr 1fr 1fr',
                                                 gap: '1rem',
                                                 padding: '1rem 1.5rem',
                                                 borderBottom: '1px solid #f3f4f6',
-                                                alignItems: 'center',
                                                 cursor: 'pointer',
                                                 transition: 'background-color 0.2s'
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         >
-                                            {/* Name with Avatar */}
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{
-                                                    width: '2.5rem',
-                                                    height: '2.5rem',
-                                                    borderRadius: '50%',
-                                                    background: getAvatarColor(user.name),
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    color: 'white',
-                                                    fontWeight: '600',
-                                                    fontSize: '0.875rem'
+                                                    width: '2.5rem', height: '2.5rem', borderRadius: '50%',
+                                                    background: getAvatarColor(user.name || 'User'),
+                                                    color: 'white', fontWeight: '600', fontSize: '0.875rem',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                                                 }}>
-                                                    {getInitials(user.name)}
+                                                    {getInitials(user.name || 'User')}
                                                 </div>
-                                                <span style={{ fontWeight: '500', color: '#111827' }}>{user.name}</span>
+                                                <span style={{ fontWeight: '500', color: '#111827' }}>
+                                    {user.name || 'Unnamed'}
+                                </span>
                                             </div>
 
-                                            {/* Email */}
-                                            <div style={{ color: '#00000', fontSize: '0.875rem' }}>{user.email}</div>
+                                            <div style={{ color: '#000', fontSize: '0.875rem' }}>
+                                                {user.email || 'No email'}
+                                            </div>
 
-                                            {/* Type Badge */}
                                             <div>
-                                          <span style={{
-                                              padding: '0.375rem 0.75rem',
-                                              borderRadius: '1rem',
-                                              fontSize: '0.75rem',
-                                              fontWeight: '500',
-                                              background: user.type === 'volunteer' ? '#fef3c7' :
-                                                  user.type === 'ngo' ? '#dbeafe' : '#f3e8ff',
-                                              color: user.type === 'volunteer' ? '#92400e' :
-                                                  user.type === 'ngo' ? '#1e40af' : '#7c2d12'
-                                          }}>
-                                            {user.type.toUpperCase()}
-                                          </span>
+                                <span style={{
+                                    padding: '0.375rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
+                                    fontWeight: '500',
+                                    background: user.type === 'volunteer' ? '#fef3c7' :
+                                        user.type === 'organizer' ? '#dbeafe' : '#f3e8ff',
+                                    color: user.type === 'volunteer' ? '#92400e' :
+                                        user.type === 'organizer' ? '#1e40af' : '#7c2d12'
+                                }}>
+                                    {user.type?.toUpperCase() || 'UNKNOWN'}
+                                </span>
                                             </div>
 
-                                            {/* Joined Date */}
-                                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{user.joined}</div>
+                                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                                                {formatDate(user.createdAt)}  {/* ✅ Schema field */}
+                                            </div>
                                         </div>
                                     ))}
+
                                 {filteredAndSortedUsers.length === 0 && (
-                                    <div style={{
-                                        padding: '3rem',
-                                        textAlign: 'center',
-                                        color: '#6b7280'
-                                    }}>
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
                                         No partners found
                                     </div>
                                 )}
                             </div>
 
-                            {/* Modal Popup */}
+                            {/* Fixed Modal */}
                             {selectedUser && (
-                                <div
-                                    style={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        background: 'rgba(0, 0, 0, 0.5)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 50,
-                                        padding: '1rem'
-                                    }}
-                                    onClick={closeModal}
-                                >
-                                    <div
-                                        style={{
-                                            background: 'white',
-                                            borderRadius: '1rem',
-                                            padding: '2rem',
-                                            maxWidth: '500px',
-                                            width: '100%',
-                                            maxHeight: '90vh',
-                                            overflowY: 'auto',
-                                            position: 'relative'
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        {/* Close Button */}
-                                        <button
-                                            onClick={closeModal}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '1rem',
-                                                right: '1rem',
-                                                background: '#f3f4f6',
-                                                border: 'none',
-                                                borderRadius: '50%',
-                                                width: '2rem',
-                                                height: '2rem',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        >
+                                <div style={{ /* your existing modal overlay styles */ }} onClick={() => setSelectedUser(null)}>
+                                    <div style={{ /* your existing modal content styles */ }} onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => setSelectedUser(null)} style={{ /* close button styles */ }}>
                                             <X size={18} />
                                         </button>
 
-                                        {/* Avatar and Name */}
+                                        {/* Header */}
                                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                            <div style={{
-                                                width: '5rem',
-                                                height: '5rem',
-                                                borderRadius: '50%',
-                                                background: getAvatarColor(selectedUser.name),
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white',
-                                                fontWeight: '600',
-                                                fontSize: '1.5rem',
-                                                margin: '0 auto 1rem'
-                                            }}>
-                                                {getInitials(selectedUser.name)}
+                                            <div style={{ /* avatar styles */ }}>
+                                                {getInitials(selectedUser.name || 'User')}
                                             </div>
-                                            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', margin: '0 0 0.25rem 0' }}>
-                                                {selectedUser.name}
-                                            </h2>
-                                            <p style={{ color: '#6b7280', margin: 0 }}>{selectedUser.email}</p>
+                                            <h2>{selectedUser.name || 'Unnamed'}</h2>
+                                            <p style={{ color: '#6b7280' }}>{selectedUser.email || 'No email'}</p>
                                         </div>
 
-                                        {/* User Details */}
+                                        {/* Schema-safe Details */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
                                                 <span style={{ color: '#6b7280', fontWeight: '500' }}>Type</span>
                                                 <span style={{
-                                                    padding: '0.25rem 0.75rem',
-                                                    borderRadius: '1rem',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '500',
-                                                    background: selectedUser.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
-                                                    color: selectedUser.type === 'Volunteer' ? '#92400e' : '#6b21a8'
+                                                    padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
+                                                    background: '#e9d5ff', color: '#6b21a8'
                                                 }}>
-                                                  {selectedUser.type}
-                                                </span>
+                                    {selectedUser.type || 'Unknown'}
+                                </span>
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email Address</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.email}</span>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email</span>
+                                                <span style={{ fontWeight: '500' }}>{selectedUser.email || 'N/A'}</span>
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
                                                 <span style={{ color: '#6b7280', fontWeight: '500' }}>Joined</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.fullJoinDate}</span>
+                                                <span style={{ fontWeight: '500' }}>{formatDate(selectedUser.createdAt)}</span>
                                             </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.phone}</span>
-                                            </div>
+                                            {selectedUser.phoneNumber && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
+                                                    <span style={{ fontWeight: '500' }}>{selectedUser.phoneNumber}</span>
+                                                </div>
+                                            )}
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
-                                                <span style={{ fontWeight: '500', textAlign: 'right', maxWidth: '60%' }}>{selectedUser.address}</span>
-                                            </div>
+                                            {selectedUser.address && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
+                                                    <span style={{ fontWeight: '500', maxWidth: '60%' }}>{selectedUser.address}</span>
+                                                </div>
+                                            )}
 
-                                            {selectedUser.type === 'Volunteer' ? (
-                                                <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
-                                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
-                                                            {selectedUser.skills.map((skill, index) => (
-                                                                <span key={index} style={{
-                                                                    padding: '0.25rem 0.625rem',
-                                                                    borderRadius: '0.375rem',
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: '500',
-                                                                    background: '#f3f4f6',
-                                                                    color: '#374151'
-                                                                }}>
-                                                                  {skill}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                            {/* Schema-safe Skills (handles both formats) */}
+                                            {selectedUser.skills && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        {getSkillsDisplay(selectedUser.skills).map((skill, i) => (
+                                                            <span key={i} style={{
+                                                                padding: '0.25rem 0.625rem', borderRadius: '0.375rem',
+                                                                background: '#f3f4f6', color: '#374151', fontSize: '0.75rem'
+                                                            }}>
+                                                {skill}
+                                            </span>
+                                                        ))}
                                                     </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Hours Volunteered</span>
-                                                        <span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedUser.hoursVolunteered}h</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Category</span>
-                                                        <span style={{ fontWeight: '500' }}>{selectedUser.category}</span>
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Registration No.</span>
-                                                        <span style={{ fontWeight: '500' }}>{selectedUser.registrationNumber}</span>
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Members</span>
-                                                        <span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedUser.membersCount}</span>
-                                                    </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -919,19 +811,20 @@ const AdminDashboard = () => {
                             }}>
                                 {pendingUsers.map((userData) => (
                                     <PendingUserCard
-                                        key={userData.id}
-                                        id={userData.id}
-                                        name={userData.name}
-                                        type={userData.type}
-                                        status={userData.status}
-                                        phone={userData.phone}
-                                        email={userData.email}
-                                        address={userData.address}
-                                        joiningDate={userData.joiningDate}
-                                        description={userData.description}
-                                        skills={userData.skills}
-                                        onApprove={handleUserApprove}
-                                        onReject={handleUserReject}
+                                        key={userData._id?.$oid}
+                                                        id={userData._id?.$oid}
+                                                        name={userData.name}
+                                                        type={userData.type}
+                                                        status={userData.status}
+                                                        phone={userData.phone}
+                                                        email={userData.email}
+                                                        address={userData.address}
+                                                        joiningDate={userData.createdAt?.$date || 'N/A'}
+                                                        description={userData.description || 'N/A'}
+                                                        skills={Array.isArray(userData.skills) ? userData.skills.join(', ') : userData.skills || 'N/A'}
+                                                        onApprove={handleUserApprove}
+                                                        onReject={handleUserReject}
+
                                     />
                                 ))}
                             </div>
@@ -995,8 +888,8 @@ const AdminDashboard = () => {
                                         }}
                                     >
                                         <option value="">Sort By</option>
-                                        <option value="title-asc">Title (A-Z)</option>
-                                        <option value="title-desc">Title (Z-A)</option>
+                                        <option value="title-asc">Event Name (A-Z)</option>
+                                        <option value="title-desc">Event Name (Z-A)</option>
                                         <option value="date-asc">Event Date (Earliest)</option>
                                         <option value="date-desc">Event Date (Latest)</option>
                                         <option value="submitted-asc">Submitted (Oldest)</option>
@@ -1020,11 +913,11 @@ const AdminDashboard = () => {
                             >
                                 {filteredAndSortedPendingEvents.map((event) => (
                                     <PendingEventsCard
-                                        key={event.eventId}
+                                        key={event._id?.$oid}
                                         event={event}
                                         onActionComplete={() =>
                                             setPendingEvents((prev) =>
-                                                prev.filter((e) => e.eventId !== event.eventId)
+                                                prev.filter((e) => e._id.$oid !== event._id.$oid)
                                             )
                                         }
                                     />
