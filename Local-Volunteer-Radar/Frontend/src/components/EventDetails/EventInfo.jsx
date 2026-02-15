@@ -12,6 +12,58 @@ import { X } from "lucide-react";
 
 const API_URL = 'http://localhost:5000/api/events';
 
+// Universal Notification Popup Component
+const NotificationPopup = ({ show, message, type = 'success', onClose }) => {
+    useEffect(() => {
+        if (show) {
+            const timer = setTimeout(() => {
+                onClose();
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [show, onClose]);
+
+    const styles = {
+        success: {
+            border: 'border-green-500',
+            bg: 'bg-green-500',
+            icon: '✓'
+        },
+        error: {
+            border: 'border-red-500',
+            bg: 'bg-red-500',
+            icon: '✕'
+        },
+        warning: {
+            border: 'border-yellow-500',
+            bg: 'bg-yellow-500',
+            icon: '⚠'
+        },
+        info: {
+            border: 'border-blue-500',
+            bg: 'bg-blue-500',
+            icon: 'i'
+        }
+    };
+
+    const style = styles[type] || styles.info;
+
+    return (
+        <div
+            className={`fixed top-6 left-6 bg-white rounded-lg shadow-2xl p-4 flex items-center gap-3 border-l-4 ${style.border} transform transition-all duration-500 z-[60] ${
+                show ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
+            }`}
+        >
+            <div className={`w-10 h-10 ${style.bg} rounded-full flex items-center justify-center flex-shrink-0`}>
+                <span className="text-white text-2xl font-bold leading-none">{style.icon}</span>
+            </div>
+            <div>
+                <p className="font-bold text-gray-900">{message}</p>
+            </div>
+        </div>
+    );
+};
+
 const EventInfo = () => {
     const { eventId } = useParams();
     const [event, setEvent] = useState(null);
@@ -21,9 +73,31 @@ const EventInfo = () => {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editData, setEditData] = useState({});
 
+    // Notification popup state
+    const [notification, setNotification] = useState({
+        show: false,
+        message: '',
+        type: 'success'
+    });
+
     useEffect(() => {
         fetchEvent();
     }, [eventId]);
+
+    const showNotification = (message, type = 'success') => {
+        setNotification({
+            show: true,
+            message,
+            type
+        });
+    };
+
+    const hideNotification = () => {
+        setNotification({
+            ...notification,
+            show: false
+        });
+    };
 
     const fetchEvent = async () => {
         try {
@@ -32,7 +106,7 @@ const EventInfo = () => {
             setEvent(response.data);
         } catch (error) {
             console.error("Error fetching event:", error);
-            alert("Failed to load event details");
+            showNotification("Failed to load event details", "error");
         } finally {
             setLoading(false);
         }
@@ -42,11 +116,21 @@ const EventInfo = () => {
         try {
             const response = await axios.put(`${API_URL}/${eventId}`, editData);
             setEvent(response.data);
-            setIsEditOpen(false);
-            alert("Event updated successfully!");
+
+            // Show success popup
+            showNotification("Event updated successfully!", "success");
+
+            // Close modal after a short delay
+            setTimeout(() => {
+                setIsEditOpen(false);
+            }, 1500);
+
         } catch (error) {
             console.error("Error updating event:", error);
-            alert(error.response?.data?.message || "Failed to update event");
+            showNotification(
+                error.response?.data?.message || "Failed to update event",
+                "error"
+            );
         }
     };
 
@@ -75,6 +159,14 @@ const EventInfo = () => {
 
     return (
         <>
+            {/* Universal Notification Popup */}
+            <NotificationPopup
+                show={notification.show}
+                message={notification.message}
+                type={notification.type}
+                onClose={hideNotification}
+            />
+
             <div className="relative top-[15vh] left-[5vw] h-[411px] max-w-[90vw] bg-[#0065E0] rounded-[20px]">
                 <div className="absolute left-[4px] h-[411px] min-h-[300px] w-[90vw] bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)]">
                     {/* Header */}
