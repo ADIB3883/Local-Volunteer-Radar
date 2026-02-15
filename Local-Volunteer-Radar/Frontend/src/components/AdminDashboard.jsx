@@ -1,4 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
+import './AdminStyles.css';
 import { useNavigate } from 'react-router-dom';
 import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
 import StatCard from './StatCard.jsx';
@@ -52,7 +53,8 @@ const AdminDashboard = () => {
         setLoading(true);
         Promise.all([
             fetchUsers('/users', setUsers),
-            fetchUsers('/users/pending', setPendingUsers)
+            // Use our stricter fetch to ensure only explicit isPending === true
+            fetchPendingUsers()
         ]).finally(() => setLoading(false));
     }, []);
 
@@ -187,28 +189,30 @@ const AdminDashboard = () => {
     }, [users, searchQuery, selectedType, sortBy]);
 
     const filteredAndSortedPendingUsers = useMemo(() => {
-        return Array.isArray(pendingUsers) ? [...pendingUsers] : []
-            .filter(user => {
-                if (pendingSearchQuery) {
-                    const query = pendingSearchQuery.toLowerCase();
-                    return [
-                        getUserDisplayName(user),
-                        user.email || '',
-                        user.phoneNumber || '',
-                        user.address || ''
-                    ].some(field => field.toLowerCase().includes(query));
-                }
-                return true;
-            })
-            .filter(user => {
-                if (pendingTypeFilter) {
-                    return getUserType(user) === pendingTypeFilter.toLowerCase();
-                }
-                return true;
-            })
-            .sort((a, b) => {
-                if (!pendingSortBy) return 0;
+        const base = Array.isArray(pendingUsers) ? [...pendingUsers] : [];
 
+        // Strict: only explicit isPending true
+        let filtered = base.filter(u => u.isPending === true);
+
+        // Search
+        if (pendingSearchQuery) {
+            const q = pendingSearchQuery.toLowerCase();
+            filtered = filtered.filter(user => [
+                getUserDisplayName(user) || '',
+                user.email || '',
+                user.phoneNumber || user.phone || '',
+                user.address || ''
+            ].some(field => field.toLowerCase().includes(q)));
+        }
+
+        // Type filter
+        if (pendingTypeFilter) {
+            filtered = filtered.filter(user => getUserType(user) === pendingTypeFilter.toLowerCase());
+        }
+
+        // Sort
+        if (pendingSortBy) {
+            filtered.sort((a, b) => {
                 switch (pendingSortBy) {
                     case 'name-asc':
                         return getUserDisplayName(a).localeCompare(getUserDisplayName(b));
@@ -226,6 +230,9 @@ const AdminDashboard = () => {
                         return 0;
                 }
             });
+        }
+
+        return filtered;
     }, [pendingUsers, pendingSearchQuery, pendingTypeFilter, pendingSortBy]);
     const filteredAndSortedPendingEvents = useMemo(() => {
         let filtered = Array.isArray(pendingEvents)
@@ -286,21 +293,30 @@ const AdminDashboard = () => {
     }, [activeTab]);
 
     const fetchPendingUsers = async () => {
+        setLoadingPending(true);
         try {
             const res = await fetch('http://localhost:5000/api/users/pending');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
 
-            setPendingUsers(data.data || data.pendingUsers || []);
+            // Ensure we only store users with explicit isPending === true
+            const raw = data.data || data.pendingUsers || [];
+            const onlyPending = Array.isArray(raw) ? raw.filter(u => u.isPending === true) : [];
+            setPendingUsers(onlyPending);
         } catch (err) {
             console.error('Error fetching pending users:', err);
             setPendingUsers([]);
+        } finally {
+            setLoadingPending(false);
         }
     };
 
     // Handler for user approval
     const handleUserApprove = (userId, userName) => {
-        setPendingUsers(prev => prev.filter(user => user.id !== userId));
+        setPendingUsers(prev => prev.filter(user => {
+            const oid = user._id?.$oid || user._id || user.id || '';
+            return String(oid) !== String(userId);
+        }));
         setNotificationConfig({
             borderColor: 'border-green-500',
             bgColor: 'bg-green-500',
@@ -312,7 +328,10 @@ const AdminDashboard = () => {
 
     // Handler for user rejection
     const handleUserReject = (userId, userName) => {
-        setPendingUsers(prev => prev.filter(user => user.id !== userId));
+        setPendingUsers(prev => prev.filter(user => {
+            const oid = user._id?.$oid || user._id || user.id || '';
+            return String(oid) !== String(userId);
+        }));
         setNotificationConfig({
             borderColor: 'border-red-500',
             bgColor: 'bg-red-500',
@@ -381,7 +400,7 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+        <div className="admin-no-select" style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Navbar */}
             <AdminNavbar
                 title="Admin Dashboard"
@@ -678,6 +697,7 @@ const AdminDashboard = () => {
                                                 gridTemplateColumns: '2fr 2fr 1fr 1fr',
                                                 gap: '1rem',
                                                 padding: '1rem 1.5rem',
+                                                alignItems: 'center',
                                                 borderBottom: '1px solid #f3f4f6',
                                                 cursor: 'pointer',
                                                 transition: 'background-color 0.2s'
@@ -809,6 +829,89 @@ const AdminDashboard = () => {
                 {/* Pending Registrations Tab */}
                 {activeTab === 'pendingRegistrations' && (
                     <>
+                        {/* Search and Filter Section for Pending Registrations */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                                    <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93' }} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search pending registrations..."
+                                        value={pendingSearchQuery}
+                                        onChange={(e) => setPendingSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 0.875rem 0.625rem 2.75rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
+                                    <select
+                                        value={pendingTypeFilter}
+                                        onChange={(e) => setPendingTypeFilter(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <option value="">All Types</option>
+                                        <option value="volunteer">Volunteer</option>
+                                        <option value="organizer">Organizer</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
+                                    <select
+                                        value={pendingSortBy}
+                                        onChange={(e) => setPendingSortBy(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <option value="">Sort By</option>
+                                        <option value="name-asc">Name (A-Z)</option>
+                                        <option value="name-desc">Name (Z-A)</option>
+                                        <option value="date-asc">Submitted (Oldest)</option>
+                                        <option value="date-desc">Submitted (Newest)</option>
+                                        <option value="email-asc">Email (A-Z)</option>
+                                        <option value="email-desc">Email (Z-A)</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+                            </div>
+                        </div>
+
                         {loadingPending ? (
                             <div style={{
                                 padding: '3rem',
@@ -818,7 +921,7 @@ const AdminDashboard = () => {
                             }}>
                                 Loading pending registrations...
                             </div>
-                        ) : pendingUsers.length > 0 ? (
+                        ) : filteredAndSortedPendingUsers.length > 0 ? (
                             <div style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 250px))',
@@ -826,24 +929,27 @@ const AdminDashboard = () => {
                                 rowGap: '1.5rem',
                                 justifyContent: 'start',
                             }}>
-                                {pendingUsers.map((userData) => (
-                                    <PendingUserCard
-                                        key={userData._id?.$oid}
-                                                        id={userData._id?.$oid}
-                                                        name={userData.name}
-                                                        type={userData.type}
-                                                        status={userData.status}
-                                                        phone={userData.phone}
-                                                        email={userData.email}
-                                                        address={userData.address}
-                                                        joiningDate={userData.createdAt?.$date || 'N/A'}
-                                                        description={userData.description || 'N/A'}
-                                                        skills={Array.isArray(userData.skills) ? userData.skills.join(', ') : userData.skills || 'N/A'}
-                                                        onApprove={handleUserApprove}
-                                                        onReject={handleUserReject}
-
-                                    />
-                                ))}
+                                {filteredAndSortedPendingUsers.map((userData) => {
+                                    const uid = userData._id?.$oid || userData._id || '';
+                                    const inferredType = userData.type ? (String(userData.type).charAt(0).toUpperCase() + String(userData.type).slice(1)) : (userData.organizationType ? 'Organizer' : 'Volunteer');
+                                    return (
+                                        <PendingUserCard
+                                            key={uid}
+                                            id={uid}
+                                            name={userData.name}
+                                            type={inferredType}
+                                            status={userData.status}
+                                            phone={userData.phoneNumber || userData.phone || ''}
+                                            email={userData.email}
+                                            address={userData.address}
+                                            joiningDate={userData.createdAt?.$date || 'N/A'}
+                                            description={userData.description || userData.bio || 'N/A'}
+                                            skills={userData.skills || {}}
+                                            onApprove={handleUserApprove}
+                                            onReject={handleUserReject}
+                                        />
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div style={{

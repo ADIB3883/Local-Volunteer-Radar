@@ -43,11 +43,60 @@ router.get('/pending', async (req, res) => {
 
 // ✅ 3. Your existing approve/reject routes (keep these LAST)
 router.patch('/approve/:type/:id', async (req, res) => {
-    // ... your existing approve code
+    try {
+        const { type, id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid user ID' });
+        }
+
+        const Model = type === 'volunteer' ? Volunteer : Organizer;
+        const user = await Model.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: `${type} not found` });
+        }
+
+        // Update approval status
+        user.isApproved = true;
+        user.isPending = false;
+        await user.save();
+
+        res.json({ success: true, message: `${type} approved successfully`, data: user });
+    } catch (error) {
+        console.error('Error approving user:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 router.delete('/reject/:type/:id', async (req, res) => {
-    // ... your existing reject code
+    try {
+        const { type, id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid user ID' });
+        }
+
+        const Model = type === 'volunteer' ? Volunteer : Organizer;
+        const user = await Model.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: `${type} not found` });
+        }
+
+        // Delete from Volunteer/Organizer collection
+        await Model.findByIdAndDelete(id);
+
+        // Delete from User collection if exists
+        if (user.email) {
+            await User.deleteOne({ email: user.email });
+        }
+
+        res.json({ success: true, message: `${type} rejected and removed successfully` });
+    } catch (error) {
+        console.error('Error rejecting user:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 module.exports = router;

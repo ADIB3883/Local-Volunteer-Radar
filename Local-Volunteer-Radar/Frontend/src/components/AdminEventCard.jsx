@@ -1,7 +1,25 @@
-import React from "react";
-import { Calendar, Clock, MapPin, User, FileText, CheckSquare, Tag, AlertCircle, Database } from "lucide-react";
+import React, { useState } from "react";
+import { Calendar, Clock, MapPin, User, FileText, CheckSquare, Tag, AlertCircle, Database, Copy, Check } from "lucide-react";
 
-export default function AdminEventCard({ event, children }) {
+export default function AdminEventCard({ event, children, showBadges = true, iconColor = "#6b7280", enableCopyId = false }) {
+    const [copied, setCopied] = useState(false);
+    const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+
+    const handleCopyId = async (e) => {
+        e.stopPropagation();
+        const id = getEventId();
+        try {
+            await navigator.clipboard.writeText(id);
+            setCopied(true);
+            setShowCopiedPopup(true);
+            setTimeout(() => {
+                setShowCopiedPopup(false);
+                setCopied(false);
+            }, 1800);
+        } catch (err) {
+            console.error('Copy failed', err);
+        }
+    };
     const getEventId = () => {
         if (!event) return 'N/A';
         if (event._id?.$oid) return event._id.$oid;
@@ -50,59 +68,69 @@ export default function AdminEventCard({ event, children }) {
                 }}
             >
                 <strong style={{ fontSize: "1.1rem" }}>{event.eventName || 'N/A'}</strong>
-                <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                    ID: {getEventId()}
+                <span style={{ fontSize: "0.75rem", color: "#6b7280", position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>ID: {getEventId()}</span>
+                    {enableCopyId && (
+                        <button onClick={handleCopyId} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, display: 'inline-flex', alignItems: 'center' }} aria-label="Copy ID">
+                            {!copied ? <Copy size={14} color={iconColor} /> : <Check size={14} color="#16a34a" />}
+                        </button>
+                    )}
+                    {showCopiedPopup && (
+                        <div style={{ position: 'absolute', right: '-4rem', top: '100%', marginTop: 6, background: '#111827', color: '#fff', padding: '0.25rem 0.5rem', borderRadius: 6, fontSize: '0.75rem' }}>
+                            Copied!
+                        </div>
+                    )}
                 </span>
             </div>
-
-            {/* Status and Approval Badges */}
-            <div
-                style={{
-                    display: "flex",
-                    gap: "0.5rem",
-                    marginBottom: "1rem",
-                    flexWrap: "wrap",
-                }}
-            >
-                <span
+            {showBadges && (
+                <div
                     style={{
-                        fontSize: "0.75rem",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "0.25rem",
-                        background: getStatusColor(event.status),
-                        color: "#fff",
-                        fontWeight: 600,
+                        display: "flex",
+                        gap: "0.5rem",
+                        marginBottom: "1rem",
+                        flexWrap: "wrap",
                     }}
                 >
-                    Status: {event.status || 'N/A'}
-                </span>
-                <span
-                    style={{
-                        fontSize: "0.75rem",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "0.25rem",
-                        background: getApprovalColor(event.isApproved),
-                        color: "#fff",
-                        fontWeight: 600,
-                    }}
-                >
-                    {event.isApproved ? 'Approved' : 'Pending Approval'}
-                </span>
-                {event.isCompleted && (
                     <span
                         style={{
                             fontSize: "0.75rem",
                             padding: "0.25rem 0.5rem",
                             borderRadius: "0.25rem",
-                            background: "#8b5cf6",
+                            background: getStatusColor(event.status),
                             color: "#fff",
                             fontWeight: 600,
                         }}
                     >
-                        Completed
+                        Status: {event.status || 'N/A'}
                     </span>
-                )}
-            </div>
+                    <span
+                        style={{
+                            fontSize: "0.75rem",
+                            padding: "0.25rem 0.5rem",
+                            borderRadius: "0.25rem",
+                            background: getApprovalColor(event.isApproved),
+                            color: "#fff",
+                            fontWeight: 600,
+                        }}
+                    >
+                        {event.isApproved ? 'Approved' : 'Pending Approval'}
+                    </span>
+                    {event.isCompleted && (
+                        <span
+                            style={{
+                                fontSize: "0.75rem",
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "0.25rem",
+                                background: "#8b5cf6",
+                                color: "#fff",
+                                fontWeight: 600,
+                            }}
+                        >
+                            Completed
+                        </span>
+                    )}
+                </div>
+            )}
 
             <div
                 style={{
@@ -116,23 +144,23 @@ export default function AdminEventCard({ event, children }) {
             >
                 <div style={{ fontSize: "0.8rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <Calendar size={14} color="#6b7280" />
+                            <Calendar size={14} color={iconColor} />
                         <span><strong>Start:</strong> {event.startdate || 'N/A'} @ {event.startTime || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <Calendar size={14} color="#6b7280" />
+                        <Calendar size={14} color={iconColor} />
                         <span><strong>End:</strong> {event.enddate || 'N/A'} @ {event.endTime || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <MapPin size={14} color="#6b7280" />
+                        <MapPin size={14} color={iconColor} />
                         <span><strong>Location:</strong> {event.location || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <User size={14} color="#6b7280" />
+                        <User size={14} color={iconColor} />
                         <span><strong>Organizer ID:</strong> {event.organizerId?.$oid || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <AlertCircle size={14} color="#6b7280" />
+                        <AlertCircle size={14} color={iconColor} />
                         <span><strong>Volunteers:</strong> {event.volunteersRegistered || 0}/{event.volunteersNeeded || 0}</span>
                     </div>
                     <div style={{ marginBottom: "0.5rem" }}>
@@ -170,7 +198,7 @@ export default function AdminEventCard({ event, children }) {
                         }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                            <FileText size={12} color="#6b7280" />
+                            <FileText size={12} color={iconColor} />
                             <strong>Description</strong>
                         </div>
                         <p style={{ margin: 0, color: "#4b5563" }}>{event.description || 'N/A'}</p>
@@ -185,7 +213,7 @@ export default function AdminEventCard({ event, children }) {
                         }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                            <CheckSquare size={12} color="#6b7280" />
+                            <CheckSquare size={12} color={iconColor} />
                             <strong>Requirements</strong>
                         </div>
                         <p style={{ margin: 0, color: "#4b5563" }}>{event.requirements || 'None'}</p>
@@ -200,7 +228,7 @@ export default function AdminEventCard({ event, children }) {
                         }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                            <Tag size={12} color="#6b7280" />
+                            <Tag size={12} color={iconColor} />
                             <strong>Category</strong>
                         </div>
                         <span style={{ color: "#4b5563", fontSize: "0.8rem" }}>{event.category || 'N/A'}</span>
@@ -215,7 +243,7 @@ export default function AdminEventCard({ event, children }) {
                         }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                            <Database size={12} color="#6b7280" />
+                            <Database size={12} color={iconColor} />
                             <strong>Metadata</strong>
                         </div>
                         <div style={{ color: "#6b7280", marginTop: "0.3rem" }}>

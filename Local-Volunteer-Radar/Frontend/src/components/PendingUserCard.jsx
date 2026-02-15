@@ -36,24 +36,25 @@ const PendingUserCard = ({
         setLoading(true);
         try {
             const userType = type.toLowerCase();
-            const response = await fetch(`http://localhost:5000/api/users/approve/${userType}/${id}`, {
+            const response = await fetch(`/api/users/approve/${userType}/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 }
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                setAction('accept');
-                if (onApprove) onApprove(id, name);
-            } else {
-                alert('Failed to approve user');
+            if (!response.ok) {
+                const errText = await response.text().catch(() => 'Unknown error');
+                throw new Error(errText || `HTTP ${response.status}`);
             }
+
+            const data = await response.json().catch(() => ({}));
+
+            setAction('accept');
+            if (onApprove) onApprove(id, name);
         } catch (error) {
             console.error('Error approving user:', error);
-            alert('Error approving user');
+            alert(`Error approving user: ${error.message || error}`);
         } finally {
             setLoading(false);
         }
@@ -63,24 +64,23 @@ const PendingUserCard = ({
         setLoading(true);
         try {
             const userType = type.toLowerCase();
-            const response = await fetch(`http://localhost:5000/api/users/reject/${userType}/${id}`, {
+            const response = await fetch(`/api/users/reject/${userType}/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                 }
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                setAction('reject');
-                if (onReject) onReject(id, name);
-            } else {
-                alert('Failed to reject user');
+            if (!response.ok) {
+                const errText = await response.text().catch(() => 'Unknown error');
+                throw new Error(errText || `HTTP ${response.status}`);
             }
+
+            setAction('reject');
+            if (onReject) onReject(id, name);
         } catch (error) {
             console.error('Error rejecting user:', error);
-            alert('Error rejecting user');
+            alert(`Error rejecting user: ${error.message || error}`);
         } finally {
             setLoading(false);
         }
