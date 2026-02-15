@@ -78,7 +78,7 @@ const AdminDashboard = () => {
         const fetchPendingEvents = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("http://localhost:5000/api/admin/events?status=pending");
+                const res = await fetch("http://localhost:5000/api/admin/events/admin-pending");
                 const data = await res.json();
                 setPendingEvents(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -90,6 +90,23 @@ const AdminDashboard = () => {
         };
         fetchPendingEvents();
     }, []);
+
+    const refetchPendingEvents = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/api/admin/events/admin-pending");
+            const data = await res.json();
+            
+            // Ensure we only have unapproved events
+            const validPendingEvents = Array.isArray(data) 
+                ? data.filter(event => event.isApproved === false)
+                : [];
+            
+            console.log(`Refetched ${validPendingEvents.length} pending events`);
+            setPendingEvents(validPendingEvents);
+        } catch (err) {
+            console.error("Failed to fetch pending events:", err);
+        }
+    };
 
     // Helper to safely extract date from schema format
     const getCreatedAtDate = (createdAt) => {
@@ -213,11 +230,11 @@ const AdminDashboard = () => {
     const filteredAndSortedPendingEvents = useMemo(() => {
         let filtered = Array.isArray(pendingEvents)
             ? pendingEvents
-            : pendingEvents.data?.volunteers?.concat(pendingEvents.data?.organizers) || [];
+            : [];
 
+        // Strict filter: ONLY show events where isApproved === false
         filtered = filtered.filter(event => {
-            const isApproved = event.isApproved ?? false;
-            return !isApproved;
+            return event.isApproved === false;
         });
 
         if (eventSearchQuery) {
@@ -911,17 +928,16 @@ const AdminDashboard = () => {
                                     marginBottom: '2rem',
                                 }}
                             >
-                                {filteredAndSortedPendingEvents.map((event) => (
-                                    <PendingEventsCard
-                                        key={event._id?.$oid}
-                                        event={event}
-                                        onActionComplete={() =>
-                                            setPendingEvents((prev) =>
-                                                prev.filter((e) => e._id.$oid !== event._id.$oid)
-                                            )
-                                        }
-                                    />
-                                ))}
+                                {filteredAndSortedPendingEvents.map((event, index) => {
+                                    const eventId = event._id?.$oid || event._id || `event-${index}`;
+                                    return (
+                                        <PendingEventsCard
+                                            key={`${eventId}-${event.eventName}-${index}`}
+                                            event={event}
+                                            onActionComplete={refetchPendingEvents}
+                                        />
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div

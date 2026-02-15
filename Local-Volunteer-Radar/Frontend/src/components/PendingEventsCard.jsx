@@ -4,9 +4,10 @@ import EventCardLayout from "./AdminEventCard.jsx";
 export default function PendingEventsCard({ event, onActionComplete }) {
     const [action, setAction] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [isHidden, setIsHidden] = useState(false);
 
     const handleApprove = async () => {
-        const eventId = event._id || event._id?.$oid;
+        const eventId = event._id?.$oid || event._id;
         if (!eventId) {
             alert("Invalid event ID");
             return;
@@ -28,16 +29,16 @@ export default function PendingEventsCard({ event, onActionComplete }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
             setAction("approve");
+            setIsHidden(true);
             onActionComplete?.();
         } catch (err) {
-            alert(err.message || "Failed to approve");
-        } finally {
             setLoading(false);
+            alert(err.message || "Failed to approve");
         }
     };
 
     const handleReject = async () => {
-        const eventId = event._id || event._id?.$oid;
+        const eventId = event._id?.$oid || event._id;
         if (!eventId) {
             alert("Invalid event ID");
             return;
@@ -58,13 +59,17 @@ export default function PendingEventsCard({ event, onActionComplete }) {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
             setAction("reject");
+            setIsHidden(true);
             onActionComplete?.();
         } catch (err) {
-            alert(err.message || "Failed to reject");
-        } finally {
             setLoading(false);
+            alert(err.message || "Failed to reject");
         }
     };
+
+    if (isHidden) {
+        return null;
+    }
 
     return (
         <EventCardLayout event={event}>
