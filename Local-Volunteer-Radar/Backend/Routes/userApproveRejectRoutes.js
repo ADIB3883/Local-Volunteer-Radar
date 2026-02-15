@@ -84,12 +84,15 @@ router.delete('/reject/:type/:id', async (req, res) => {
             return res.status(404).json({ success: false, error: `${type} not found` });
         }
 
-        // Update rejection status
-        user.isApproved = false;
-        user.isPending = false;
-        await user.save();
+        // Delete from Volunteer/Organizer collection
+        await Model.findByIdAndDelete(id);
 
-        res.json({ success: true, message: `${type} rejected successfully`, data: user });
+        // Delete from User collection if exists
+        if (user.email) {
+            await User.deleteOne({ email: user.email });
+        }
+
+        res.json({ success: true, message: `${type} rejected and removed successfully` });
     } catch (error) {
         console.error('Error rejecting user:', error);
         res.status(500).json({ success: false, error: error.message });
