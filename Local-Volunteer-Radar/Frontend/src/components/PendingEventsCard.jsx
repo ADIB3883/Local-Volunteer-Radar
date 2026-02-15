@@ -72,7 +72,7 @@ export default function PendingEventsCard({ event, onActionComplete }) {
     }
 
     return (
-        <EventCardLayout event={event}>
+        <EventCardLayout event={event} showBadges={false} iconColor="#2563eb" enableCopyId={true}>
             <div style={{ display: "flex", gap: "0.75rem" }}>
                 <button
                     onClick={handleApprove}
