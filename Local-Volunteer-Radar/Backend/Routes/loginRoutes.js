@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const Volunteer = require('../models/Volunteer');
-const Organizer = require('../models/Organizer');
+const User = require('../Models/User');
+const Volunteer = require('../Models/Volunteer');
+const Organizer = require('../Models/Organizer');
 
 router.post('/login', async (req, res) => {
     try {

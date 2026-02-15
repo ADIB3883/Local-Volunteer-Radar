@@ -4,21 +4,18 @@ import AnnouncementPopup from './AnnouncementPopup.jsx';
 import logo from '../assets/logo.png';
 
 const AdminNavbar = ({
-                         userName = "Default Username",
                          title = "Default Dashboard",
                          onAnnouncementsClick,
                          onLogoutClick
                      }) => {
     // 👈 ADD THIS STATE (line ~12)
     const [isAnnouncementOpen, setIsAnnouncementOpen] = useState(false);
-
     // 👈 ADD THIS FUNCTION (line ~15)
     const handleAnnouncementsClick = (e) => {
         e.stopPropagation();
         setIsAnnouncementOpen(true);
         if (onAnnouncementsClick) onAnnouncementsClick(e);
     };
-
     return (
         <>
             <nav style={{ background: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
@@ -37,15 +34,11 @@ const AdminNavbar = ({
                                 <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
                                     {title}
                                 </h1>
-                                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
-                                    {userName}
-                                </p>
                             </div>
                         </div>
 
                         {/* Right side buttons */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-
                             <button
                                 onClick={handleAnnouncementsClick}
                                 style={{
@@ -94,7 +87,6 @@ const AdminNavbar = ({
                     </div>
                 </div>
             </nav>
-
             <AnnouncementPopup
                 isOpen={isAnnouncementOpen}
                 onClose={() => setIsAnnouncementOpen(false)}
@@ -102,5 +94,4 @@ const AdminNavbar = ({
         </>
     );
 };
-
 export default AdminNavbar;

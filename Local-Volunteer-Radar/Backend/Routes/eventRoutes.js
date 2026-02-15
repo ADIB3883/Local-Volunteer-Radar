@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const Event = require("../models/Event");
+const mongoose = require("mongoose");
+const Event = require("../Models/Event");
 
 /*
 1️⃣ CREATE EVENT
@@ -22,7 +23,7 @@ router.post("/", async (req, res) => {
             requirements,
         } = req.body;
 
-        // Basic validation
+        // Validate required fields
         if (
             !organizerId ||
             !eventName ||
@@ -36,6 +37,11 @@ router.post("/", async (req, res) => {
             !volunteersNeeded
         ) {
             return res.status(400).json({ message: "All required fields must be filled." });
+        }
+
+        // Validate organizerId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(organizerId)) {
+            return res.status(400).json({ message: "Invalid organizerId format." });
         }
 
         const newEvent = new Event({
@@ -52,6 +58,7 @@ router.post("/", async (req, res) => {
             requirements: requirements || "",
             volunteersRegistered: 0,
             status: 'pending',
+            isApproved: false,
         });
 
         await newEvent.save();
@@ -62,6 +69,19 @@ router.post("/", async (req, res) => {
         res.status(500).json({ message: "Server error while creating event." });
     }
 });
+
+//Get all pending events
+router.get("/pending", async (req, res) => {
+    try {
+        const events = await Event.find({ isApproved: false })
+            .sort({ createdAt: -1 });
+        res.json(events);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 
 /*
 2️⃣ GET EVENTS BY ORGANIZER
@@ -110,7 +130,28 @@ router.get("/stats/:organizerId", async (req, res) => {
 });
 
 /*
-4️⃣ GET SINGLE EVENT BY ID
+4️⃣ GET ADMIN PENDING EVENTS (by approval status)
+GET /api/admin/events/admin-pending
+*/
+router.get("/admin-pending", async (req, res) => {
+    try {
+        // Explicitly filter by isApproved === false
+        const events = await Event.find({ isApproved: { $eq: false } })
+            .populate('organizerId', 'name email')
+            .sort({ createdAt: -1 });
+
+        // Double-check before sending (defensive programming)
+        const validPendingEvents = events.filter(event => event.isApproved === false);
+
+        res.json(validPendingEvents);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error while fetching pending events." });
+    }
+});
+
+/*
+5️⃣ GET SINGLE EVENT BY ID
 GET /api/events/:eventId
 */
 router.get("/:eventId", async (req, res) => {

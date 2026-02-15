@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
-import users from "./AdminUserList.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
 import PendingUserCard from './PendingUserCard.jsx';
 import PendingEventsCard from "./PendingEventsCard.jsx";
-import pendingEventsData from './PendingEventsData.jsx';
 import Modal from './Modal';
 import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
@@ -18,7 +16,6 @@ const AdminDashboard = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('');
-    const [selectedStatus, setSelectedStatus] = useState('');
     const [sortBy, setSortBy] = useState('');
     const [modalOpen, setModalOpen] = useState(null);
     const [pendingUsers, setPendingUsers] = useState([]);
@@ -29,48 +26,245 @@ const AdminDashboard = () => {
         bgColor: '',
         message: ''
     });
-    //Filtered state needed?
+    const [users, setUsers] = useState([]);
+    const [pendingEvents, setPendingEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [analytics, setAnalytics] = useState(null);
+    const [pendingSearchQuery, setPendingSearchQuery] = useState('');
+    const [pendingTypeFilter, setPendingTypeFilter] = useState('');
+    const [pendingSortBy, setPendingSortBy] = useState('');
+    const [eventSearchQuery, setEventSearchQuery] = useState('');
+    const [eventSortBy, setEventSortBy] = useState('');
+
+    const fetchUsers = async (endpoint, setter) => {
+        try {
+            const res = await fetch(`http://localhost:5000/api${endpoint}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setter(data.data || data.users || []);
+        } catch (err) {
+            console.error(err);
+            setter([]);
+        }
+    };
+
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            fetchUsers('/users', setUsers),
+            fetchUsers('/users/pending', setPendingUsers)
+        ]).finally(() => setLoading(false));
+    }, []);
+
+    // Simplified refetch
+    const refetchUsers = () => {
+        fetchUsers('/users', setUsers);
+        fetchUsers('/users/pending', setPendingUsers);
+    };
+
+    // useEffect(() => {
+    //     fetch("http://localhost:5000/api/admin/analytics")
+    //         .then((res) => res.json())
+    //         .then((data) => {
+    //             console.log("Fetched analytics:", data);
+    //             setAnalytics(data);
+    //         })
+    //         .catch((err) => {
+    //             console.error("Error fetching analytics:", err);
+    //         });
+    // }, []);
+
+    useEffect(() => {
+        const fetchPendingEvents = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("http://localhost:5000/api/admin/events/admin-pending");
+                const data = await res.json();
+                setPendingEvents(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Failed to fetch pending events:", err);
+                setPendingEvents([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPendingEvents();
+    }, []);
+
+    const refetchPendingEvents = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/api/admin/events/admin-pending");
+            const data = await res.json();
+            
+            // Ensure we only have unapproved events
+            const validPendingEvents = Array.isArray(data) 
+                ? data.filter(event => event.isApproved === false)
+                : [];
+            
+            console.log(`Refetched ${validPendingEvents.length} pending events`);
+            setPendingEvents(validPendingEvents);
+        } catch (err) {
+            console.error("Failed to fetch pending events:", err);
+        }
+    };
+
+    // Helper to safely extract date from schema format
+    const getCreatedAtDate = (createdAt) => {
+        if (!createdAt) return new Date(0);
+        if (createdAt.$date) return new Date(createdAt.$date);
+        return new Date(createdAt);
+    };
+
+    // Helper for consistent field access
+    const getUserDisplayName = (user) => user.name || '';
+    const getUserType = (user) => user.type?.toLowerCase() || '';
+
+    const formatDate = (createdAt) => {
+        if (!createdAt) return 'Unknown';
+        const date = createdAt.$date ? new Date(createdAt.$date) : new Date(createdAt);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+
+    const getSkillsDisplay = (skills) => {
+        if (Array.isArray(skills)) return skills;
+        if (typeof skills === 'object') {
+            return Object.keys(skills).filter(key => skills[key]);
+        }
+        return [];
+    };
+
+    const getInitials = (name) => name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'UN';
+    const getAvatarColor = (name) => {
+        const colors = ['#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
 
     const filteredAndSortedUsers = useMemo(() => {
-        if (!users || users.length === 0) return [];
+        const baseUsers = Array.isArray(users) ? [...users] : [];
 
-        let filtered = [...users];
+        return baseUsers
+            .filter(user => {
+                // Search filter
+                if (searchQuery.trim()) {
+                    const query = searchQuery.toLowerCase();
+                    const name = getUserDisplayName(user).toLowerCase();
+                    const email = user.email?.toLowerCase() || '';
+                    return name.includes(query) || email.includes(query);
+                }
+                return true;
+            })
+            .filter(user => {
+                // Type filter
+                if (selectedType) {
+                    return getUserType(user) === selectedType.toLowerCase();
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                // Sort logic
+                if (!sortBy) return 0;
 
-        if (searchQuery.trim()) {
-            filtered = filtered.filter(user =>
-                user.name.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-        }
-
-        if (selectedType) {
-            const typeValue = selectedType.charAt(0).toUpperCase() + selectedType.slice(1);
-            filtered = filtered.filter(user =>
-                user.type === typeValue
-            );
-        }
-
-        if (selectedStatus) {
-            const statusValue = selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1);
-            filtered = filtered.filter(user =>
-                user.status === statusValue
-            );
-        }
-
-        if (sortBy) {
-            filtered.sort((a, b) => {
                 switch (sortBy) {
                     case 'name-asc':
-                        return a.name.localeCompare(b.name);
+                        return getUserDisplayName(a).localeCompare(getUserDisplayName(b));
                     case 'name-desc':
-                        return b.name.localeCompare(a.name);
+                        return getUserDisplayName(b).localeCompare(getUserDisplayName(a));
                     case 'date-asc':
-                        return new Date(a.joined) - new Date(b.joined);
+                        return getCreatedAtDate(a.createdAt) - getCreatedAtDate(b.createdAt);
                     case 'date-desc':
-                        return new Date(b.joined) - new Date(a.joined);
+                        return getCreatedAtDate(b.createdAt) - getCreatedAtDate(a.createdAt);
                     case 'email-asc':
-                        return a.email.localeCompare(b.email);
+                        return (a.email || '').localeCompare(b.email || '');
                     case 'email-desc':
-                        return b.email.localeCompare(a.email);
+                        return (b.email || '').localeCompare(a.email || '');
+                    default:
+                        return 0;
+                }
+            });
+    }, [users, searchQuery, selectedType, sortBy]);
+
+    const filteredAndSortedPendingUsers = useMemo(() => {
+        return Array.isArray(pendingUsers) ? [...pendingUsers] : []
+            .filter(user => {
+                if (pendingSearchQuery) {
+                    const query = pendingSearchQuery.toLowerCase();
+                    return [
+                        getUserDisplayName(user),
+                        user.email || '',
+                        user.phoneNumber || '',
+                        user.address || ''
+                    ].some(field => field.toLowerCase().includes(query));
+                }
+                return true;
+            })
+            .filter(user => {
+                if (pendingTypeFilter) {
+                    return getUserType(user) === pendingTypeFilter.toLowerCase();
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                if (!pendingSortBy) return 0;
+
+                switch (pendingSortBy) {
+                    case 'name-asc':
+                        return getUserDisplayName(a).localeCompare(getUserDisplayName(b));
+                    case 'name-desc':
+                        return getUserDisplayName(b).localeCompare(getUserDisplayName(a));
+                    case 'date-asc':
+                        return getCreatedAtDate(a.createdAt) - getCreatedAtDate(b.createdAt);
+                    case 'date-desc':
+                        return getCreatedAtDate(b.createdAt) - getCreatedAtDate(a.createdAt);
+                    case 'email-asc':
+                        return (a.email || '').localeCompare(b.email || '');
+                    case 'email-desc':
+                        return (b.email || '').localeCompare(a.email || '');
+                    default:
+                        return 0;
+                }
+            });
+    }, [pendingUsers, pendingSearchQuery, pendingTypeFilter, pendingSortBy]);
+    const filteredAndSortedPendingEvents = useMemo(() => {
+        let filtered = Array.isArray(pendingEvents)
+            ? pendingEvents
+            : [];
+
+        // Strict filter: ONLY show events where isApproved === false
+        filtered = filtered.filter(event => {
+            return event.isApproved === false;
+        });
+
+        if (eventSearchQuery) {
+            const query = eventSearchQuery.toLowerCase();
+            filtered = filtered.filter(event =>
+                event.eventName?.toLowerCase().includes(query) ||
+                event.description?.toLowerCase().includes(query) ||
+                event.location?.toLowerCase().includes(query)
+            );
+        }
+
+        if (eventSortBy) {
+            filtered.sort((a, b) => {
+                switch (eventSortBy) {
+                    case 'title-asc':
+                        return (a.eventName || '').localeCompare(b.eventName || '');
+                    case 'title-desc':
+                        return (b.eventName || '').localeCompare(a.eventName || '');
+                    case 'date-asc':
+                        return new Date(`${a.startdate || ''}T${a.startTime || ''}`) - new Date(`${b.startdate || ''}T${b.startTime || ''}`);
+                    case 'date-desc':
+                        return new Date(`${b.startdate || ''}T${b.startTime || ''}`) - new Date(`${a.startdate || ''}T${a.startTime || ''}`);
+                    case 'submitted-asc':
+                        const aDate = a.createdAt?.$date || a.createdAt || 0;
+                        const bDate = b.createdAt?.$date || b.createdAt || 0;
+                        return new Date(aDate) - new Date(bDate);
+                    case 'submitted-desc':
+                        const aDateDesc = a.createdAt?.$date || a.createdAt || 0;
+                        const bDateDesc = b.createdAt?.$date || b.createdAt || 0;
+                        return new Date(bDateDesc) - new Date(aDateDesc);
                     default:
                         return 0;
                 }
@@ -78,7 +272,7 @@ const AdminDashboard = () => {
         }
 
         return filtered;
-    }, [searchQuery, selectedType, selectedStatus, sortBy]);
+    }, [pendingEvents, eventSearchQuery, eventSortBy]);
 
     const navigate = useNavigate();
 
@@ -91,53 +285,16 @@ const AdminDashboard = () => {
         }
     }, [activeTab]);
 
-    // Function to fetch pending users from the backend
     const fetchPendingUsers = async () => {
-        setLoadingPending(true);
         try {
-            const response = await fetch('http://localhost:5000/api/users/pending');
-            const data = await response.json();
+            const res = await fetch('http://localhost:5000/api/users/pending');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
 
-            if (data.success) {
-                // Transform the data to match the card component's expected format
-                const transformedData = [
-                    ...data.data.volunteers.map(v => ({
-                        id: v._id,
-                        name: v.name,
-                        type: 'Volunteer',
-                        status: 'Pending',
-                        phone: v.phoneNumber,
-                        email: v.email,
-                        address: v.address,
-                        joiningDate: new Date(v.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                        }),
-                        skills: v.skills
-                    })),
-                    ...data.data.organizers.map(o => ({
-                        id: o._id,
-                        name: o.name,
-                        type: 'Organizer',
-                        status: 'Pending',
-                        phone: o.phoneNumber,
-                        email: o.email,
-                        address: o.address,
-                        joiningDate: new Date(o.createdAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                        }),
-                        description: o.description || 'No description provided'
-                    }))
-                ];
-                setPendingUsers(transformedData);
-            }
-        } catch (error) {
-            console.error('Error fetching pending users:', error);
-        } finally {
-            setLoadingPending(false);
+            setPendingUsers(data.data || data.pendingUsers || []);
+        } catch (err) {
+            console.error('Error fetching pending users:', err);
+            setPendingUsers([]);
         }
     };
 
@@ -173,11 +330,21 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
+    const totalVolunteers = useMemo(
+        () => users?.filter(u => u.type === 'volunteer').length || 0,
+        [users]
+    );
+
+    const totalOrganizers = useMemo(
+        () => users?.filter(u => u.type === 'organizer').length || 0,
+        [users]
+    );
+
     const stats = [
         {
             id: 'volunteers',
             title: 'Total Volunteers',
-            value: '5',
+            value: totalVolunteers,
             subtitle: 'Volunteers across the country',
             icon: Users,
             iconColor: '#3b82f6',
@@ -188,7 +355,7 @@ const AdminDashboard = () => {
         {
             id: 'organizers',
             title: 'Total Organizers',
-            value: 3,
+            value: totalOrganizers,
             subtitle: 'Organizers registered',
             icon: Building,
             iconColor: '#06b6d4',
@@ -200,7 +367,7 @@ const AdminDashboard = () => {
             id: 'events',
             title: 'Active Events',
             value: '2',
-            subtitle: 'Organizers currently working',
+            subtitle: 'Events taking place',
             icon: Sparkles,
             iconColor: '#a855f7',
             iconBg: '#f3e8ff',
@@ -208,16 +375,6 @@ const AdminDashboard = () => {
             modalContent: <ActiveEventsModal />
         }
     ];
-
-    const getInitials = (name) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase();
-    };
-
-    const getAvatarColor = (name) => {
-        const colors = ['#7c3aed', '#ec4899', '#3b82f6', '#10b981', '#f59e0b'];
-        const index = name.charCodeAt(0) % colors.length;
-        return colors[index];
-    };
 
     const closeModal = () => {
         setSelectedUser(null);
@@ -227,7 +384,6 @@ const AdminDashboard = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Navbar */}
             <AdminNavbar
-                userName="Adib Hoque"
                 title="Admin Dashboard"
                 onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
@@ -319,36 +475,36 @@ const AdminDashboard = () => {
                     >
                         Partners
                     </button>
-                    <button
-                        onClick={() => setActiveTab('analytics')}
-                        style={{
-                            padding: '0.5rem 1rem',
-                            borderRadius: '0.625rem',
-                            fontWeight: '500',
-                            fontSize: '0.875rem',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
-                            color: activeTab === 'analytics' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
-                            whiteSpace: 'nowrap'
-                        }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'analytics') {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                                e.currentTarget.style.color = '#374151';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'analytics') {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#4b5563';
-                            }
-                        }}
-                    >
-                        Analytics
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setActiveTab('analytics')}*/}
+                    {/*    style={{*/}
+                    {/*        padding: '0.5rem 1rem',*/}
+                    {/*        borderRadius: '0.625rem',*/}
+                    {/*        fontWeight: '500',*/}
+                    {/*        fontSize: '0.875rem',*/}
+                    {/*        border: 'none',*/}
+                    {/*        cursor: 'pointer',*/}
+                    {/*        transition: 'all 0.2s ease',*/}
+                    {/*        background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',*/}
+                    {/*        color: activeTab === 'analytics' ? '#111827' : '#4b5563',*/}
+                    {/*        boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',*/}
+                    {/*        whiteSpace: 'nowrap'*/}
+                    {/*    }}*/}
+                    {/*    onMouseEnter={(e) => {*/}
+                    {/*        if (activeTab !== 'analytics') {*/}
+                    {/*            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';*/}
+                    {/*            e.currentTarget.style.color = '#374151';*/}
+                    {/*        }*/}
+                    {/*    }}*/}
+                    {/*    onMouseLeave={(e) => {*/}
+                    {/*        if (activeTab !== 'analytics') {*/}
+                    {/*            e.currentTarget.style.background = 'transparent';*/}
+                    {/*            e.currentTarget.style.color = '#4b5563';*/}
+                    {/*        }*/}
+                    {/*    }}*/}
+                    {/*>*/}
+                    {/*    Analytics*/}
+                    {/*</button>*/}
                     <button
                         onClick={() => setActiveTab('pendingRegistrations')}
                         style={{
@@ -394,29 +550,16 @@ const AdminDashboard = () => {
                             boxShadow: activeTab === 'pendingEvents' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
                             whiteSpace: 'nowrap'
                         }}
-                        onMouseEnter={(e) => {
-                            if (activeTab !== 'pendingEvents') {
-                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                                e.currentTarget.style.color = '#374151';
-                            }
-                        }}
-                        onMouseLeave={(e) => {
-                            if (activeTab !== 'pendingEvents') {
-                                e.currentTarget.style.background = 'transparent';
-                                e.currentTarget.style.color = '#4b5563';
-                            }
-                        }}
                     >
                         Pending Events
                     </button>
                 </div>
 
-                {/* Admin Analytics */}
-                {activeTab === 'analytics' && (
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <AdminAnalytics />
-                    </div>
-                )}
+                {/*{activeTab === 'analytics' && (*/}
+                {/*    <div style={{ marginBottom: '1.5rem' }}>*/}
+                {/*        <AdminAnalytics analytics={analytics} />*/}
+                {/*    </div>*/}
+                {/*)}*/}
 
                 {activeTab === 'partner' && (
                     <>
@@ -466,33 +609,7 @@ const AdminDashboard = () => {
                                     >
                                         <option value="">All Types</option>
                                         <option value="volunteer">Volunteer</option>
-                                        <option value="ngo">NGO</option>
-                                    </select>
-                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
-                                </div>
-
-                                <div style={{ position: 'relative', width: '150px', minWidth: '150px' }}>
-                                    <select
-                                        value={selectedStatus}
-                                        onChange={(e) => setSelectedStatus(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
-                                            border: 'none',
-                                            borderRadius: '0.625rem',
-                                            fontSize: '0.9375rem',
-                                            fontWeight: '400',
-                                            background: 'rgba(142, 142, 147, 0.12)',
-                                            color: '#000',
-                                            cursor: 'pointer',
-                                            appearance: 'none',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <option value="">All Status</option>
-                                        <option value="active">Active</option>
-                                        <option value="inactive">Inactive</option>
+                                        <option value="organizer">Organizer</option>
                                     </select>
                                     <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
                                 </div>
@@ -529,282 +646,157 @@ const AdminDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Partners' List Section */}
+                        {/* Partners List */}
                         <div style={{ margin: '0 auto' }}>
                             <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
                                 {/* Table Header */}
                                 <div style={{
                                     display: 'grid',
-                                    gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
+                                    gridTemplateColumns: '2fr 2fr 1fr 1fr',
                                     gap: '1rem',
                                     padding: '1rem 1.5rem',
                                     borderBottom: '1px solid #f3f4f6',
                                     fontSize: '0.75rem',
                                     fontWeight: '600',
-                                    color: '#6b7280',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.05em'
+                                    color: '#6b7280'
                                 }}>
                                     <div>NAME</div>
                                     <div>EMAIL</div>
-                                    <div>STATUS</div>
                                     <div>TYPE</div>
                                     <div>JOINED</div>
                                 </div>
 
                                 {/* Table Rows */}
-                                {filteredAndSortedUsers.map((user) => (
-                                    <div
-                                        key={user.id}
-                                        onClick={() => setSelectedUser(user)}
-                                        style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '2fr 2fr 1fr 1fr 1fr',
-                                            gap: '1rem',
-                                            padding: '1rem 1.5rem',
-                                            borderBottom: '1px solid #f3f4f6',
-                                            alignItems: 'center',
-                                            cursor: 'pointer',
-                                            transition: 'background-color 0.2s'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                        {/* Name with Avatar */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <div style={{
-                                                width: '2.5rem',
-                                                height: '2.5rem',
-                                                borderRadius: '50%',
-                                                background: getAvatarColor(user.name),
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white',
-                                                fontWeight: '600',
-                                                fontSize: '0.875rem'
-                                            }}>
-                                                {getInitials(user.name)}
+                                {filteredAndSortedUsers
+                                    .filter(user => user.type !== 'admin')
+                                    .map((user) => (
+                                        <div
+                                            key={user._id.$oid}
+                                            onClick={() => setSelectedUser(user)}
+                                            style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '2fr 2fr 1fr 1fr',
+                                                gap: '1rem',
+                                                padding: '1rem 1.5rem',
+                                                borderBottom: '1px solid #f3f4f6',
+                                                cursor: 'pointer',
+                                                transition: 'background-color 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div style={{
+                                                    width: '2.5rem', height: '2.5rem', borderRadius: '50%',
+                                                    background: getAvatarColor(user.name || 'User'),
+                                                    color: 'white', fontWeight: '600', fontSize: '0.875rem',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                }}>
+                                                    {getInitials(user.name || 'User')}
+                                                </div>
+                                                <span style={{ fontWeight: '500', color: '#111827' }}>
+                                    {user.name || 'Unnamed'}
+                                </span>
                                             </div>
-                                            <span style={{ fontWeight: '500', color: '#111827' }}>{user.name}</span>
+
+                                            <div style={{ color: '#000', fontSize: '0.875rem' }}>
+                                                {user.email || 'No email'}
+                                            </div>
+
+                                            <div>
+                                <span style={{
+                                    padding: '0.375rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
+                                    fontWeight: '500',
+                                    background: user.type === 'volunteer' ? '#fef3c7' :
+                                        user.type === 'organizer' ? '#dbeafe' : '#f3e8ff',
+                                    color: user.type === 'volunteer' ? '#92400e' :
+                                        user.type === 'organizer' ? '#1e40af' : '#7c2d12'
+                                }}>
+                                    {user.type?.toUpperCase() || 'UNKNOWN'}
+                                </span>
+                                            </div>
+
+                                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                                                {formatDate(user.createdAt)}  {/* ✅ Schema field */}
+                                            </div>
                                         </div>
+                                    ))}
 
-                                        {/* Email */}
-                                        <div style={{ color: '#00000', fontSize: '0.875rem' }}>{user.email}</div>
-
-                                        {/* Status Badge */}
-                                        <div>
-                                          <span style={{
-                                              padding: '0.375rem 0.75rem',
-                                              borderRadius: '1rem',
-                                              fontSize: '0.75rem',
-                                              fontWeight: '500',
-                                              background: user.status === 'Active' ? '#dcfce7' : '#fcdcf1',
-                                              color: user.status === 'Active' ? '#166534' : '#65161f'
-                                          }}>
-                                            {user.status}
-                                          </span>
-                                        </div>
-
-                                        {/* Type Badge */}
-                                        <div>
-                                          <span style={{
-                                              padding: '0.375rem 0.75rem',
-                                              borderRadius: '1rem',
-                                              fontSize: '0.75rem',
-                                              fontWeight: '500',
-                                              background: user.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
-                                              color: user.type === 'Volunteer' ? '#92400e' : '#6b21a8'
-                                          }}>
-                                            {user.type}
-                                          </span>
-                                        </div>
-
-                                        {/* Joined Date */}
-                                        <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>{user.joined}</div>
-                                    </div>
-                                ))}
                                 {filteredAndSortedUsers.length === 0 && (
-                                    <div style={{
-                                        padding: '3rem',
-                                        textAlign: 'center',
-                                        color: '#6b7280'
-                                    }}>
+                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
                                         No partners found
                                     </div>
                                 )}
                             </div>
 
-                            {/* Modal Popup */}
+                            {/* Fixed Modal */}
                             {selectedUser && (
-                                <div
-                                    style={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        background: 'rgba(0, 0, 0, 0.5)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        zIndex: 50,
-                                        padding: '1rem'
-                                    }}
-                                    onClick={closeModal}
-                                >
-                                    <div
-                                        style={{
-                                            background: 'white',
-                                            borderRadius: '1rem',
-                                            padding: '2rem',
-                                            maxWidth: '500px',
-                                            width: '100%',
-                                            maxHeight: '90vh',
-                                            overflowY: 'auto',
-                                            position: 'relative'
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        {/* Close Button */}
-                                        <button
-                                            onClick={closeModal}
-                                            style={{
-                                                position: 'absolute',
-                                                top: '1rem',
-                                                right: '1rem',
-                                                background: '#f3f4f6',
-                                                border: 'none',
-                                                borderRadius: '50%',
-                                                width: '2rem',
-                                                height: '2rem',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-                                        >
+                                <div style={{ /* your existing modal overlay styles */ }} onClick={() => setSelectedUser(null)}>
+                                    <div style={{ /* your existing modal content styles */ }} onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => setSelectedUser(null)} style={{ /* close button styles */ }}>
                                             <X size={18} />
                                         </button>
 
-                                        {/* Avatar and Name */}
+                                        {/* Header */}
                                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                            <div style={{
-                                                width: '5rem',
-                                                height: '5rem',
-                                                borderRadius: '50%',
-                                                background: getAvatarColor(selectedUser.name),
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white',
-                                                fontWeight: '600',
-                                                fontSize: '1.5rem',
-                                                margin: '0 auto 1rem'
-                                            }}>
-                                                {getInitials(selectedUser.name)}
+                                            <div style={{ /* avatar styles */ }}>
+                                                {getInitials(selectedUser.name || 'User')}
                                             </div>
-                                            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', margin: '0 0 0.25rem 0' }}>
-                                                {selectedUser.name}
-                                            </h2>
-                                            <p style={{ color: '#6b7280', margin: 0 }}>{selectedUser.email}</p>
+                                            <h2>{selectedUser.name || 'Unnamed'}</h2>
+                                            <p style={{ color: '#6b7280' }}>{selectedUser.email || 'No email'}</p>
                                         </div>
 
-                                        {/* User Details */}
+                                        {/* Schema-safe Details */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Status</span>
-                                                <span style={{
-                                                    padding: '0.25rem 0.75rem',
-                                                    borderRadius: '1rem',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '500',
-                                                    background: selectedUser.status === 'Active' ? '#dcfce7' : '#fcdcf1',
-                                                    color: selectedUser.status === 'Active' ? '#166534' : '#65161f'
-                                                }}>
-                                                  {selectedUser.status}
-                                                </span>
-                                            </div>
-
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
                                                 <span style={{ color: '#6b7280', fontWeight: '500' }}>Type</span>
                                                 <span style={{
-                                                    padding: '0.25rem 0.75rem',
-                                                    borderRadius: '1rem',
-                                                    fontSize: '0.75rem',
-                                                    fontWeight: '500',
-                                                    background: selectedUser.type === 'Volunteer' ? '#fef3c7' : '#e9d5ff',
-                                                    color: selectedUser.type === 'Volunteer' ? '#92400e' : '#6b21a8'
+                                                    padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
+                                                    background: '#e9d5ff', color: '#6b21a8'
                                                 }}>
-                                                  {selectedUser.type}
-                                                </span>
+                                    {selectedUser.type || 'Unknown'}
+                                </span>
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email Address</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.email}</span>
+                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email</span>
+                                                <span style={{ fontWeight: '500' }}>{selectedUser.email || 'N/A'}</span>
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
                                                 <span style={{ color: '#6b7280', fontWeight: '500' }}>Joined</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.fullJoinDate}</span>
+                                                <span style={{ fontWeight: '500' }}>{formatDate(selectedUser.createdAt)}</span>
                                             </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.phone}</span>
-                                            </div>
+                                            {selectedUser.phoneNumber && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
+                                                    <span style={{ fontWeight: '500' }}>{selectedUser.phoneNumber}</span>
+                                                </div>
+                                            )}
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
-                                                <span style={{ fontWeight: '500', textAlign: 'right', maxWidth: '60%' }}>{selectedUser.address}</span>
-                                            </div>
+                                            {selectedUser.address && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
+                                                    <span style={{ fontWeight: '500', maxWidth: '60%' }}>{selectedUser.address}</span>
+                                                </div>
+                                            )}
 
-                                            {selectedUser.type === 'Volunteer' ? (
-                                                <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
-                                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
-                                                            {selectedUser.skills.map((skill, index) => (
-                                                                <span key={index} style={{
-                                                                    padding: '0.25rem 0.625rem',
-                                                                    borderRadius: '0.375rem',
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: '500',
-                                                                    background: '#f3f4f6',
-                                                                    color: '#374151'
-                                                                }}>
-                                                                  {skill}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                            {/* Schema-safe Skills (handles both formats) */}
+                                            {selectedUser.skills && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
+                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        {getSkillsDisplay(selectedUser.skills).map((skill, i) => (
+                                                            <span key={i} style={{
+                                                                padding: '0.25rem 0.625rem', borderRadius: '0.375rem',
+                                                                background: '#f3f4f6', color: '#374151', fontSize: '0.75rem'
+                                                            }}>
+                                                {skill}
+                                            </span>
+                                                        ))}
                                                     </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Hours Volunteered</span>
-                                                        <span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedUser.hoursVolunteered}h</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Category</span>
-                                                        <span style={{ fontWeight: '500' }}>{selectedUser.category}</span>
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Registration No.</span>
-                                                        <span style={{ fontWeight: '500' }}>{selectedUser.registrationNumber}</span>
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                        <span style={{ color: '#6b7280', fontWeight: '500' }}>Members</span>
-                                                        <span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedUser.membersCount}</span>
-                                                    </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -813,6 +805,8 @@ const AdminDashboard = () => {
                         </div>
                     </>
                 )}
+
+                {/* Pending Registrations Tab */}
                 {activeTab === 'pendingRegistrations' && (
                     <>
                         {loadingPending ? (
@@ -834,19 +828,20 @@ const AdminDashboard = () => {
                             }}>
                                 {pendingUsers.map((userData) => (
                                     <PendingUserCard
-                                        key={userData.id}
-                                        id={userData.id}
-                                        name={userData.name}
-                                        type={userData.type}
-                                        status={userData.status}
-                                        phone={userData.phone}
-                                        email={userData.email}
-                                        address={userData.address}
-                                        joiningDate={userData.joiningDate}
-                                        description={userData.description}
-                                        skills={userData.skills}
-                                        onApprove={handleUserApprove}
-                                        onReject={handleUserReject}
+                                        key={userData._id?.$oid}
+                                                        id={userData._id?.$oid}
+                                                        name={userData.name}
+                                                        type={userData.type}
+                                                        status={userData.status}
+                                                        phone={userData.phone}
+                                                        email={userData.email}
+                                                        address={userData.address}
+                                                        joiningDate={userData.createdAt?.$date || 'N/A'}
+                                                        description={userData.description || 'N/A'}
+                                                        skills={Array.isArray(userData.skills) ? userData.skills.join(', ') : userData.skills || 'N/A'}
+                                                        onApprove={handleUserApprove}
+                                                        onReject={handleUserReject}
+
                                     />
                                 ))}
                             </div>
@@ -857,7 +852,7 @@ const AdminDashboard = () => {
                                 color: '#6b7280',
                                 fontSize: '1rem'
                             }}>
-                                No pending registrations found
+                                {pendingSearchQuery || pendingTypeFilter ? 'No matching registrations found' : 'No pending registrations'}
                             </div>
                         )}
                     </>
@@ -865,7 +860,66 @@ const AdminDashboard = () => {
 
                 {activeTab === 'pendingEvents' && (
                     <>
-                        {pendingEventsData.length > 0 ? (
+                        {/* Search and Filter Section for Pending Events */}
+                        <div style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid rgba(0, 0, 0, 0.06)', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '250px', position: 'relative' }}>
+                                    <Search style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93' }} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search pending events..."
+                                        value={eventSearchQuery}
+                                        onChange={(e) => setEventSearchQuery(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 0.875rem 0.625rem 2.75rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ position: 'relative', width: '180px', minWidth: '180px' }}>
+                                    <select
+                                        value={eventSortBy}
+                                        onChange={(e) => setEventSortBy(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '0.625rem 2rem 0.625rem 0.875rem',
+                                            border: 'none',
+                                            borderRadius: '0.625rem',
+                                            fontSize: '0.9375rem',
+                                            fontWeight: '400',
+                                            background: 'rgba(142, 142, 147, 0.12)',
+                                            color: '#000',
+                                            cursor: 'pointer',
+                                            appearance: 'none',
+                                            outline: 'none',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <option value="">Sort By</option>
+                                        <option value="title-asc">Event Name (A-Z)</option>
+                                        <option value="title-desc">Event Name (Z-A)</option>
+                                        <option value="date-asc">Event Date (Earliest)</option>
+                                        <option value="date-desc">Event Date (Latest)</option>
+                                        <option value="submitted-asc">Submitted (Oldest)</option>
+                                        <option value="submitted-desc">Submitted (Newest)</option>
+                                    </select>
+                                    <ChevronDown style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#8e8e93', pointerEvents: 'none' }} size={16} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div style={{ padding: '3rem', textAlign: 'center' }}>Loading...</div>
+                        ) : filteredAndSortedPendingEvents.length > 0 ? (
                             <div
                                 style={{
                                     display: 'flex',
@@ -874,21 +928,27 @@ const AdminDashboard = () => {
                                     marginBottom: '2rem',
                                 }}
                             >
-                                {pendingEventsData.map((event) => (
-                                    <PendingEventsCard
-                                        key={event.id}
-                                        event={event}
-                                    />
-                                ))}
+                                {filteredAndSortedPendingEvents.map((event, index) => {
+                                    const eventId = event._id?.$oid || event._id || `event-${index}`;
+                                    return (
+                                        <PendingEventsCard
+                                            key={`${eventId}-${event.eventName}-${index}`}
+                                            event={event}
+                                            onActionComplete={refetchPendingEvents}
+                                        />
+                                    );
+                                })}
                             </div>
                         ) : (
-                            <div style={{
-                                padding: '3rem',
-                                textAlign: 'center',
-                                color: '#6b7280',
-                                fontSize: '1rem'
-                            }}>
-                                No pending events found
+                            <div
+                                style={{
+                                    padding: '3rem',
+                                    textAlign: 'center',
+                                    color: '#6b7280',
+                                    fontSize: '1rem',
+                                }}
+                            >
+                                {eventSearchQuery ? 'No matching events found' : 'You\'re done!'}
                             </div>
                         )}
                     </>

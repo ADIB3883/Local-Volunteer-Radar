@@ -7,14 +7,14 @@ const http = require('http');
 const socketIO = require('socket.io');
 require('dotenv').config();
 
-const loginRoutes = require('./routes/loginRoutes');
-const signupRoutes = require('./routes/signupRoutes');
-const VolunteerProfileRoutes = require('./routes/VolunteerProfileRoutes');
-const conversationRoutes = require('./routes/conversationRoutes');
-const messageRoutes = require('./routes/messageRoutes');
-const userApproveRejectRoutes = require('./routes/userApproveRejectRoutes');
-const User = require('./models/User');
-const eventRoutes = require("./routes/eventRoutes");
+const loginRoutes = require('./Routes/loginRoutes');
+const signupRoutes = require('./Routes/signupRoutes');
+const VolunteerProfileRoutes = require('./Routes/VolunteerProfileRoutes');
+const conversationRoutes = require('./Routes/conversationRoutes');
+const messageRoutes = require('./Routes/messageRoutes');
+const userApproveRejectRoutes = require('./Routes/userApproveRejectRoutes');
+const User = require('./Models/User');
+const eventRoutes = require("./Routes/eventRoutes");
 
 const app = express();
 const server = http.createServer(app);
@@ -57,19 +57,17 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-app.use('/api', loginRoutes);
-app.use('/api', signupRoutes);
-app.use('/api', VolunteerProfileRoutes);
+app.use('/api/users', userApproveRejectRoutes);
+app.use('/api/admin/events', eventRoutes);
+app.use('/api/events', eventRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/users', userApproveRejectRoutes);
-require('./sockets/chatSocket')(io);
-app.use("/api/events", eventRoutes);
+app.use('/api', loginRoutes);
+app.use('/api', signupRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
 });
-
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
