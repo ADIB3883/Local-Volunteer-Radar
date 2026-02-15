@@ -58,7 +58,7 @@ router.post("/", async (req, res) => {
             requirements: requirements || "",
             volunteersRegistered: 0,
             status: 'pending',
-            isApproved: false, // Explicitly set
+            isApproved: false,
         });
 
         await newEvent.save();

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const User = require('./models/User');
+const User = require('./Models/User');
 
 mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .then(async () => {

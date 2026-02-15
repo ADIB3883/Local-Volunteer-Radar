@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Volunteer = require('../models/Volunteer');
+const Volunteer = require('../Models/Volunteer');
 
 router.get('/profile/:id', async (req, res) => {
     try {

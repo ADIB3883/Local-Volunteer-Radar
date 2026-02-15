@@ -147,13 +147,4 @@ const EventSchema = new mongoose.Schema(
     }
 );
 
-// Pre-save hook to ensure isApproved defaults properly
-EventSchema.pre('save', function(next) {
-    // Ensure isApproved is explicitly a boolean, never undefined
-    if (this.isApproved === undefined || this.isApproved === null) {
-        this.isApproved = false;
-    }
-    next();
-});
-
 module.exports = mongoose.model("Event", EventSchema, 'Events');

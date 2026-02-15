@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const Event = require('../models/Event');
+const User = require('../Models/User');
+const Event = require('../Models/Event');
 const mongoose = require('mongoose');
 
 const getPast12Months = () => {
