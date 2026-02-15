@@ -7,6 +7,7 @@ import ActiveEventsOrganizerModal from './ActiveEventsOrganizerModal';
 import TotalVolunteersOrganizerModal from './TotalVolunteersOrganizerModal';
 import EventsCreatedModal from './EventsCreatedModal';
 import MessagesTab from './MessageTab';
+import AlertModal from "./AlertModal";
 import axios from "axios";
 
 const API_URL = 'http://localhost:5000/api/events';
@@ -21,6 +22,15 @@ const OrganizerDashboard = () => {
     const [organizerName, setOrganizerName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showMessagesModal, setShowMessagesModal] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        icon: 'info',
+        buttonText: 'Got it',
+        buttonColor: 'bg-blue-500 hover:bg-blue-600',
+        onCloseRedirect: null
+    });
     const [formData, setFormData] = useState({
         eventName: '',
         description: '',
@@ -34,10 +44,39 @@ const OrganizerDashboard = () => {
         requirements: ''
     });
 
+    // Show alert helper function
+    const showAlert = (title, message, icon = 'info', buttonText = 'Got it', buttonColor = 'bg-blue-500 hover:bg-blue-600', onCloseRedirect = null) => {
+        setAlertConfig({
+            isOpen: true,
+            title,
+            message,
+            icon,
+            buttonText,
+            buttonColor,
+            onCloseRedirect
+        });
+    };
+
+    const closeAlert = () => {
+        const redirect = alertConfig.onCloseRedirect;
+        setAlertConfig({
+            isOpen: false,
+            title: '',
+            message: '',
+            icon: 'info',
+            buttonText: 'Got it',
+            buttonColor: 'bg-blue-500 hover:bg-blue-600',
+            onCloseRedirect: null
+        });
+        if (redirect) {
+            redirect();
+        }
+    };
+
     // Check authentication and get organizer data
     useEffect(() => {
-        const userStr = localStorage.getItem('loggedInUser'); // Changed from 'user' to 'loggedInUser'
-        console.log('User from localStorage:', userStr); // Debug log
+        const userStr = localStorage.getItem('loggedInUser');
+        console.log('User from localStorage:', userStr);
 
         if (!userStr) {
             console.log('No user found, redirecting to login');
@@ -47,12 +86,18 @@ const OrganizerDashboard = () => {
 
         try {
             const user = JSON.parse(userStr);
-            console.log('Parsed user:', user); // Debug log
+            console.log('Parsed user:', user);
 
             if (user.role !== 'organizer') {
                 console.log('User is not organizer, role:', user.role);
-                alert('Access denied. This page is for organizers only.');
-                navigate('/login');
+                showAlert(
+                    'Access Denied',
+                    'This page is for organizers only.',
+                    'error',
+                    'Go to Login',
+                    'bg-red-500 hover:bg-red-600',
+                    () => navigate('/login')
+                );
                 return;
             }
 
@@ -62,8 +107,14 @@ const OrganizerDashboard = () => {
                 console.log('Organizer ID set:', user.id);
             } else {
                 console.log('No user ID found');
-                alert('User ID not found. Please login again.');
-                navigate('/login');
+                showAlert(
+                    'Authentication Error',
+                    'User ID not found. Please login again.',
+                    'error',
+                    'Go to Login',
+                    'bg-red-500 hover:bg-red-600',
+                    () => navigate('/login')
+                );
             }
         } catch (error) {
             console.error('Error parsing user data:', error);
@@ -88,10 +139,15 @@ const OrganizerDashboard = () => {
         } catch (error) {
             console.error('Error fetching events:', error);
             if (error.response?.status === 404) {
-                // No events found, set empty array
                 setEvents([]);
             } else {
-                alert('Failed to load events');
+                showAlert(
+                    'Error',
+                    'Failed to load events. Please try again.',
+                    'error',
+                    'OK',
+                    'bg-red-500 hover:bg-red-600'
+                );
             }
         } finally {
             setLoading(false);
@@ -112,19 +168,37 @@ const OrganizerDashboard = () => {
         for (const f of requiredFields) {
             const v = formData[f];
             if (v === undefined || v === null || String(v).trim() === '') {
-                alert('Fill all necessary information');
+                showAlert(
+                    'Incomplete Form',
+                    'Please fill in all required fields.',
+                    'warning',
+                    'OK',
+                    'bg-orange-500 hover:bg-orange-600'
+                );
                 return;
             }
         }
 
         if (isNaN(Number(formData.volunteersNeeded)) || Number(formData.volunteersNeeded) <= 0) {
-            alert('Please enter a valid number of volunteers needed');
+            showAlert(
+                'Invalid Input',
+                'Please enter a valid number of volunteers needed.',
+                'warning',
+                'OK',
+                'bg-orange-500 hover:bg-orange-600'
+            );
             return;
         }
 
         // Date validation
         if (!formData.startdate || !formData.enddate) {
-            alert('Please provide both start and end dates.');
+            showAlert(
+                'Invalid Date',
+                'Please provide both start and end dates.',
+                'warning',
+                'OK',
+                'bg-orange-500 hover:bg-orange-600'
+            );
             return;
         }
 
@@ -134,14 +208,26 @@ const OrganizerDashboard = () => {
         const endDateTime = new Date(`${formData.enddate}T${endTimePart}`);
 
         if (endDateTime < startDateTime) {
-            alert('The event end must come after the start.');
+            showAlert(
+                'Invalid Date Range',
+                'The event end must come after the start.',
+                'warning',
+                'OK',
+                'bg-orange-500 hover:bg-orange-600'
+            );
             return;
         }
 
         if (formData.startdate === formData.enddate) {
             const diffMinutes = (endDateTime - startDateTime) / 60000;
             if (diffMinutes < 15) {
-                alert('When start and end date are the same, end time must be at least 15 minutes after start time.');
+                showAlert(
+                    'Invalid Time Range',
+                    'When start and end date are the same, end time must be at least 15 minutes after start time.',
+                    'warning',
+                    'OK',
+                    'bg-orange-500 hover:bg-orange-600'
+                );
                 return;
             }
         }
@@ -173,15 +259,30 @@ const OrganizerDashboard = () => {
                 requirements: ''
             });
 
-            alert('Event created successfully!');
+            // Show success alert with slight delay
+            setTimeout(() => {
+                showAlert(
+                    'Success!',
+                    'Event created successfully!',
+                    'success',
+                    'Got it',
+                    'bg-green-500 hover:bg-green-600'
+                );
+            }, 300);
         } catch (error) {
             console.error('Error creating event:', error);
-            alert(error.response?.data?.message || 'Failed to create event. Please try again.');
+            showAlert(
+                'Error',
+                error.response?.data?.message || 'Failed to create event. Please try again.',
+                'error',
+                'OK',
+                'bg-red-500 hover:bg-red-600'
+            );
         }
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('loggedInUser'); // Changed from 'user' to 'loggedInUser'
+        localStorage.removeItem('loggedInUser');
         navigate('/login');
     };
 
@@ -498,15 +599,6 @@ const OrganizerDashboard = () => {
                 </div>
             </main>
 
-            {/* Create Event Modal - Keep your existing modal JSX */}
-            {showCreateModal && (
-                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
-                    if (e.target === e.currentTarget) setShowCreateModal(false);
-                }}>
-                    {/* Your existing Create Event Modal JSX */}
-                </div>
-            )}
-
             {/* Create Event Modal */}
             {showCreateModal && (
                 <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
@@ -567,7 +659,6 @@ const OrganizerDashboard = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                {/* First Row: Start Date and Start Time */}
                                 <div>
                                     <label className="block text-base font-semibold text-gray-700 mb-2">
                                         Start Date *
@@ -616,7 +707,6 @@ const OrganizerDashboard = () => {
                                     </div>
                                 </div>
 
-                                {/* Second Row: End Date and End Time */}
                                 <div>
                                     <label className="block text-base font-semibold text-gray-700 mb-2">
                                         End Date *
@@ -775,6 +865,20 @@ const OrganizerDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {/* Alert Modal - positioned top-right like toast notification */}
+            <div className="fixed top-4 right-4 z-[100]">
+                <AlertModal
+                    isOpen={alertConfig.isOpen}
+                    onClose={closeAlert}
+                    title={alertConfig.title}
+                    message={alertConfig.message}
+                    icon={alertConfig.icon}
+                    buttonText={alertConfig.buttonText}
+                    buttonColor={alertConfig.buttonColor}
+                    onCloseRedirect={alertConfig.onCloseRedirect}
+                />
+            </div>
         </div>
     );
 };
