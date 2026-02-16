@@ -2,19 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Volunteer = require('../Models/Volunteer');
 
-router.get('/profile/:id', async (req, res) => {
+router.get('/profile/:email', async (req, res) => {
     try {
-        const loggedInUser = JSON.parse(req.headers['user-data'] || '{}');
-        const email = loggedInUser.email;
+        const { email } = req.params;
 
-        if (!email) {
-            return res.status(401).json({
-                success: false,
-                message: 'Unauthorized'
-            });
-        }
-
-        const volunteer = await Volunteer.findOne({ email });
+        const volunteer = await Volunteer.findOne({ email: email });
 
         if (!volunteer) {
             return res.status(404).json({
@@ -23,10 +15,25 @@ router.get('/profile/:id', async (req, res) => {
             });
         }
 
+        // ✅ Transform the response to include 'id' field
         res.json({
             success: true,
-            user: volunteer
+            user: {
+                id: volunteer._id.toString(), // ✅ Convert _id to id
+                name: volunteer.name,
+                email: volunteer.email,
+                phoneNumber: volunteer.phoneNumber || '',
+                address: volunteer.address || '',
+                skills: volunteer.skills || {},
+                bio: volunteer.bio || '',
+                availability: volunteer.availability || [],
+                profilePicture: volunteer.profilePicture || '',
+                isPending: volunteer.isPending,
+                isApproved: volunteer.isApproved,
+                role: 'volunteer'
+            }
         });
+
     } catch (error) {
         console.error('Error fetching profile:', error);
         res.status(500).json({
@@ -36,28 +43,19 @@ router.get('/profile/:id', async (req, res) => {
     }
 });
 
-router.put('/profile/:id', async (req, res) => {
+router.put('/profile/:email', async (req, res) => {
     try {
+        const { email } = req.params;
         const { phoneNumber, address, bio, skills, availability, profilePicture } = req.body;
-        const loggedInUser = JSON.parse(req.headers['user-data'] || '{}');
-        const email = loggedInUser.email;
 
-        if (!email) {
-            return res.status(401).json({
-                success: false,
-                message: 'Unauthorized'
-            });
-        }
-
-        console.log('Update profile attempt for:', email);
-        console.log('Received data:', req.body);
+        console.log('Update request for:', email);
 
         const updateData = {
             phoneNumber,
             address,
             bio,
             skills,
-            availability: availability.map(slot => ({
+            availability: (availability || []).map(slot => ({
                 day: slot.day,
                 startTime: slot.startTime,
                 endTime: slot.endTime
@@ -68,7 +66,7 @@ router.put('/profile/:id', async (req, res) => {
         const volunteer = await Volunteer.findOneAndUpdate(
             { email },
             updateData,
-            { new: true, runValidators: true }
+            { new: true }
         );
 
         if (!volunteer) {
@@ -78,18 +76,33 @@ router.put('/profile/:id', async (req, res) => {
             });
         }
 
-        console.log('✅ Profile updated successfully for:', email);
+        console.log('Profile updated successfully for:', email);
 
+        // ✅ Transform the response to include 'id' field
         res.json({
             success: true,
             message: 'Profile updated successfully',
-            user: volunteer
+            user: {
+                id: volunteer._id.toString(), // ✅ Convert _id to id
+                name: volunteer.name,
+                email: volunteer.email,
+                phoneNumber: volunteer.phoneNumber || '',
+                address: volunteer.address || '',
+                skills: volunteer.skills || {},
+                bio: volunteer.bio || '',
+                availability: volunteer.availability || [],
+                profilePicture: volunteer.profilePicture || '',
+                isPending: volunteer.isPending,
+                isApproved: volunteer.isApproved,
+                role: 'volunteer'
+            }
         });
+
     } catch (error) {
-        console.error('❌ Profile update error:', error);
+        console.error('Error updating profile:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error during profile update'
+            message: 'Server error'
         });
     }
 });

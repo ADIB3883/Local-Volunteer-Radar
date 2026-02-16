@@ -26,8 +26,8 @@ const io = socketIO(server, {
 });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
     .then(async () => {
@@ -64,6 +64,7 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api', loginRoutes);
 app.use('/api', signupRoutes);
+app.use('/api', VolunteerProfileRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });

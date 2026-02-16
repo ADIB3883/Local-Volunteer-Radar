@@ -13,10 +13,11 @@ const VolunteerSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
-    availability: {
-        type: Array,
-        default: []
-    },
+    availability: [{
+        day: { type: String, required: true },
+        startTime: { type: String, required: true },
+        endTime: { type: String, required: true }
+    }],
     profilePicture: {
         type: String,
         default: ''
