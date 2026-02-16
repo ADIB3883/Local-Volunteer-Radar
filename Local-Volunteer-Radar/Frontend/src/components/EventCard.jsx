@@ -13,7 +13,8 @@ const EventCard = ({
                        location,
                        distance,
                        requirements,
-                       onRegister
+                       onRegister,
+                       showToast
                    }) => {
     const navigate = useNavigate();
     const [registrationStatus, setRegistrationStatus] = useState(null);
@@ -43,14 +44,18 @@ const EventCard = ({
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
         if (!loggedInUser) {
-            alert("Please login to register");
+            if (showToast) {
+                showToast("Please login to register", "warning");
+            }
             return;
         }
 
         // Check both 'role' and 'type' for backward compatibility
         const userType = loggedInUser.role || loggedInUser.type;
         if (userType !== "volunteer") {
-            alert("Only volunteers can register for events");
+            if (showToast) {
+                showToast("Only volunteers can register for events", "error");
+            }
             return;
         }
 
@@ -61,7 +66,9 @@ const EventCard = ({
         const eventIndex = events.findIndex(e => e.id === eventId);
 
         if (eventIndex === -1) {
-            alert("Event not found");
+            if (showToast) {
+                showToast("Event not found", "error");
+            }
             return;
         }
 
@@ -74,13 +81,17 @@ const EventCard = ({
         );
 
         if (alreadyRegistered) {
-            alert("You are already registered for this event");
+            if (showToast) {
+                showToast("You are already registered for this event", "info");
+            }
             return;
         }
 
         // Check if event is full
         if (events[eventIndex].volunteersRegistered >= events[eventIndex].volunteersNeeded) {
-            alert("Event is full");
+            if (showToast) {
+                showToast("Event is full", "warning");
+            }
             return;
         }
 
@@ -112,7 +123,9 @@ const EventCard = ({
         events[eventIndex].volunteersRegistered = (events[eventIndex].volunteersRegistered || 0) + 1;
         localStorage.setItem('events', JSON.stringify(events));
 
-        alert("Successfully registered for the event! Your registration is pending organizer approval.");
+        if (showToast) {
+            showToast("Successfully registered! Your registration is pending organizer approval.", "success");
+        }
 
         // Update local status
         setRegistrationStatus('Pending');
@@ -127,14 +140,18 @@ const EventCard = ({
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
         if (!loggedInUser) {
-            alert("Please login to message organizers");
+            if (showToast) {
+                showToast("Please login to message organizers", "warning");
+            }
             return;
         }
 
         // Check both 'role' and 'type' for backward compatibility
         const userType = loggedInUser.role || loggedInUser.type;
         if (userType !== "volunteer") {
-            alert("Only volunteers can message organizers");
+            if (showToast) {
+                showToast("Only volunteers can message organizers", "error");
+            }
             return;
         }
 
@@ -172,15 +189,25 @@ const EventCard = ({
 
                 // Dispatch custom event to open Messages tab in VolunteerDashboard
                 window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
+
+                if (showToast) {
+                    showToast("Opening conversation with organizer...", "success");
+                }
             } else {
                 console.error('Failed to create conversation');
-                alert('Failed to start conversation. Please try again.');
+                if (showToast) {
+                    showToast("Failed to start conversation. Please try again.", "error");
+                }
             }
         } catch (error) {
             console.error('Error creating conversation:', error);
             // If backend is not available, still switch to messages tab
             localStorage.setItem('openChatConversation', JSON.stringify(conversation));
             window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
+
+            if (showToast) {
+                showToast("Opening conversation with organizer...", "info");
+            }
         }
     };
 

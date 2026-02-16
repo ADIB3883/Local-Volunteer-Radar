@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { CheckCircle, Clock, Calendar, TrendingUp, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,9 +16,100 @@ import io from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
 
-//const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+// Custom Toast Notification Component
+const Toast = ({ message, type = 'info', onClose }) => {
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
 
-const VolunteerNotifications = ({ onNotificationRead }) => {
+    const bgColors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+
+    const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: '2rem',
+            right: '2rem',
+            background: bgColors[type],
+            color: 'white',
+            padding: '1rem 1.5rem',
+            borderRadius: '0.75rem',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            minWidth: '300px',
+            maxWidth: '500px',
+            zIndex: 9999,
+            animation: 'slideInRight 0.3s ease-out'
+        }}>
+            <style>{`
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `}</style>
+            <div style={{
+                width: '1.5rem',
+                height: '1.5rem',
+                background: 'rgba(255, 255, 255, 0.3)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1rem',
+                fontWeight: 'bold'
+            }}>
+                {icons[type]}
+            </div>
+            <span style={{ flex: 1, fontSize: '0.95rem', fontWeight: '500' }}>{message}</span>
+            <button
+                onClick={onClose}
+                style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '1.25rem',
+                    padding: '0',
+                    width: '1.5rem',
+                    height: '1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '0.25rem',
+                    transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+            >
+                ×
+            </button>
+        </div>
+    );
+};
+
+const VolunteerNotifications = ({ onNotificationRead, showToast }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -52,6 +141,11 @@ const VolunteerNotifications = ({ onNotificationRead }) => {
         setUnreadCount(prev => Math.max(0, prev - 1));
 
         if (onNotificationRead) onNotificationRead();
+
+        // Show toast notification
+        if (showToast) {
+            showToast('Notification marked as read', 'success');
+        }
     };
 
     return (
@@ -126,24 +220,43 @@ const VolunteerDashboard = () => {
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
     const [filteredEvents, setFilteredEvents] = useState([]);
+    const [toast, setToast] = useState(null);
 
     const navigate = useNavigate();
-    //login kora volutneer jaate shudhu Volunteer Dashboard e ashte pare
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
+    // Toast notification function
+    const showToast = (message, type = 'info') => {
+        setToast({ message, type });
+    };
 
     const fetchUnreadCount = async () => {
+        // Only fetch if user is logged in
+        if (!loggedInUser || !loggedInUser.email) {
+            console.log('No logged in user, skipping unread count fetch');
+            return;
+        }
+
         try {
             const response = await fetch(`http://localhost:5000/api/unread-count/${loggedInUser.email}`);
+
+            if (!response.ok) {
+                console.error('Failed to fetch unread count, status:', response.status);
+                return;
+            }
+
             const data = await response.json();
             setUnreadMessagesCount(data.count);
         } catch (error) {
             console.error('Error fetching unread count:', error);
+            // Only show toast in development or if explicitly needed
+            // showToast('Failed to fetch unread message count', 'error');
         }
     };
+
     // Socket connection and unread messages count
     React.useEffect(() => {
-        if (loggedInUser) {
+        if (loggedInUser && loggedInUser.email) {
             // Join socket room
             socket.emit('join', loggedInUser.email);
 
@@ -195,7 +308,10 @@ const VolunteerDashboard = () => {
 
     const handleLogoutClick = () => {
         localStorage.removeItem("loggedInUser");
-        navigate('/login');
+        showToast('Logged out successfully', 'success');
+        setTimeout(() => {
+            navigate('/login');
+        }, 1000);
     };
 
     const stats = [
@@ -245,9 +361,6 @@ const VolunteerDashboard = () => {
         }
     ];
 
-
-
-  // const [filteredEvents, setFilteredEvents] = useState([]);
     // Load events from localStorage on mount
     React.useEffect(() => {
         const stored = localStorage.getItem('events');
@@ -268,9 +381,7 @@ const VolunteerDashboard = () => {
         }
     }, []);
 
-
-
-// Filter function
+    // Filter function
     const handleFilter = () => {
         let filtered = [...allEvents];
 
@@ -294,13 +405,33 @@ const VolunteerDashboard = () => {
         setFilteredEvents(filtered);
     };
 
-// Call filter when search or category changes
+    // Call filter when search or category changes
     React.useEffect(() => {
         handleFilter();
     }, [searchQuery, selectedCategory, allEvents]);
 
+    const refreshEvents = () => {
+        const stored = localStorage.getItem('events');
+        if (stored) {
+            const parsedEvents = JSON.parse(stored);
+            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
+            setAllEvents(activeEvents);
+            setRecommendedEvents(activeEvents.slice(0, 2));
+            setFilteredEvents(activeEvents);
+        }
+    };
+
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+            {/* Toast Notification */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+
             {/* Navbar */}
             <Navbar
                 userName={loggedInUser?.name || "Volunteer"}
@@ -476,12 +607,13 @@ const VolunteerDashboard = () => {
                             My Registrations
                         </h2>
 
-                        <MyRegistrations />
+                        <MyRegistrations showToast={showToast} />
                     </div>
                 )}
 
                 {activeTab === 'notifications' && (
                     <VolunteerNotifications
+                        showToast={showToast}
                         onNotificationRead={() => {
                             // Refresh unread count
                             const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
@@ -525,16 +657,9 @@ const VolunteerDashboard = () => {
                                     location={event.location}
                                     distance="Calculating..."
                                     requirements={event.requirements || 'No specific requirements'}
+                                    showToast={showToast}
                                     onRegister={() => {
-                                        // Refresh events after registration
-                                        const stored = localStorage.getItem('events');
-                                        if (stored) {
-                                            const parsedEvents = JSON.parse(stored);
-                                            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
-                                            setAllEvents(activeEvents);
-                                            setRecommendedEvents(activeEvents.slice(0, 2));
-                                            setFilteredEvents(activeEvents);
-                                        }
+                                        refreshEvents();
                                     }}
                                 />
                             ))}
@@ -614,16 +739,9 @@ const VolunteerDashboard = () => {
                                     location={event.location}
                                     distance="Calculating..."
                                     requirements={event.requirements || 'No specific requirements'}
+                                    showToast={showToast}
                                     onRegister={() => {
-                                        // Refresh events after registration
-                                        const stored = localStorage.getItem('events');
-                                        if (stored) {
-                                            const parsedEvents = JSON.parse(stored);
-                                            const activeEvents = parsedEvents.filter(event => event.status === 'pending');
-                                            setAllEvents(activeEvents);
-                                            setRecommendedEvents(activeEvents.slice(0, 2));
-                                            setFilteredEvents(activeEvents);
-                                        }
+                                        refreshEvents();
                                     }}
                                 />
                             ))}

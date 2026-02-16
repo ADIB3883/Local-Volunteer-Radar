@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-const MyRegistrations = () => {
+const MyRegistrations = ({ showToast }) => {
     const [registrations, setRegistrations] = useState([]);
     const [filter, setFilter] = useState('All');
 
-
-
     const loadRegistrations = () => {
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        if (!loggedInUser) return;
+        if (!loggedInUser) {
+            if (showToast) {
+                showToast('Please login to view registrations', 'warning');
+            }
+            return;
+        }
 
         const allRegistrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
         const userRegistrations = allRegistrations.filter(
@@ -123,90 +126,90 @@ const MyRegistrations = () => {
                     if (!event) return null; // safety check
 
                     return(
-                    <div
-                        key={reg.id}
-                        style={{
-                            background: 'white',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '1rem',
-                            padding: '1.5rem',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            transition: 'all 0.3s'
-                        }}
-                    >
-                        {/* Header */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'start',
-                            marginBottom: '1rem'
-                        }}>
-                            <h3 style={{
-                                fontSize: '1.125rem',
-                                fontWeight: 'bold',
-                                color: '#111827',
-                                margin: 0,
-                                flex: 1
+                        <div
+                            key={reg.id}
+                            style={{
+                                background: 'white',
+                                border: '2px solid #e5e7eb',
+                                borderRadius: '1rem',
+                                padding: '1.5rem',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                transition: 'all 0.3s'
+                            }}
+                        >
+                            {/* Header */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'start',
+                                marginBottom: '1rem'
                             }}>
-                                {event.eventName}
-                            </h3>
-                            {getStatusBadge(reg.status)}
-                        </div>
+                                <h3 style={{
+                                    fontSize: '1.125rem',
+                                    fontWeight: 'bold',
+                                    color: '#111827',
+                                    margin: 0,
+                                    flex: 1
+                                }}>
+                                    {event.eventName}
+                                </h3>
+                                {getStatusBadge(reg.status)}
+                            </div>
 
-                        {/* Event Details */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.75rem',
-                            marginBottom: '1rem'
-                        }}>
+                            {/* Event Details */}
                             <div style={{
                                 display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.875rem',
-                                color: '#4b5563'
+                                flexDirection: 'column',
+                                gap: '0.75rem',
+                                marginBottom: '1rem'
                             }}>
-                                <Calendar size={16} style={{ color: '#3b82f6' }} />
-                                <span>{event.startdate}</span>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563'
+                                }}>
+                                    <Calendar size={16} style={{ color: '#3b82f6' }} />
+                                    <span>{event.startdate}</span>
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563'
+                                }}>
+                                    <Clock size={16} style={{ color: '#10b981' }} />
+                                    <span>{event.startTime}&nbsp;-&nbsp;{event.endTime}</span>
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563'
+                                }}>
+                                    <MapPin size={16} style={{ color: '#ef4444' }} />
+                                    <span>{event.location}</span>
+                                </div>
                             </div>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.875rem',
-                                color: '#4b5563'
-                            }}>
-                                <Clock size={16} style={{ color: '#10b981' }} />
-                                <span>{event.startTime}&nbsp;-&nbsp;{event.endTime}</span>
-                            </div>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.875rem',
-                                color: '#4b5563'
-                            }}>
-                                <MapPin size={16} style={{ color: '#ef4444' }} />
-                                <span>{event.location}</span>
-                            </div>
-                        </div>
 
-                        {/* Registration Date */}
-                        <div style={{
-                            paddingTop: '1rem',
-                            borderTop: '1px solid #e5e7eb',
-                            fontSize: '0.75rem',
-                            color: '#9ca3af'
-                        }}>
-                            Registered on {new Date(reg.registeredAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
+                            {/* Registration Date */}
+                            <div style={{
+                                paddingTop: '1rem',
+                                borderTop: '1px solid #e5e7eb',
+                                fontSize: '0.75rem',
+                                color: '#9ca3af'
+                            }}>
+                                Registered on {new Date(reg.registeredAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}
+                            </div>
                         </div>
-                    </div>
-                )})}
+                    )})}
             </div>
 
             {filteredRegistrations.length === 0 && filter !== 'All' && (
