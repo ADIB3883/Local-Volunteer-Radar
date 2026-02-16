@@ -2,44 +2,7 @@ import React from 'react';
 import { Building2, MapPin, Calendar, Award, CheckCircle } from 'lucide-react';
 
 const TotalOrganizersModal = ({ organizers }) => {
-    // Sample data - replace with actual data
-    const sampleOrganizers = [
-        {
-            id: 1,
-            name: 'Green Earth Foundation',
-            email: 'contact@greenearth.org',
-            location: 'Dhaka',
-            joinedDate: 'Oct 15, 2024',
-            eventsCreated: 12,
-            totalVolunteers: 85,
-            category: 'Environment',
-            status: 'verified'
-        },
-        {
-            id: 2,
-            name: 'Food For All',
-            email: 'info@foodforall.org',
-            location: 'Chittagong',
-            joinedDate: 'Nov 1, 2024',
-            eventsCreated: 8,
-            totalVolunteers: 62,
-            category: 'Distribution',
-            status: 'verified'
-        },
-        {
-            id: 3,
-            name: 'Education First Initiative',
-            email: 'hello@educationfirst.org',
-            location: 'Sylhet',
-            joinedDate: 'Nov 20, 2024',
-            eventsCreated: 5,
-            totalVolunteers: 34,
-            category: 'Education',
-            status: 'verified'
-        },
-    ];
-
-    const data = organizers || sampleOrganizers;
+    const data = organizers && organizers.length > 0 ? organizers : [];
 
     return (
         <div>
@@ -59,33 +22,11 @@ const TotalOrganizersModal = ({ organizers }) => {
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Total Organizers</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#06b6d4', margin: 0 }}>{data.length}</p>
                 </div>
-                <div style={{
-                    background: 'white',
-                    padding: '1rem',
-                    borderRadius: '0.75rem',
-                    textAlign: 'center'
-                }}>
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Verified</p>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
-                        {data.filter(o => o.status === 'verified').length}
-                    </p>
-                </div>
-                <div style={{
-                    background: 'white',
-                    padding: '1rem',
-                    borderRadius: '0.75rem',
-                    textAlign: 'center'
-                }}>
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Total Events</p>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7', margin: 0 }}>
-                        {data.reduce((sum, o) => sum + o.eventsCreated, 0)}
-                    </p>
-                </div>
             </div>
 
             {/* Organizers List */}
             <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', marginBottom: '1rem' }}>
-                Registered Organizations
+                Registered Organizers
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
@@ -161,11 +102,7 @@ const TotalOrganizersModal = ({ organizers }) => {
                                         <span>Joined {organizer.joinedDate}</span>
                                     </div>
                                 </div>
-
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                                        <strong style={{ color: '#a855f7' }}>{organizer.eventsCreated}</strong> events created
-                                    </span>
                                     <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
                                         <strong style={{ color: '#3b82f6' }}>{organizer.totalVolunteers}</strong> volunteers engaged
                                     </span>

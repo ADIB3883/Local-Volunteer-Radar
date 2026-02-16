@@ -284,6 +284,23 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     const [selectedStat, setSelectedStat] = useState(null);
+    const [activeEvents, setActiveEvents] = useState([]);
+
+    // Fetch active events
+    useEffect(() => {
+        const fetchActiveEvents = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/events/active');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                setActiveEvents(Array.isArray(data) ? data : data.events || []);
+            } catch (err) {
+                console.error('Error fetching active events:', err);
+                setActiveEvents([]);
+            }
+        };
+        fetchActiveEvents();
+    }, []);
 
     // Fetch pending users when the tab changes to pendingRegistrations
     useEffect(() => {
@@ -341,10 +358,6 @@ const AdminDashboard = () => {
         setTimeout(() => setShowNotification(false), 3000);
     };
 
-    const handleAnnouncementsClick = () => {
-
-    };
-
     const handleLogoutClick = () => {
         navigate('/login');
     };
@@ -359,7 +372,52 @@ const AdminDashboard = () => {
         [users]
     );
 
-    const stats = [
+    // Format volunteer data for modal
+    const volunteerData = useMemo(() => {
+        return (users || []).filter(u => u.type === 'volunteer').map(v => ({
+            id: v._id?.$oid || v._id || v.id,
+            name: v.name || 'Unknown',
+            email: v.email || '',
+            location: v.address || v.location || 'Unknown',
+            joinedDate: formatDate(v.createdAt || v.joinedDate),
+            eventsCompleted: 0,
+            hoursContributed: 0,
+            skills: getSkillsDisplay(v.skills) || []
+        }));
+    }, [users]);
+
+    // Format organizer data for modal
+    const organizerData = useMemo(() => {
+        return (users || []).filter(u => u.type === 'organizer').map(o => ({
+            id: o._id?.$oid || o._id || o.id,
+            name: o.name || 'Unknown',
+            email: o.email || '',
+            location: o.address || o.location || 'Unknown',
+            joinedDate: formatDate(o.createdAt || o.joinedDate),
+            eventsCreated: 0,
+            totalVolunteers: 0,
+            category: o.category || 'General',
+            status: o.isVerified ? 'verified' : 'pending'
+        }));
+    }, [users]);
+
+    // Format active events data for modal
+    const formattedActiveEvents = useMemo(() => {
+        return (activeEvents || []).map(e => ({
+            id: e._id?.$oid || e._id || e.id,
+            name: e.eventName || 'Unknown',
+            organization: e.organizerId?.name || e.organizerName || 'Unknown',
+            date: e.startdate || 'Unknown',
+            time: `${e.startTime || '00:00'} - ${e.endTime || '00:00'}`,
+            location: e.location || 'Unknown',
+            category: e.category || 'General',
+            volunteersRegistered: e.volunteersRegistered || 0,
+            volunteersNeeded: e.volunteersNeeded || 0,
+            status: 'active'
+        }));
+    }, [activeEvents]);
+
+    const stats = useMemo(() => [
         {
             id: 'volunteers',
             title: 'Total Volunteers',
@@ -369,7 +427,7 @@ const AdminDashboard = () => {
             iconColor: '#3b82f6',
             iconBg: '#dbeafe',
             modalTitle: 'Total Volunteers',
-            modalContent: <TotalVolunteerModal />
+            modalContent: <TotalVolunteerModal volunteers={volunteerData} />
         },
         {
             id: 'organizers',
@@ -380,20 +438,20 @@ const AdminDashboard = () => {
             iconColor: '#06b6d4',
             iconBg: '#cffafe',
             modalTitle: 'Total Organizers',
-            modalContent: <TotalOrganizerModal />
+            modalContent: <TotalOrganizerModal organizers={organizerData} />
         },
         {
             id: 'events',
             title: 'Active Events',
-            value: '2',
+            value: activeEvents.length,
             subtitle: 'Events taking place',
             icon: Sparkles,
             iconColor: '#a855f7',
             iconBg: '#f3e8ff',
             modalTitle: 'Ongoing Events',
-            modalContent: <ActiveEventsModal />
+            modalContent: <ActiveEventsModal events={formattedActiveEvents} />
         }
-    ];
+    ], [totalVolunteers, totalOrganizers, activeEvents.length, volunteerData, organizerData, formattedActiveEvents]);
 
     const closeModal = () => {
         setSelectedUser(null);
@@ -404,7 +462,6 @@ const AdminDashboard = () => {
             {/* Navbar */}
             <AdminNavbar
                 title="Admin Dashboard"
-                onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
             />
 

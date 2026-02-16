@@ -2,61 +2,7 @@ import React from 'react';
 import { User, MapPin, Calendar, Award } from 'lucide-react';
 
 const TotalVolunteersModal = ({ volunteers }) => {
-    // Sample data - replace with actual data
-    const sampleVolunteers = [
-        {
-            id: 1,
-            name: 'Sarah Ahmed',
-            email: 'sarah.ahmed@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Dec 1, 2024',
-            eventsCompleted: 5,
-            hoursContributed: 20,
-            skills: ['Teaching', 'Community Outreach']
-        },
-        {
-            id: 2,
-            name: 'Karim Rahman',
-            email: 'karim.r@email.com',
-            location: 'Chittagong',
-            joinedDate: 'Nov 15, 2024',
-            eventsCompleted: 8,
-            hoursContributed: 32,
-            skills: ['First-Aid', 'Distribution']
-        },
-        {
-            id: 3,
-            name: 'Nadia Islam',
-            email: 'nadia.islam@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Nov 20, 2024',
-            eventsCompleted: 3,
-            hoursContributed: 12,
-            skills: ['Education', 'Environment']
-        },
-        {
-            id: 4,
-            name: 'Fahim Hassan',
-            email: 'fahim.h@email.com',
-            location: 'Sylhet',
-            joinedDate: 'Dec 5, 2024',
-            eventsCompleted: 6,
-            hoursContributed: 24,
-            skills: ['Technology', 'Teaching']
-        },
-        {
-            id: 5,
-            name: 'Tasnim Chowdhury',
-            email: 'tasnim.c@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Oct 28, 2024',
-            eventsCompleted: 10,
-            hoursContributed: 40,
-            skills: ['Community Outreach', 'Distribution']
-        },
-    ];
-
-    const data = volunteers || sampleVolunteers;
+    const data = volunteers && volunteers.length > 0 ? volunteers : [];
 
     return (
         <div>

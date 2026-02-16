@@ -151,6 +151,37 @@ router.get("/admin-pending", async (req, res) => {
 });
 
 /*
+GET ACTIVE EVENTS (approved events with upcoming dates)
+GET /api/events/active
+*/
+router.get("/active", async (req, res) => {
+    try {
+        const today = new Date();
+        // Start of today
+        const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        const events = await Event.find({
+            isApproved: true,
+            startdate: { $gte: startOfToday.toISOString().split('T')[0] },
+            status: { $ne: 'cancelled' }
+        })
+            .populate('organizerId', 'name email')
+            .sort({ startdate: 1, startTime: 1 });
+
+        // Map events to include proper volunteer count from registrations array
+        const eventsWithProperCounts = events.map(event => ({
+            ...event.toObject(),
+            volunteersRegistered: event.registrations ? event.registrations.length : 0
+        }));
+
+        res.json(eventsWithProperCounts);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error while fetching active events." });
+    }
+});
+
+/*
 5️⃣ GET SINGLE EVENT BY ID
 GET /api/events/:eventId
 */
@@ -387,6 +418,5 @@ router.put("/:eventId/cancel", async (req, res) => {
         res.status(500).json({ message: "Server error while cancelling event." });
     }
 });
-
 
 module.exports = router;
