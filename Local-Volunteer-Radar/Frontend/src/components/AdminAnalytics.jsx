@@ -3,7 +3,11 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import AdminChart from "./AdminChart.jsx";
 
 const getTrendInfo = (statement) => {
-    if (statement.includes("Unchanged")) {
+    if (!statement) return { color: "#9ca3af", icon: Minus, bg: "#f3f4f6" };
+    if (statement.toLowerCase().includes("unavailable")) {
+        return { color: "#9ca3af", icon: Minus, bg: "#f3f4f6" };
+    }
+    if (statement.toLowerCase().includes("no change") || statement.toLowerCase().includes("unchanged")) {
         return { color: "#3b82f6", icon: Minus, bg: "#dbeafe" };
     } else if (statement.includes("-") || statement.toLowerCase().includes("decrease")) {
         return { color: "#ef4444", icon: TrendingDown, bg: "#fee2e2" };
@@ -74,10 +78,10 @@ export default function AdminAnalytics() {
                 data={analyticsData.analytics.volunteers}
             />
             <AnalyticsCard
-                title="NGO Enrollment (Yearly)"
-                value={analyticsData.analytics.ngos.reduce((a, b) => a + b, 0)}
-                statement={analyticsData.trendStatement.ngos}
-                data={analyticsData.analytics.ngos}
+                title="Organizer Enrollment (Yearly)"
+                value={analyticsData.analytics.organizer.reduce((a, b) => a + b, 0)}
+                statement={analyticsData.trendStatement.organizer}
+                data={analyticsData.analytics.organizer}
             />
             <AnalyticsCard
                 title="Active Events (Yearly)"

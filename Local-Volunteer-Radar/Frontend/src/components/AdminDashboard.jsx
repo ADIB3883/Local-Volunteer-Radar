@@ -64,17 +64,17 @@ const AdminDashboard = () => {
         fetchUsers('/users/pending', setPendingUsers);
     };
 
-    // useEffect(() => {
-    //     fetch("http://localhost:5000/api/admin/analytics")
-    //         .then((res) => res.json())
-    //         .then((data) => {
-    //             console.log("Fetched analytics:", data);
-    //             setAnalytics(data);
-    //         })
-    //         .catch((err) => {
-    //             console.error("Error fetching analytics:", err);
-    //         });
-    // }, []);
+    useEffect(() => {
+        fetch("http://localhost:5000/api/admin/analytics")
+            .then((res) => res.json())
+            .then((data) => {
+                console.log("Fetched analytics:", data);
+                setAnalytics(data);
+            })
+            .catch((err) => {
+                console.error("Error fetching analytics:", err);
+            });
+    }, []);
 
     useEffect(() => {
         const fetchPendingEvents = async () => {
@@ -551,36 +551,36 @@ const AdminDashboard = () => {
                     >
                         Partners
                     </button>
-                    {/*<button*/}
-                    {/*    onClick={() => setActiveTab('analytics')}*/}
-                    {/*    style={{*/}
-                    {/*        padding: '0.5rem 1rem',*/}
-                    {/*        borderRadius: '0.625rem',*/}
-                    {/*        fontWeight: '500',*/}
-                    {/*        fontSize: '0.875rem',*/}
-                    {/*        border: 'none',*/}
-                    {/*        cursor: 'pointer',*/}
-                    {/*        transition: 'all 0.2s ease',*/}
-                    {/*        background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',*/}
-                    {/*        color: activeTab === 'analytics' ? '#111827' : '#4b5563',*/}
-                    {/*        boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',*/}
-                    {/*        whiteSpace: 'nowrap'*/}
-                    {/*    }}*/}
-                    {/*    onMouseEnter={(e) => {*/}
-                    {/*        if (activeTab !== 'analytics') {*/}
-                    {/*            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';*/}
-                    {/*            e.currentTarget.style.color = '#374151';*/}
-                    {/*        }*/}
-                    {/*    }}*/}
-                    {/*    onMouseLeave={(e) => {*/}
-                    {/*        if (activeTab !== 'analytics') {*/}
-                    {/*            e.currentTarget.style.background = 'transparent';*/}
-                    {/*            e.currentTarget.style.color = '#4b5563';*/}
-                    {/*        }*/}
-                    {/*    }}*/}
-                    {/*>*/}
-                    {/*    Analytics*/}
-                    {/*</button>*/}
+                    <button
+                        onClick={() => setActiveTab('analytics')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.625rem',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'analytics' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'analytics') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#374151';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'analytics') {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#4b5563';
+                            }
+                        }}
+                    >
+                        Analytics
+                    </button>
                     <button
                         onClick={() => setActiveTab('pendingRegistrations')}
                         style={{
@@ -631,11 +631,11 @@ const AdminDashboard = () => {
                     </button>
                 </div>
 
-                {/*{activeTab === 'analytics' && (*/}
-                {/*    <div style={{ marginBottom: '1.5rem' }}>*/}
-                {/*        <AdminAnalytics analytics={analytics} />*/}
-                {/*    </div>*/}
-                {/*)}*/}
+                {activeTab === 'analytics' && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <AdminAnalytics analytics={analytics} />
+                    </div>
+                )}
 
                 {activeTab === 'partner' && (
                     <>
