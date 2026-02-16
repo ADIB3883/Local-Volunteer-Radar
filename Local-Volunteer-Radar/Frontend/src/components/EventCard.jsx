@@ -11,7 +11,6 @@ const EventCard = ({
                        date,
                        time,
                        location,
-                       distance,
                        requirements,
                        onRegister
                    }) => {
@@ -292,10 +291,6 @@ const EventCard = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
                     <MapPin size={16} style={{ color: '#ef4444' }} />
                     <span>{location}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
-                    <Radio size={16} style={{ color: '#a855f7' }} />
-                    <span>{distance}</span>
                 </div>
             </div>
 

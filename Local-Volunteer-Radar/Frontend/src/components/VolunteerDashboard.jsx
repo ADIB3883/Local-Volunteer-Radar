@@ -676,10 +676,20 @@ const VolunteerDashboard = () => {
                                                 { name: event.category || 'general', type: 'skill' },
                                                 { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                             ]}
-                                            date={new Date(event.startdate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                            date={`${new Date(event.startdate).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}`}
                                             time={`${event.startTime} - ${event.endTime}`}
                                             location={event.location}
-                                            distance="Calculating..."
+
                                             requirements={event.requirements || 'No specific requirements'}
                                             onRegister={refreshEvents}
                                         />
@@ -756,10 +766,20 @@ const VolunteerDashboard = () => {
                                                 { name: event.category || 'general', type: 'skill' },
                                                 { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                             ]}
-                                            date={new Date(event.startdate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                            date={`${new Date(event.startdate).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}`}
                                             time={`${event.startTime} - ${event.endTime}`}
                                             location={event.location}
-                                            distance="Calculating..."
+
                                             requirements={event.requirements || 'No specific requirements'}
                                             onRegister={refreshEvents}
                                         />
