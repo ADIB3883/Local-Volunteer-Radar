@@ -246,12 +246,17 @@ const MyRegistrations = () => {
                                 }}>
                                     <Calendar size={16} style={{ color: '#3b82f6' }} />
                                     <span>
-                                        {new Date(event.startdate).toLocaleDateString('en-US', {
+                                        {`${new Date(event.startdate).toLocaleDateString('en-US', {
                                             weekday: 'long',
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric'
-                                        })}
+                                        })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}`}
                                     </span>
                                 </div>
                                 <div style={{
