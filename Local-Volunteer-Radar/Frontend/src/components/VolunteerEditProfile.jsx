@@ -11,6 +11,7 @@ const VolunteerEditProfile = () => {
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [phoneError, setPhoneError] = useState(''); // ✅ NEW: Phone error state
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -34,7 +35,9 @@ const VolunteerEditProfile = () => {
 
             try {
                 // Fetch fresh data from backend
-                const response = await fetch(`http://localhost:5000/api/auth/profile/${loggedInUser.id}`);
+                const response = await fetch(
+                    `http://localhost:5000/api/profile/${loggedInUser.email}`
+                );
                 const data = await response.json();
 
                 if (data.success) {
@@ -106,6 +109,28 @@ const VolunteerEditProfile = () => {
         });
     };
 
+    // ✅ NEW: Phone number validation handler
+    const handlePhoneChange = (e) => {
+        const value = e.target.value;
+
+        // Allow only digits
+        const digitsOnly = value.replace(/\D/g, '');
+
+        setFormData({
+            ...formData,
+            phone: digitsOnly
+        });
+
+        // Validate length
+        if (digitsOnly.length === 0) {
+            setPhoneError('');
+        } else if (digitsOnly.length !== 11) {
+            setPhoneError('Phone number must be exactly 11 digits');
+        } else {
+            setPhoneError('');
+        }
+    };
+
     const handleSlotChange = (id, field, value) => {
         setAvailabilitySlots(availabilitySlots.map(slot =>
             slot.id === id ? { ...slot, [field]: value } : slot
@@ -136,6 +161,56 @@ const VolunteerEditProfile = () => {
         setAvailabilitySlots(availabilitySlots.filter(slot => slot.id !== id));
     };
 
+    // const compressImage = (base64String, maxWidth = 400, quality = 0.7) => {
+    //     return new Promise((resolve) => {
+    //         const img = new Image();
+    //         img.onload = () => {
+    //             const canvas = document.createElement('canvas');
+    //             let width = img.width;
+    //             let height = img.height;
+    //
+    //             if (width > maxWidth) {
+    //                 height = (height * maxWidth) / width;
+    //                 width = maxWidth;
+    //             }
+    //
+    //             canvas.width = width;
+    //             canvas.height = height;
+    //
+    //             const ctx = canvas.getContext('2d');
+    //             ctx.drawImage(img, 0, 0, width, height);
+    //
+    //             resolve(canvas.toDataURL('image/jpeg', quality));
+    //         };
+    //         img.src = base64String;
+    //     });
+    // };
+
+    // const handleFileChange = async (e) => {
+    //     const file = e.target.files[0];
+    //     if (file) {
+    //         // Validate file size (e.g., max 5MB)
+    //         if (file.size > 5 * 1024 * 1024) {
+    //             alert('Image size should be less than 5MB');
+    //             return;
+    //         }
+    //
+    //         const reader = new FileReader();
+    //         reader.onloadend = async () => {
+    //             try {
+    //                 // Compress the image
+    //                 const compressed = await compressImage(reader.result);
+    //                 setProfilePicture(file);
+    //                 setProfilePicturePreview(compressed);
+    //             } catch (error) {
+    //                 console.error('Error compressing image:', error);
+    //                 alert('Error processing image');
+    //             }
+    //         };
+    //         reader.readAsDataURL(file);
+    //     }
+    // };
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -148,8 +223,14 @@ const VolunteerEditProfile = () => {
         }
     };
 
-    // Save to backend AND localStorage
+    // ✅ MODIFIED: Save to backend AND localStorage with phone validation
     const handleSave = async () => {
+        // ✅ Validate phone number before saving
+        if (formData.phone && formData.phone.length !== 11) {
+            alert('Phone number must be exactly 11 digits');
+            return;
+        }
+
         const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
         if (!loggedInUser) {
             alert('Please log in again');
@@ -169,7 +250,7 @@ const VolunteerEditProfile = () => {
                 profilePicture: profilePicturePreview || ''
             };
 
-            const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.id}`, {
+            const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -391,28 +472,43 @@ const VolunteerEditProfile = () => {
                         </p>
                     </div>
 
-                    {/* Phone Number */}
+                    {/* Phone Number - ✅ MODIFIED with validation */}
                     <div style={{ marginBottom: '1.5rem' }}>
                         <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
-                            Phone Number
+                            Phone Number <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         <input
                             type="tel"
                             name="phone"
                             value={formData.phone}
-                            onChange={handleInputChange}
+                            onChange={handlePhoneChange}
+                            placeholder="01XXXXXXXXX"
+                            maxLength={11}
                             style={{
                                 width: '100%',
                                 padding: '0.75rem',
-                                border: '1px solid #e5e7eb',
+                                border: `1px solid ${phoneError ? '#ef4444' : '#e5e7eb'}`,
                                 borderRadius: '0.5rem',
                                 fontSize: '0.875rem',
                                 outline: 'none',
                                 transition: 'border-color 0.2s'
                             }}
-                            onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-                            onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+                            onFocus={(e) => {
+                                if (!phoneError) e.currentTarget.style.borderColor = '#3b82f6';
+                            }}
+                            onBlur={(e) => {
+                                if (!phoneError) e.currentTarget.style.borderColor = '#e5e7eb';
+                            }}
                         />
+                        {phoneError ? (
+                            <p style={{ fontSize: '0.75rem', color: '#ef4444', margin: '0.25rem 0 0 0' }}>
+                                {phoneError}
+                            </p>
+                        ) : (
+                            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.25rem 0 0 0' }}>
+                                Enter 11-digit phone number (e.g., 01712345678)
+                            </p>
+                        )}
                     </div>
 
                     {/* Address */}
@@ -688,27 +784,27 @@ const VolunteerEditProfile = () => {
 
                     <button
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || phoneError}
                         style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem',
                             padding: '0.75rem 1.5rem',
-                            background: saving ? '#9ca3af' : '#3b82f6',
+                            background: (saving || phoneError) ? '#9ca3af' : '#3b82f6',
                             color: 'white',
                             border: 'none',
                             borderRadius: '9999px',
-                            cursor: saving ? 'not-allowed' : 'pointer',
+                            cursor: (saving || phoneError) ? 'not-allowed' : 'pointer',
                             fontSize: '0.875rem',
                             fontWeight: '600',
                             transition: 'background-color 0.2s',
                             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
                         onMouseOver={(e) => {
-                            if (!saving) e.currentTarget.style.background = '#2563eb';
+                            if (!saving && !phoneError) e.currentTarget.style.background = '#2563eb';
                         }}
                         onMouseOut={(e) => {
-                            if (!saving) e.currentTarget.style.background = '#3b82f6';
+                            if (!saving && !phoneError) e.currentTarget.style.background = '#3b82f6';
                         }}
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
