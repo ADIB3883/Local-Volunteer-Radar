@@ -17,29 +17,54 @@ const EventCard = ({
                    }) => {
     const navigate = useNavigate();
     const [registrationStatus, setRegistrationStatus] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     // Check registration status on mount and when eventId changes
     useEffect(() => {
-        const checkRegistrationStatus = () => {
+        const checkRegistrationStatus = async () => {
             const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
             if (!loggedInUser) return;
 
-            const registrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
-            const userRegistration = registrations.find(
-                reg => reg.eventId === eventId && reg.volunteerEmail === loggedInUser.email
-            );
+            try {
+                // Fetch event details to check if user is registered
+                const response = await fetch(`http://localhost:5000/api/events/${eventId}`);
+                if (response.ok) {
+                    const eventData = await response.json();
 
-            if (userRegistration) {
-                setRegistrationStatus(userRegistration.status);
-            } else {
-                setRegistrationStatus(null);
+                    console.log('Checking registration for event:', eventId);
+                    console.log('User ID:', loggedInUser.id);
+                    console.log('Event registrations:', eventData.registrations);
+
+                    // Check if this user is in the registrations
+                    const userRegistration = eventData.registrations?.find(
+                        reg => {
+                            // Handle both ObjectId and string comparison
+                            const volunteerId = reg.volunteer?._id || reg.volunteer;
+                            const userId = loggedInUser.id || loggedInUser._id;
+
+                            console.log('Comparing:', volunteerId, 'with', userId);
+
+                            return volunteerId && volunteerId.toString() === userId.toString();
+                        }
+                    );
+
+                    console.log('Found registration:', userRegistration);
+
+                    if (userRegistration) {
+                        setRegistrationStatus(userRegistration.status);
+                    } else {
+                        setRegistrationStatus(null);
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking registration status:', error);
             }
         };
 
         checkRegistrationStatus();
     }, [eventId]);
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
         if (!loggedInUser) {
@@ -54,72 +79,43 @@ const EventCard = ({
             return;
         }
 
-        // Get all events
-        const events = JSON.parse(localStorage.getItem('events')) || [];
+        setLoading(true);
 
-        // Find the specific event
-        const eventIndex = events.findIndex(e => e.id === eventId);
+        try {
+            // Make API call to register
+            const response = await fetch(`http://localhost:5000/api/events/${eventId}/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    volunteerId: loggedInUser.id || loggedInUser._id,
+                    volunteerEmail: loggedInUser.email,
+                    volunteerName: loggedInUser.name || loggedInUser.fullName
+                })
+            });
 
-        if (eventIndex === -1) {
-            alert("Event not found");
-            return;
-        }
+            const data = await response.json();
 
-        // Get existing registrations or initialize
-        const registrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
+            if (data.success) {
+                alert('Successfully registered for the event! Your registration is pending organizer approval.');
 
-        // Check if already registered
-        const alreadyRegistered = registrations.some(
-            reg => reg.eventId === eventId && reg.volunteerEmail === loggedInUser.email
-        );
+                // Update local status
+                setRegistrationStatus('pending');
 
-        if (alreadyRegistered) {
-            alert("You are already registered for this event");
-            return;
-        }
+                // Call parent callback to refresh events
+                if (onRegister) {
+                    onRegister();
+                }
+            } else {
+                alert(data.message || 'Failed to register for event');
+            }
 
-        // Check if event is full
-        if (events[eventIndex].volunteersRegistered >= events[eventIndex].volunteersNeeded) {
-            alert("Event is full");
-            return;
-        }
-
-        // Create registration
-        const newRegistration = {
-            id: Date.now(),
-            eventId: eventId,
-            eventName: title,
-            eventDate: date,
-            eventTime: time,
-            eventLocation: location,
-            volunteerEmail: loggedInUser.email,
-            volunteerName: loggedInUser.fullName || loggedInUser.name || "Volunteer",
-            volunteerPhone: loggedInUser.phone || "",
-            volunteerSkills: loggedInUser.skills || [],
-            volunteerAvailability: loggedInUser.availability || [],
-            eventsCompleted: loggedInUser.eventsCompleted || "0",
-            hoursVolunteered: loggedInUser.hoursVolunteered || "0",
-            status: 'Pending',
-            actionTaken: false,
-            registeredAt: new Date().toISOString()
-        };
-
-        // Add registration
-        registrations.push(newRegistration);
-        localStorage.setItem('eventRegistrations', JSON.stringify(registrations));
-
-        // Update event volunteer count
-        events[eventIndex].volunteersRegistered = (events[eventIndex].volunteersRegistered || 0) + 1;
-        localStorage.setItem('events', JSON.stringify(events));
-
-        alert("Successfully registered for the event! Your registration is pending organizer approval.");
-
-        // Update local status
-        setRegistrationStatus('Pending');
-
-        // Call parent callback if provided to refresh the UI
-        if (onRegister) {
-            onRegister();
+        } catch (error) {
+            console.error('Error registering for event:', error);
+            alert('Error registering for event. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -185,16 +181,20 @@ const EventCard = ({
     };
 
     const getButtonContent = () => {
+        if (loading) {
+            return "Registering...";
+        }
+
         if (!registrationStatus) {
             return "Register to Volunteer";
         }
 
-        switch(registrationStatus) {
-            case 'Pending':
+        switch(registrationStatus.toLowerCase()) {
+            case 'pending':
                 return "⏳ Registration Pending";
-            case 'Approved':
+            case 'approved':
                 return "✓ Registered";
-            case 'Rejected':
+            case 'rejected':
                 return "✗ Registration Rejected";
             default:
                 return "Register to Volunteer";
@@ -202,6 +202,13 @@ const EventCard = ({
     };
 
     const getButtonStyle = () => {
+        if (loading) {
+            return {
+                background: 'linear-gradient(to right, #9ca3af, #6b7280)',
+                cursor: 'not-allowed'
+            };
+        }
+
         if (!registrationStatus) {
             return {
                 background: 'linear-gradient(to right, #3b82f6, #10b981)',
@@ -209,18 +216,18 @@ const EventCard = ({
             };
         }
 
-        switch(registrationStatus) {
-            case 'Pending':
+        switch(registrationStatus.toLowerCase()) {
+            case 'pending':
                 return {
                     background: 'linear-gradient(to right, #f59e0b, #f97316)',
                     cursor: 'not-allowed'
                 };
-            case 'Approved':
+            case 'approved':
                 return {
                     background: 'linear-gradient(to right, #10b981, #059669)',
                     cursor: 'not-allowed'
                 };
-            case 'Rejected':
+            case 'rejected':
                 return {
                     background: 'linear-gradient(to right, #ef4444, #dc2626)',
                     cursor: 'not-allowed'
@@ -300,8 +307,8 @@ const EventCard = ({
             <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {/* Register Button */}
                 <button
-                    onClick={registrationStatus ? null : handleRegister}
-                    disabled={!!registrationStatus}
+                    onClick={registrationStatus || loading ? null : handleRegister}
+                    disabled={!!registrationStatus || loading}
                     style={{
                         flex: 1,
                         padding: '0.75rem',
@@ -312,7 +319,7 @@ const EventCard = ({
                         borderRadius: '0.75rem',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                         transition: 'all 0.3s',
-                        opacity: registrationStatus ? 0.9 : 1
+                        opacity: registrationStatus || loading ? 0.9 : 1
                     }}
                 >
                     {getButtonContent()}
