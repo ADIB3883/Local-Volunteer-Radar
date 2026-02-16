@@ -4,6 +4,15 @@ import { User, MapPin, Calendar, Award } from 'lucide-react';
 const TotalVolunteersModal = ({ volunteers }) => {
     const data = volunteers && volunteers.length > 0 ? volunteers : [];
 
+    const getInitials = (name) => name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'UN';
+    
+    const getAvatarColor = (name) => {
+        const colors = ['#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
     return (
         <div>
             {/* Summary Stats */}
@@ -64,14 +73,21 @@ const TotalVolunteersModal = ({ volunteers }) => {
                             <div style={{
                                 width: '3rem',
                                 height: '3rem',
-                                background: '#dbeafe',
+                                background: volunteer.profilePicture ? 'transparent' : getAvatarColor(volunteer.name || 'User'),
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                flexShrink: 0
+                                flexShrink: 0,
+                                overflow: 'hidden',
+                                objectFit: 'cover',
+                                color: 'white'
                             }}>
-                                <User size={24} color="#3b82f6" />
+                                {volunteer.profilePicture ? (
+                                    <img src={volunteer.profilePicture} alt={volunteer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <span style={{ fontWeight: '600', fontSize: '0.875rem' }}>{getInitials(volunteer.name || 'User')}</span>
+                                )}
                             </div>
 
                             <div style={{ flex: 1 }}>

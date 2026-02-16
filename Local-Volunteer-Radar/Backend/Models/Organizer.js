@@ -11,6 +11,10 @@ const OrganizerSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    profilePicture: {
+        type: String,
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: Date.now

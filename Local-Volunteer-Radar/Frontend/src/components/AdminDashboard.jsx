@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import './AdminStyles.css';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
+import { Users, Building, Search, ChevronDown, X, Sparkles, Mail, Phone, MapPin, Calendar, Tag, Briefcase, Trash2, AlertCircle } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
@@ -11,6 +11,7 @@ import Modal from './Modal';
 import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
 import ActiveEventsModal from './ActiveEventsModal';
+import PartnerModal from './PartnerModal.jsx';
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
@@ -36,6 +37,7 @@ const AdminDashboard = () => {
     const [pendingSortBy, setPendingSortBy] = useState('');
     const [eventSearchQuery, setEventSearchQuery] = useState('');
     const [eventSortBy, setEventSortBy] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState({ show: false, userId: null, userName: '' });
 
     const fetchUsers = async (endpoint, setter) => {
         try {
@@ -362,6 +364,45 @@ const AdminDashboard = () => {
         navigate('/login');
     };
 
+    const handleDeleteUser = async (userId) => {
+        try {
+            const userType = selectedUser.type || (selectedUser.organizationType ? 'organizer' : 'volunteer');
+            const endpoint = userType === 'organizer' ? '/organizers' : '/volunteers';
+            
+            const res = await fetch(`http://localhost:5000/api${endpoint}/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+            setUsers(prev => prev.filter(u => (u._id?.$oid || u._id) !== userId));
+            setSelectedUser(null);
+            setDeleteConfirm({ show: false, userId: null, userName: '' });
+            
+            setNotificationConfig({
+                borderColor: 'border-red-500',
+                bgColor: 'bg-red-500',
+                message: `User deleted successfully!`
+            });
+            setShowNotification(true);
+            setTimeout(() => setShowNotification(false), 3000);
+        } catch (err) {
+            console.error('Delete error:', err);
+            setNotificationConfig({
+                borderColor: 'border-red-500',
+                bgColor: 'bg-red-500',
+                message: 'Failed to delete user'
+            });
+            setShowNotification(true);
+            setTimeout(() => setShowNotification(false), 3000);
+        }
+    };
+
+    const initiateDelete = (userId, userName) => {
+        setDeleteConfirm({ show: true, userId, userName });
+    };
+
     const totalVolunteers = useMemo(
         () => users?.filter(u => u.type === 'volunteer').length || 0,
         [users]
@@ -382,7 +423,8 @@ const AdminDashboard = () => {
             joinedDate: formatDate(v.createdAt || v.joinedDate),
             eventsCompleted: 0,
             hoursContributed: 0,
-            skills: getSkillsDisplay(v.skills) || []
+            skills: getSkillsDisplay(v.skills) || [],
+            profilePicture: v.profilePicture || ''
         }));
     }, [users]);
 
@@ -397,7 +439,8 @@ const AdminDashboard = () => {
             eventsCreated: 0,
             totalVolunteers: 0,
             category: o.category || 'General',
-            status: o.isVerified ? 'verified' : 'pending'
+            status: o.isVerified ? 'verified' : 'pending',
+            profilePicture: o.profilePicture || ''
         }));
     }, [users]);
 
@@ -765,11 +808,17 @@ const AdminDashboard = () => {
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{
                                                     width: '2.5rem', height: '2.5rem', borderRadius: '50%',
-                                                    background: getAvatarColor(user.name || 'User'),
+                                                    background: user.profilePicture ? 'transparent' : getAvatarColor(user.name || 'User'),
                                                     color: 'white', fontWeight: '600', fontSize: '0.875rem',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    overflow: 'hidden',
+                                                    objectFit: 'cover'
                                                 }}>
-                                                    {getInitials(user.name || 'User')}
+                                                    {user.profilePicture ? (
+                                                        <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        getInitials(user.name || 'User')
+                                                    )}
                                                 </div>
                                                 <span style={{ fontWeight: '500', color: '#111827' }}>
                                     {user.name || 'Unnamed'}
@@ -807,74 +856,56 @@ const AdminDashboard = () => {
                             </div>
 
                             {/* Fixed Modal */}
-                            {selectedUser && (
-                                <div style={{ /* your existing modal overlay styles */ }} onClick={() => setSelectedUser(null)}>
-                                    <div style={{ /* your existing modal content styles */ }} onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => setSelectedUser(null)} style={{ /* close button styles */ }}>
-                                            <X size={18} />
-                                        </button>
+                            <PartnerModal 
+                                selectedUser={selectedUser} 
+                                onClose={() => setSelectedUser(null)} 
+                                initiateDelete={initiateDelete}
+                                formatDate={formatDate}
+                                getInitials={getInitials}
+                                getAvatarColor={getAvatarColor}
+                                getSkillsDisplay={getSkillsDisplay}
+                            />
 
-                                        {/* Header */}
-                                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                            <div style={{ /* avatar styles */ }}>
-                                                {getInitials(selectedUser.name || 'User')}
+                            {/* Delete Confirmation Dialog */}
+                            {deleteConfirm.show && (
+                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+                                    <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <div style={{ background: '#fee2e2', borderRadius: '50%', padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <AlertCircle size={24} color="#dc2626" />
                                             </div>
-                                            <h2>{selectedUser.name || 'Unnamed'}</h2>
-                                            <p style={{ color: '#6b7280' }}>{selectedUser.email || 'No email'}</p>
+                                            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '700', color: '#111827' }}>Delete User?</h3>
                                         </div>
-
-                                        {/* Schema-safe Details */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Type</span>
-                                                <span style={{
-                                                    padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
-                                                    background: '#e9d5ff', color: '#6b21a8'
-                                                }}>
-                                    {selectedUser.type || 'Unknown'}
-                                </span>
-                                            </div>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.email || 'N/A'}</span>
-                                            </div>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Joined</span>
-                                                <span style={{ fontWeight: '500' }}>{formatDate(selectedUser.createdAt)}</span>
-                                            </div>
-
-                                            {selectedUser.phoneNumber && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
-                                                    <span style={{ fontWeight: '500' }}>{selectedUser.phoneNumber}</span>
-                                                </div>
-                                            )}
-
-                                            {selectedUser.address && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
-                                                    <span style={{ fontWeight: '500', maxWidth: '60%' }}>{selectedUser.address}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Schema-safe Skills (handles both formats) */}
-                                            {selectedUser.skills && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
-                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                        {getSkillsDisplay(selectedUser.skills).map((skill, i) => (
-                                                            <span key={i} style={{
-                                                                padding: '0.25rem 0.625rem', borderRadius: '0.375rem',
-                                                                background: '#f3f4f6', color: '#374151', fontSize: '0.75rem'
-                                                            }}>
-                                                {skill}
-                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                        <p style={{ margin: '0 0 1rem 0', color: '#374151', fontSize: '0.875rem' }}>
+                                            Are you sure you want to delete <strong>{deleteConfirm.userName}</strong>? This action cannot be undone.
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <button
+                                                onClick={() => setDeleteConfirm({ show: false, userId: null, userName: '' })}
+                                                style={{
+                                                    flex: 1, padding: '0.75rem 1rem', border: '1px solid #d1d5db',
+                                                    background: 'white', color: '#374151', borderRadius: '0.625rem',
+                                                    cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteUser(deleteConfirm.userId)}
+                                                style={{
+                                                    flex: 1, padding: '0.75rem 1rem', background: '#dc2626',
+                                                    color: 'white', border: 'none', borderRadius: '0.625rem',
+                                                    cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1002,6 +1033,7 @@ const AdminDashboard = () => {
                                             joiningDate={userData.createdAt?.$date || 'N/A'}
                                             description={userData.description || userData.bio || 'N/A'}
                                             skills={userData.skills || {}}
+                                            profilePicture={userData.profilePicture || ''}
                                             onApprove={handleUserApprove}
                                             onReject={handleUserReject}
                                         />

@@ -4,6 +4,15 @@ import { Building2, MapPin, Calendar, Award, CheckCircle } from 'lucide-react';
 const TotalOrganizersModal = ({ organizers }) => {
     const data = organizers && organizers.length > 0 ? organizers : [];
 
+    const getInitials = (name) => name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'UN';
+    
+    const getAvatarColor = (name) => {
+        const colors = ['#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
     return (
         <div>
             {/* Summary Stats */}
@@ -74,14 +83,21 @@ const TotalOrganizersModal = ({ organizers }) => {
                             <div style={{
                                 width: '3rem',
                                 height: '3rem',
-                                background: '#cffafe',
+                                background: organizer.profilePicture ? 'transparent' : getAvatarColor(organizer.name || 'User'),
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                flexShrink: 0
+                                flexShrink: 0,
+                                overflow: 'hidden',
+                                objectFit: 'cover',
+                                color: 'white'
                             }}>
-                                <Building2 size={24} color="#06b6d4" />
+                                {organizer.profilePicture ? (
+                                    <img src={organizer.profilePicture} alt={organizer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <span style={{ fontWeight: '600', fontSize: '0.875rem' }}>{getInitials(organizer.name || 'User')}</span>
+                                )}
                             </div>
 
                             <div style={{ flex: 1 }}>
