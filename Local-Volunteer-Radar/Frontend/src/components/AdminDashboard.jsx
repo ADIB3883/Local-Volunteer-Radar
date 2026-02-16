@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import './AdminStyles.css';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building, Search, ChevronDown, X, Sparkles, Mail, Phone, MapPin, Calendar, Tag, Briefcase, Trash2, AlertCircle } from 'lucide-react';
+import { Users, Building, Search, ChevronDown, X, Sparkles, Mail, Phone, MapPin, Calendar, Tag, Briefcase, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
@@ -12,6 +12,21 @@ import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
 import ActiveEventsModal from './ActiveEventsModal';
 import PartnerModal from './PartnerModal.jsx';
+
+// Loading spinner component
+const LoadingSpinner = ({ message = "Loading..." }) => (
+    <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3rem',
+        color: '#6b7280'
+    }}>
+        <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+        <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>{message}</p>
+    </div>
+);
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
@@ -676,7 +691,11 @@ const AdminDashboard = () => {
 
                 {activeTab === 'analytics' && (
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <AdminAnalytics analytics={analytics} />
+                        {analytics ? (
+                            <AdminAnalytics analytics={analytics} />
+                        ) : (
+                            <LoadingSpinner message="Loading analytics..." />
+                        )}
                     </div>
                 )}
 
@@ -767,69 +786,72 @@ const AdminDashboard = () => {
 
                         {/* Partners List */}
                         <div style={{ margin: '0 auto' }}>
-                            <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
-                                {/* Table Header */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '2fr 2fr 1fr 1fr',
-                                    gap: '1rem',
-                                    padding: '1rem 1.5rem',
-                                    borderBottom: '1px solid #f3f4f6',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '600',
-                                    color: '#6b7280'
-                                }}>
-                                    <div>NAME</div>
-                                    <div>EMAIL</div>
-                                    <div>TYPE</div>
-                                    <div>JOINED</div>
-                                </div>
+                            {loading ? (
+                                <LoadingSpinner message="Loading partners..." />
+                            ) : (
+                                <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                                    {/* Table Header */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '2fr 2fr 1fr 1fr',
+                                        gap: '1rem',
+                                        padding: '1rem 1.5rem',
+                                        borderBottom: '1px solid #f3f4f6',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600',
+                                        color: '#6b7280'
+                                    }}>
+                                        <div>NAME</div>
+                                        <div>EMAIL</div>
+                                        <div>TYPE</div>
+                                        <div>JOINED</div>
+                                    </div>
 
-                                {/* Table Rows */}
-                                {filteredAndSortedUsers
-                                    .filter(user => user.type !== 'admin')
-                                    .map((user) => (
-                                        <div
-                                            key={user._id.$oid}
-                                            onClick={() => setSelectedUser(user)}
-                                            style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '2fr 2fr 1fr 1fr',
-                                                gap: '1rem',
-                                                padding: '1rem 1.5rem',
-                                                alignItems: 'center',
-                                                borderBottom: '1px solid #f3f4f6',
-                                                cursor: 'pointer',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{
-                                                    width: '2.5rem', height: '2.5rem', borderRadius: '50%',
-                                                    background: user.profilePicture ? 'transparent' : getAvatarColor(user.name || 'User'),
-                                                    color: 'white', fontWeight: '600', fontSize: '0.875rem',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    overflow: 'hidden',
-                                                    objectFit: 'cover'
-                                                }}>
-                                                    {user.profilePicture ? (
-                                                        <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : (
-                                                        getInitials(user.name || 'User')
-                                                    )}
-                                                </div>
-                                                <span style={{ fontWeight: '500', color: '#111827' }}>
+                                    {/* Table Rows */}
+                                    {filteredAndSortedUsers
+                                        .filter(user => user.type !== 'admin')
+                                        .map((user) => (
+                                            <div
+                                                key={user._id.$oid}
+                                                onClick={() => setSelectedUser(user)}
+                                                style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: '2fr 2fr 1fr 1fr',
+                                                    gap: '1rem',
+                                                    padding: '1rem 1.5rem',
+                                                    alignItems: 'center',
+                                                    borderBottom: '1px solid #f3f4f6',
+                                                    cursor: 'pointer',
+                                                    transition: 'background-color 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <div style={{
+                                                        width: '2.5rem', height: '2.5rem', borderRadius: '50%',
+                                                        background: user.profilePicture ? 'transparent' : getAvatarColor(user.name || 'User'),
+                                                        color: 'white', fontWeight: '600', fontSize: '0.875rem',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        overflow: 'hidden',
+                                                        objectFit: 'cover'
+                                                    }}>
+                                                        {user.profilePicture ? (
+                                                            <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            getInitials(user.name || 'User')
+                                                        )}
+                                                    </div>
+                                                    <span style={{ fontWeight: '500', color: '#111827' }}>
                                     {user.name || 'Unnamed'}
                                 </span>
-                                            </div>
+                                                </div>
 
-                                            <div style={{ color: '#000', fontSize: '0.875rem' }}>
-                                                {user.email || 'No email'}
-                                            </div>
+                                                <div style={{ color: '#000', fontSize: '0.875rem' }}>
+                                                    {user.email || 'No email'}
+                                                </div>
 
-                                            <div>
+                                                <div>
                                 <span style={{
                                     padding: '0.375rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
                                     fontWeight: '500',
@@ -840,20 +862,21 @@ const AdminDashboard = () => {
                                 }}>
                                     {user.type?.toUpperCase() || 'UNKNOWN'}
                                 </span>
-                                            </div>
+                                                </div>
 
-                                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                                                {formatDate(user.createdAt)}  {/* ✅ Schema field */}
+                                                <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                                                    {formatDate(user.createdAt)}  {/* ✅ Schema field */}
+                                                </div>
                                             </div>
+                                        ))}
+
+                                    {filteredAndSortedUsers.length === 0 && (
+                                        <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+                                            No partners found
                                         </div>
-                                    ))}
-
-                                {filteredAndSortedUsers.length === 0 && (
-                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                                        No partners found
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Fixed Modal */}
                             <PartnerModal 

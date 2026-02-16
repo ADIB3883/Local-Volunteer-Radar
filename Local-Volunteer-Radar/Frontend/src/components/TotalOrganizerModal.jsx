@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, MapPin, Calendar, Award, CheckCircle } from 'lucide-react';
+import { Building2, MapPin, Calendar, Award, CheckCircle, Loader2 } from 'lucide-react';
 
 const TotalOrganizersModal = ({ organizers }) => {
     const data = organizers && organizers.length > 0 ? organizers : [];
@@ -12,6 +12,22 @@ const TotalOrganizersModal = ({ organizers }) => {
         for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
         return colors[Math.abs(hash) % colors.length];
     };
+
+    if (!organizers) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem',
+                color: '#6b7280'
+            }}>
+                <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>Loading organizers...</p>
+            </div>
+        );
+    }
 
     return (
         <div>

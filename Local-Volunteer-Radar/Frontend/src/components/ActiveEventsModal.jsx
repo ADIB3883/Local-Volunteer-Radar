@@ -1,8 +1,24 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Users, Building2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Building2, Loader2 } from 'lucide-react';
 
 const ActiveEventsModal = ({ events }) => {
     const data = events && events.length > 0 ? events : [];
+
+    if (!events) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem',
+                color: '#6b7280'
+            }}>
+                <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>Loading events...</p>
+            </div>
+        );
+    }
 
     return (
         <div>

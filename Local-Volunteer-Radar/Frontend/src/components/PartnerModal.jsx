@@ -107,7 +107,7 @@ const PartnerModal = ({ selectedUser, onClose, initiateDelete, formatDate, getIn
                                     fontWeight: '600', 
                                     background: '#f0fdf4', 
                                     color: '#15803d',
-                                    textTransform: 'capitalize'
+                                    textTransform: 'uppercase'
                                 }}
                             >
                                 {selectedUser.organizationType}

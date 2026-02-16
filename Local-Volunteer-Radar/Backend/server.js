@@ -10,6 +10,7 @@ require('dotenv').config();
 const loginRoutes = require('./Routes/loginRoutes');
 const signupRoutes = require('./Routes/signupRoutes');
 const VolunteerProfileRoutes = require('./Routes/VolunteerProfileRoutes');
+const OrganizerRoutes = require('./Routes/OrganizerRoutes');
 const conversationRoutes = require('./Routes/conversationRoutes');
 const messageRoutes = require('./Routes/messageRoutes');
 const userApproveRejectRoutes = require('./Routes/userApproveRejectRoutes');
@@ -66,6 +67,8 @@ app.use('/api/messages', messageRoutes);
 app.use('/api', loginRoutes);
 app.use('/api', signupRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
+app.use('/api/organizers', OrganizerRoutes);
+app.use('/api/volunteers', VolunteerProfileRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
