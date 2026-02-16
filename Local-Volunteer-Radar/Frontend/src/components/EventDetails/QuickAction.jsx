@@ -12,6 +12,24 @@ const QuickAction = () => {
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // Toast notification state
+    const [toast, setToast] = useState({
+        show: false,
+        message: '',
+        type: 'success' // 'success', 'error', 'warning', 'info'
+    });
+
+    // Confirmation dialog state
+    const [confirmDialog, setConfirmDialog] = useState({
+        show: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        isDanger: false
+    });
+
     useEffect(() => {
         fetchEvent();
     }, [eventId]);
@@ -28,9 +46,17 @@ const QuickAction = () => {
         }
     };
 
+    // Toast notification function
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => {
+            setToast({ show: false, message: '', type: 'success' });
+        }, 3000);
+    };
+
     const handleSendAnnouncement = async () => {
         if (!announcementTitle.trim() || !announcementMessage.trim()) {
-            alert("Please fill in both title and message");
+            showToast("Please fill in both title and message", 'warning');
             return;
         }
 
@@ -40,7 +66,7 @@ const QuickAction = () => {
         );
 
         if (approvedVolunteers.length === 0) {
-            alert("No approved volunteers to send announcement to");
+            showToast("No approved volunteers to send announcement to", 'warning');
             return;
         }
 
@@ -53,7 +79,7 @@ const QuickAction = () => {
                 sentBy: loggedInUser.id
             });
 
-            alert(`Announcement sent to ${approvedVolunteers.length} approved volunteer(s)!`);
+            showToast(`Announcement sent to ${approvedVolunteers.length} approved volunteer(s)!`, 'success');
             setAnnouncementTitle("");
             setAnnouncementMessage("");
             setIsPopupOpen(false);
@@ -62,7 +88,7 @@ const QuickAction = () => {
             await fetchEvent();
         } catch (error) {
             console.error('Error sending announcement:', error);
-            alert(error.response?.data?.message || 'Failed to send announcement');
+            showToast(error.response?.data?.message || 'Failed to send announcement', 'error');
         }
     };
 
@@ -81,7 +107,7 @@ const QuickAction = () => {
 
     const handleExportApprovedVolunteers = () => {
         if (!event) {
-            alert("Event not found");
+            showToast("Event not found", 'error');
             return;
         }
 
@@ -91,7 +117,7 @@ const QuickAction = () => {
         );
 
         if (approvedVolunteers.length === 0) {
-            alert("No approved volunteers to export");
+            showToast("No approved volunteers to export", 'warning');
             return;
         }
 
@@ -143,40 +169,52 @@ const QuickAction = () => {
         link.click();
 
         URL.revokeObjectURL(url);
+
+        showToast(`Exported ${approvedVolunteers.length} approved volunteers successfully`, 'success');
     };
 
-    const handleMarkAsComplete = async () => {
-        const confirmAction = window.confirm(
-            "Are you sure you want to mark this event as completed?"
-        );
-
-        if (!confirmAction) return;
-
-        try {
-            await axios.put(`${API_URL}/${eventId}/complete`);
-            alert("Event marked as completed");
-            await fetchEvent();
-        } catch (error) {
-            console.error('Error completing event:', error);
-            alert(error.response?.data?.message || 'Failed to complete event');
-        }
+    const handleMarkAsComplete = () => {
+        setConfirmDialog({
+            show: true,
+            title: 'Mark Event as Complete',
+            message: 'Are you sure you want to mark this event as completed?',
+            confirmText: 'Mark Complete',
+            cancelText: 'Cancel',
+            isDanger: false,
+            onConfirm: async () => {
+                try {
+                    await axios.put(`${API_URL}/${eventId}/complete`);
+                    showToast("Event marked as completed", 'success');
+                    await fetchEvent();
+                } catch (error) {
+                    console.error('Error completing event:', error);
+                    showToast(error.response?.data?.message || 'Failed to complete event', 'error');
+                }
+                setConfirmDialog({ ...confirmDialog, show: false });
+            }
+        });
     };
 
-    const handleCancelEvent = async () => {
-        const confirmAction = window.confirm(
-            "Are you sure you want to cancel this event? This action cannot be undone."
-        );
-
-        if (!confirmAction) return;
-
-        try {
-            await axios.put(`${API_URL}/${eventId}/cancel`);
-            alert("Event has been cancelled");
-            await fetchEvent();
-        } catch (error) {
-            console.error('Error cancelling event:', error);
-            alert(error.response?.data?.message || 'Failed to cancel event');
-        }
+    const handleCancelEvent = () => {
+        setConfirmDialog({
+            show: true,
+            title: 'Cancel Event',
+            message: 'Are you sure you want to cancel this event? This action cannot be undone.',
+            confirmText: 'Cancel Event',
+            cancelText: 'Keep Event',
+            isDanger: true,
+            onConfirm: async () => {
+                try {
+                    await axios.put(`${API_URL}/${eventId}/cancel`);
+                    showToast("Event has been cancelled", 'success');
+                    await fetchEvent();
+                } catch (error) {
+                    console.error('Error cancelling event:', error);
+                    showToast(error.response?.data?.message || 'Failed to cancel event', 'error');
+                }
+                setConfirmDialog({ ...confirmDialog, show: false });
+            }
+        });
     };
 
     if (loading || !event) {
@@ -187,8 +225,84 @@ const QuickAction = () => {
         );
     }
 
+    // Toast icon based on type
+    const getToastIcon = (type) => {
+        switch(type) {
+            case 'success':
+                return (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00A63E" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                );
+            case 'error':
+                return (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DB004B" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                );
+            case 'warning':
+                return (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8C00" strokeWidth="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                );
+            case 'info':
+                return (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0067DD" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                );
+            default:
+                return null;
+        }
+    };
+
+    // Toast background based on type
+    const getToastBg = (type) => {
+        switch(type) {
+            case 'success':
+                return 'bg-[#E8F5E9] border-[#00A63E]';
+            case 'error':
+                return 'bg-[#FFEBEE] border-[#DB004B]';
+            case 'warning':
+                return 'bg-[#FFF3E0] border-[#FF8C00]';
+            case 'info':
+                return 'bg-[#E3F2FD] border-[#0067DD]';
+            default:
+                return 'bg-white border-gray-300';
+        }
+    };
+
     return (
         <>
+            {/* Toast Notification - Centered at top */}
+            {toast.show && (
+                <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[9999] animate-slide-down">
+                    <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 shadow-lg ${getToastBg(toast.type)} min-w-[300px] max-w-[500px]`}>
+                        {getToastIcon(toast.type)}
+                        <span className="text-[14px] font-medium text-[#2C2C2C] flex-1">
+                            {toast.message}
+                        </span>
+                        <button
+                            onClick={() => setToast({ show: false, message: '', type: 'success' })}
+                            className="text-gray-500 hover:text-gray-700"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="relative top-[25vh] left-[5.5vw] w-[90vw] py-3 bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)] flex flex-col">
                 <div className="relative bg-transparent w-full h-[30px]">
                     <span className="absolute left-[1.3%] text-black font-bold font-[16px]">Quick Actions</span>
@@ -317,6 +431,71 @@ const QuickAction = () => {
                     </div>
                 </div>
             )}
+
+            {/* Confirmation Dialog */}
+            {confirmDialog.show && (
+                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-[20px] w-[450px] p-6">
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className={`w-[40px] h-[40px] ${confirmDialog.isDanger ? 'bg-[#DB004B]' : 'bg-[linear-gradient(131.73deg,#0067DD_5.55%,#00AD4B_71.83%)]'} rounded-[10px] flex items-center justify-center`}>
+                                {confirmDialog.isDanger ? (
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                ) : (
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="16" x2="12" y2="12"/>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                                    </svg>
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <h2 className="font-bold text-[18px] text-black mb-1">{confirmDialog.title}</h2>
+                                <p className="text-[14px] text-[#666]">{confirmDialog.message}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end pt-4">
+                            <button
+                                onClick={() => setConfirmDialog({ ...confirmDialog, show: false })}
+                                className="px-5 py-2 border border-[#C9C9C9] rounded-[5px] text-[14px] font-medium hover:bg-gray-50 transition-colors"
+                            >
+                                {confirmDialog.cancelText}
+                            </button>
+                            <button
+                                onClick={confirmDialog.onConfirm}
+                                className={`px-5 py-2 text-white rounded-[5px] text-[14px] font-medium transition-colors ${
+                                    confirmDialog.isDanger
+                                        ? 'bg-[#DB004B] hover:bg-[#C00043]'
+                                        : 'bg-[linear-gradient(90deg,#0067DD_0%,#00AD4B_100%)] hover:opacity-90'
+                                }`}
+                            >
+                                {confirmDialog.confirmText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @keyframes slide-down {
+                    from {
+                        transform: translate(-50%, -100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translate(-50%, 0);
+                        opacity: 1;
+                    }
+                }
+
+                .animate-slide-down {
+                    animation: slide-down 0.3s ease-out;
+                }
+            `}</style>
         </>
     );
 };
