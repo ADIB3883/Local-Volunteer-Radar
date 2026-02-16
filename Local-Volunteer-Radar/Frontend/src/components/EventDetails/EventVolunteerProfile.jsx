@@ -5,7 +5,7 @@ import CancelIcon from "../../assets/icons/cancel.png";
 import AcceptIcon from "../../assets/icons/accept.png";
 
 function EventVolunteerProfile({   volunteerId,
-                                    pic,
+                                   pic,
                                    name,
                                    registerDate,
                                    eventsCompleted,
@@ -14,7 +14,7 @@ function EventVolunteerProfile({   volunteerId,
                                    email,
                                    phone,
                                    hoursVolunteered,
-                                    skills=[],
+                                   skills=[],
                                    availability=[],
                                    onUpdateStatus
                                }){
@@ -121,7 +121,7 @@ function EventVolunteerProfile({   volunteerId,
                                     <span className="font-medium">Reject</span>
                                 </button>
                             </>
-                            )}
+                        )}
 
                     </div>
                 </div>
@@ -180,7 +180,7 @@ function EventVolunteerProfile({   volunteerId,
                     </div>
 
                     {/* Availability Section */}
-                    <div className="relative left-[2%] ">
+                    <div className="relative left-[2%]">
                         <h3 className="font-semibold text-[14px] text-[#404040] mb-2">Availability</h3>
                         <div className="w-full h-[10px]"></div>
                         <div className="flex gap-2 flex-wrap">
@@ -190,17 +190,17 @@ function EventVolunteerProfile({   volunteerId,
                                         key={index}
                                         className="bg-[#008C4F] h-[25px] flex items-center justify-center rounded-[20px] px-3"
                                     >
-                                        <span className="text-[14px] text-white leading-0">
-                                            {slot.day}: {slot.time}
-                                        </span>
+                    <span className="text-[14px] text-white leading-0">
+                        {slot.day}: {slot.startTime} - {slot.endTime}
+                    </span>
                                     </div>
                                 ))
                             ) : (
                                 <p className="text-[14px] text-[#404040]">No availability set</p>
                             )}
-
                         </div>
                     </div>
+
                     <div className="w-full h-[10px]"></div>
                 </div>
             )}
