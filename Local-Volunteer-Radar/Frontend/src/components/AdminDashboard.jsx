@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import './AdminStyles.css';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building, Search, ChevronDown, X, Sparkles, Mail, Phone, MapPin, Calendar, Tag, Briefcase, Trash2, AlertCircle, Loader2 } from 'lucide-react';
+import { Users, Building, Search, ChevronDown, X, Sparkles, Loader2Icon, Phone, MapPin, Calendar, Tag, Briefcase, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
@@ -53,6 +53,8 @@ const AdminDashboard = () => {
     const [eventSearchQuery, setEventSearchQuery] = useState('');
     const [eventSortBy, setEventSortBy] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState({ show: false, userId: null, userName: '' });
+    const [isDeleting, setIsDeleting] = useState(false);
+
 
     const fetchUsers = async (endpoint, setter) => {
         try {
@@ -381,38 +383,51 @@ const AdminDashboard = () => {
 
     const handleDeleteUser = async (userId) => {
         try {
-            const userType = selectedUser.type || (selectedUser.organizationType ? 'organizer' : 'volunteer');
-            const endpoint = userType === 'organizer' ? '/organizers' : '/volunteers';
-            
-            const res = await fetch(`http://localhost:5000/api${endpoint}/${userId}`, {
+            if (!selectedUser) {
+                throw new Error('No user selected');
+            }
+
+            const userType = (selectedUser.type || 'volunteer').toLowerCase();
+
+            if (userType !== 'volunteer' && userType !== 'organizer') {
+                throw new Error(`Invalid user type: ${userType}`);
+            }
+
+            const res = await fetch(`http://localhost:5000/api/users/reject/${userType}/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });
-            
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.message || `HTTP ${res.status}`);
+            }
+
             setUsers(prev => prev.filter(u => (u._id?.$oid || u._id) !== userId));
             setSelectedUser(null);
             setDeleteConfirm({ show: false, userId: null, userName: '' });
-            
+            setIsDeleting(false); // ✅ Reset state
+
             setNotificationConfig({
-                borderColor: 'border-red-500',
-                bgColor: 'bg-red-500',
-                message: `User deleted successfully!`
+                borderColor: 'border-green-500',
+                bgColor: 'bg-green-500',
+                message: 'User deleted successfully!'
             });
             setShowNotification(true);
             setTimeout(() => setShowNotification(false), 3000);
         } catch (err) {
             console.error('Delete error:', err);
+            setIsDeleting(false); //
             setNotificationConfig({
                 borderColor: 'border-red-500',
                 bgColor: 'bg-red-500',
-                message: 'Failed to delete user'
+                message: err.message || 'Failed to delete user'
             });
             setShowNotification(true);
             setTimeout(() => setShowNotification(false), 3000);
         }
     };
+
 
     const initiateDelete = (userId, userName) => {
         setDeleteConfirm({ show: true, userId, userName });
@@ -917,18 +932,43 @@ const AdminDashboard = () => {
                                                 Cancel
                                             </button>
                                             <button
-                                                onClick={() => handleDeleteUser(deleteConfirm.userId)}
-                                                style={{
-                                                    flex: 1, padding: '0.75rem 1rem', background: '#dc2626',
-                                                    color: 'white', border: 'none', borderRadius: '0.625rem',
-                                                    cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem',
-                                                    transition: 'all 0.2s'
+                                                onClick={() => {
+                                                    setIsDeleting(true);
+                                                    handleDeleteUser(deleteConfirm.userId);
                                                 }}
-                                                onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
-                                                onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
+                                                disabled={isDeleting}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '0.75rem 1rem',
+                                                    background: isDeleting ? '#9ca3af' : '#dc2626',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '0.625rem',
+                                                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                                                    fontWeight: '600',
+                                                    fontSize: '0.875rem',
+                                                    transition: 'all 0.2s',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '0.5rem',
+                                                    opacity: isDeleting ? 0.7 : 1
+                                                }}onMouseEnter={(e) => {
+                                                if (!isDeleting) e.currentTarget.style.background = '#b91c1c';
+                                            }}
+                                                onMouseLeave={(e) => {
+                                                    if (!isDeleting) e.currentTarget.style.background = '#dc2626';
+                                                }}
                                             >
-                                                Delete
+                                                {isDeleting ? (
+                                                    <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                                        Deleting...
+                                                    </>
+                                                ) : (
+                                                    'Delete'
+                                                )}
                                             </button>
+
                                         </div>
                                     </div>
                                 </div>
