@@ -16,86 +16,128 @@ import io from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
 
-const VolunteerNotifications = ({ onNotificationRead }) => {
-    const [notifications, setNotifications] = useState([]);
+// ─── Helper: fetch unread count without mounting the tab component ─────────
+// Called by VolunteerDashboard on mount so the badge appears immediately.
+const fetchUnreadAnnouncementsCount = async (userId) => {
+    try {
+        if (!userId) return 0;
+        const regRes = await fetch(`http://localhost:5000/api/events/volunteer/${userId}/registrations`);
+        const regData = await regRes.json();
+        if (!regData.success) return 0;
+
+        const approvedEventIds = regData.registrations
+            .filter(r => r.registrationStatus === 'approved')
+            .map(r => r.event._id);
+
+        const readIds = new Set(
+            JSON.parse(localStorage.getItem('readAnnouncementIds') || '[]')
+        );
+
+        let unread = 0;
+        for (const eventId of approvedEventIds) {
+            try {
+                const res = await fetch(`http://localhost:5000/api/events/${eventId}/announcements`);
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    data.forEach(a => {
+                        if (!readIds.has(String(a._id || a.id))) unread++;
+                    });
+                }
+            } catch { /* skip */ }
+        }
+        return unread;
+    } catch (err) {
+        console.error('fetchUnreadAnnouncementsCount error:', err);
+        return 0;
+    }
+};
+
+// ─── Announcements Tab Component ──────────────────────────────────────────
+const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
     const [announcements, setAnnouncements] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [readIds, setReadIds] = useState(() => {
+        try {
+            return new Set(JSON.parse(localStorage.getItem('readAnnouncementIds') || '[]'));
+        } catch {
+            return new Set();
+        }
+    });
     const [loading, setLoading] = useState(true);
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
     React.useEffect(() => {
-        fetchNotificationsAndAnnouncements();
+        fetchAnnouncements();
     }, []);
 
-    const fetchNotificationsAndAnnouncements = async () => {
+    // Notify parent whenever read state or data changes
+    React.useEffect(() => {
+        const unread = announcements.filter(a => !readIds.has(String(a._id || a.id))).length;
+        if (onUnreadCountChange) onUnreadCountChange(unread);
+    }, [announcements, readIds]);
+
+    const fetchAnnouncements = async () => {
         try {
             setLoading(true);
+            if (!loggedInUser?.id) return;
 
-            // Fetch regular notifications
-            const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
-            const myNotifications = stored.filter(n => n.volunteerId === loggedInUser?.email);
-            const sorted = myNotifications.sort((a, b) => parseInt(b.id.split('-')[0]) - parseInt(a.id.split('-')[0]));
-            setNotifications(sorted);
-            setUnreadCount(sorted.filter(n => !n.read).length);
+            const registrationsResponse = await fetch(
+                `http://localhost:5000/api/events/volunteer/${loggedInUser.id}/registrations`
+            );
+            const registrationsData = await registrationsResponse.json();
 
-            // Fetch announcements from approved events
-            if (loggedInUser && loggedInUser.id) {
-                const registrationsResponse = await fetch(
-                    `http://localhost:5000/api/events/volunteer/${loggedInUser.id}/registrations`
-                );
-                const registrationsData = await registrationsResponse.json();
+            if (registrationsData.success) {
+                const approvedEventIds = registrationsData.registrations
+                    .filter(reg => reg.registrationStatus === 'approved')
+                    .map(reg => reg.event._id);
 
-                if (registrationsData.success) {
-                    const approvedEventIds = registrationsData.registrations
-                        .filter(reg => reg.registrationStatus === 'approved')
-                        .map(reg => reg.event._id);
+                const allAnnouncements = [];
 
-                    const allAnnouncements = [];
+                for (const eventId of approvedEventIds) {
+                    try {
+                        const announcementsResponse = await fetch(
+                            `http://localhost:5000/api/events/${eventId}/announcements`
+                        );
+                        const announcementsData = await announcementsResponse.json();
+                        const event = registrationsData.registrations.find(r => r.event._id === eventId)?.event;
 
-                    for (const eventId of approvedEventIds) {
-                        try {
-                            const announcementsResponse = await fetch(
-                                `http://localhost:5000/api/events/${eventId}/announcements`
-                            );
-                            const announcementsData = await announcementsResponse.json();
-
-                            const event = registrationsData.registrations.find(r => r.event._id === eventId)?.event;
-
-                            if (announcementsData && announcementsData.length > 0) {
-                                announcementsData.forEach(announcement => {
-                                    allAnnouncements.push({
-                                        ...announcement,
-                                        eventId: eventId,
-                                        eventName: event?.eventName || 'Unknown Event',
-                                        type: 'announcement'
-                                    });
+                        if (announcementsData && announcementsData.length > 0) {
+                            announcementsData.forEach(announcement => {
+                                allAnnouncements.push({
+                                    ...announcement,
+                                    eventId: eventId,
+                                    eventName: event?.eventName || 'Unknown Event',
+                                    type: 'announcement'
                                 });
-                            }
-                        } catch (error) {
-                            console.error(`Error fetching announcements for event ${eventId}:`, error);
+                            });
                         }
+                    } catch (error) {
+                        console.error(`Error fetching announcements for event ${eventId}:`, error);
                     }
-
-                    allAnnouncements.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
-                    setAnnouncements(allAnnouncements);
                 }
+
+                allAnnouncements.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+                setAnnouncements(allAnnouncements);
             }
         } catch (error) {
-            console.error('Error fetching notifications and announcements:', error);
+            console.error('Error fetching announcements:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const markAsRead = (notifId) => {
-        const all = JSON.parse(localStorage.getItem("notifications") || "[]");
-        const updated = all.map(n => n.id === notifId ? { ...n, read: true } : n);
-        localStorage.setItem("notifications", JSON.stringify(updated));
+    const markAsRead = (announcement) => {
+        const id = String(announcement._id || announcement.id);
+        if (readIds.has(id)) return;
+        const updated = new Set(readIds);
+        updated.add(id);
+        setReadIds(updated);
+        localStorage.setItem('readAnnouncementIds', JSON.stringify([...updated]));
+    };
 
-        setNotifications(notifications.map(n => n.id === notifId ? { ...n, read: true } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-
-        if (onNotificationRead) onNotificationRead();
+    const markAllAsRead = () => {
+        const updated = new Set([...readIds, ...announcements.map(a => String(a._id || a.id))]);
+        setReadIds(updated);
+        localStorage.setItem('readAnnouncementIds', JSON.stringify([...updated]));
     };
 
     const formatDate = (dateStr) => {
@@ -109,6 +151,8 @@ const VolunteerNotifications = ({ onNotificationRead }) => {
         });
     };
 
+    const unreadCount = announcements.filter(a => !readIds.has(String(a._id || a.id))).length;
+
     if (loading) {
         return (
             <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '2rem' }}>
@@ -121,112 +165,126 @@ const VolunteerNotifications = ({ onNotificationRead }) => {
 
     return (
         <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                <div style={{ width: '2.5rem', height: '2.5rem', background: '#14b8a6', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '2.5rem', height: '2.5rem', background: '#3b82f6', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="20" height="19" viewBox="0 0 20 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" clipRule="evenodd" d="M16.9992 2.00312V5.26212C17.3932 5.26212 17.7833 5.33972 18.1472 5.49049C18.5112 5.64125 18.8419 5.86223 19.1205 6.1408C19.3991 6.41938 19.6201 6.7501 19.7708 7.11407C19.9216 7.47805 19.9992 7.86816 19.9992 8.26213C19.9992 8.65609 19.9216 9.0462 19.7708 9.41018C19.6201 9.77415 19.3991 10.1049 19.1205 10.3834C18.8419 10.662 18.5112 10.883 18.1472 11.0338C17.7833 11.1845 17.3932 11.2621 16.9992 11.2621V14.2621C16.9992 15.9101 15.1182 16.8511 13.7992 15.8621L11.7392 14.3161C10.638 13.4906 9.35593 12.9393 7.9992 12.7081V15.5521C7.99931 16.2059 7.76309 16.8376 7.3341 17.3309C6.9051 17.8242 6.31225 18.1458 5.66481 18.2364C5.01738 18.327 4.35902 18.1805 3.81108 17.824C3.26314 17.4674 2.86257 16.9248 2.6832 16.2961L1.1132 10.8001C0.548217 10.1329 0.180535 9.32134 0.0514852 8.45663C-0.0775649 7.59193 0.0371319 6.70836 0.382683 5.90526C0.728234 5.10216 1.29094 4.41137 2.00755 3.91052C2.72416 3.40968 3.56626 3.11864 4.4392 3.07012L7.4572 2.90212C8.93384 2.8201 10.3699 2.3886 11.6472 1.64312L13.9912 0.275125C15.3252 -0.501875 16.9992 0.459125 16.9992 2.00312Z" fill="white"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Announcements</h2>
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
+                            {unreadCount > 0
+                                ? `${unreadCount} unread • ${announcements.length} total`
+                                : `${announcements.length} announcement${announcements.length !== 1 ? 's' : ''}`}
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Notifications & Announcements</h2>
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
-                        {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''} • {announcements.length} announcement{announcements.length !== 1 ? 's' : ''}
-                    </p>
-                </div>
+                {unreadCount > 0 && (
+                    <button
+                        onClick={markAllAsRead}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            background: '#eff6ff',
+                            color: '#3b82f6',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.background = '#dbeafe'; }}
+                        onMouseOut={e => { e.currentTarget.style.background = '#eff6ff'; }}
+                    >
+                        Mark all as read
+                    </button>
+                )}
             </div>
 
-            {/* Announcements Section */}
-            {announcements.length > 0 && (
-                <div style={{ marginBottom: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                        <svg width="20" height="20" viewBox="0 0 20 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" clipRule="evenodd" d="M16.9992 2.00312V5.26212C17.3932 5.26212 17.7833 5.33972 18.1472 5.49049C18.5112 5.64125 18.8419 5.86223 19.1205 6.1408C19.3991 6.41938 19.6201 6.7501 19.7708 7.11407C19.9216 7.47805 19.9992 7.86816 19.9992 8.26213C19.9992 8.65609 19.9216 9.0462 19.7708 9.41018C19.6201 9.77415 19.3991 10.1049 19.1205 10.3834C18.8419 10.662 18.5112 10.883 18.1472 11.0338C17.7833 11.1845 17.3932 11.2621 16.9992 11.2621V14.2621C16.9992 15.9101 15.1182 16.8511 13.7992 15.8621L11.7392 14.3161C10.638 13.4906 9.35593 12.9393 7.9992 12.7081V15.5521C7.99931 16.2059 7.76309 16.8376 7.3341 17.3309C6.9051 17.8242 6.31225 18.1458 5.66481 18.2364C5.01738 18.327 4.35902 18.1805 3.81108 17.824C3.26314 17.4674 2.86257 16.9248 2.6832 16.2961L1.1132 10.8001C0.548217 10.1329 0.180535 9.32134 0.0514852 8.45663C-0.0775649 7.59193 0.0371319 6.70836 0.382683 5.90526C0.728234 5.10216 1.29094 4.41137 2.00755 3.91052C2.72416 3.40968 3.56626 3.11864 4.4392 3.07012L7.4572 2.90212C8.93384 2.8201 10.3699 2.3886 11.6472 1.64312L13.9912 0.275125C15.3252 -0.501875 16.9992 0.459125 16.9992 2.00312ZM3.6332 12.3401L4.6062 15.7471C4.65302 15.912 4.75794 16.0544 4.90157 16.148C5.0452 16.2416 5.21785 16.2801 5.38763 16.2563C5.55741 16.2326 5.71286 16.1482 5.82527 16.0187C5.93768 15.8893 5.99946 15.7236 5.9992 15.5521V12.5421L4.4392 12.4551C4.16785 12.4388 3.89829 12.4003 3.6332 12.3401ZM14.9992 2.00312L12.6542 3.37212C11.2301 4.20384 9.64129 4.71377 7.9992 4.86612V10.6851C9.7862 10.9311 11.4872 11.6281 12.9392 12.7161L14.9992 14.2621V2.00312ZM5.9992 4.98612L4.5492 5.06612C3.87464 5.10337 3.23856 5.39215 2.76651 5.87545C2.29446 6.35875 2.02075 7.00145 1.9994 7.6767C1.97805 8.35194 2.21062 9.01065 2.6512 9.52281C3.09177 10.035 3.70834 10.3633 4.3792 10.4431L4.5492 10.4581L5.9992 10.5381V4.98612ZM16.9992 7.26212V9.26213C17.2541 9.26184 17.4992 9.16425 17.6846 8.98928C17.8699 8.81431 17.9814 8.57517 17.9964 8.32073C18.0113 8.06629 17.9285 7.81575 17.7649 7.62029C17.6013 7.42484 17.3693 7.29923 17.1162 7.26912L16.9992 7.26212Z" fill="#3b82f6"/>
-                        </svg>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', margin: 0 }}>
-                            Event Announcements
-                        </h3>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {announcements.map((announcement, index) => (
+            {/* Announcements List */}
+            {announcements.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {announcements.map((announcement, index) => {
+                        const id = String(announcement._id || announcement.id);
+                        const isRead = readIds.has(id);
+                        return (
                             <div
-                                key={announcement._id || index}
+                                key={id || index}
+                                onClick={() => markAsRead(announcement)}
                                 style={{
                                     padding: '1rem',
                                     borderRadius: '0.75rem',
-                                    border: '1px solid #bfdbfe',
-                                    background: 'linear-gradient(to right, #eff6ff, #f0f9ff)',
-                                    transition: 'all 0.2s'
+                                    border: isRead ? '1px solid #e5e7eb' : '2px solid #93c5fd',
+                                    background: isRead ? '#f9fafb' : 'linear-gradient(to right, #eff6ff, #f0f9ff)',
+                                    cursor: isRead ? 'default' : 'pointer',
+                                    transition: 'all 0.2s',
+                                    position: 'relative',
+                                }}
+                                onMouseOver={e => {
+                                    if (!isRead) {
+                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                    }
+                                }}
+                                onMouseOut={e => {
+                                    e.currentTarget.style.boxShadow = 'none';
+                                    e.currentTarget.style.transform = 'translateY(0)';
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                                {/* Unread dot */}
+                                {!isRead && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '1rem',
+                                        right: '1rem',
+                                        width: '10px',
+                                        height: '10px',
+                                        background: '#3b82f6',
+                                        borderRadius: '50%',
+                                    }} />
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem', paddingRight: isRead ? 0 : '1.25rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        <span style={{ fontWeight: '600', color: '#111827' }}>{announcement.title}</span>
+                                        <span style={{ fontWeight: isRead ? '600' : '700', color: '#111827' }}>{announcement.title}</span>
                                         <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: 'white', padding: '0.125rem 0.5rem', borderRadius: '9999px' }}>
                                             {announcement.eventName}
                                         </span>
                                     </div>
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{formatDate(announcement.sentAt)}</span>
+                                    <span style={{ fontSize: '0.75rem', color: '#6b7280', whiteSpace: 'nowrap' }}>{formatDate(announcement.sentAt)}</span>
                                 </div>
-                                <p style={{ fontSize: '0.875rem', color: '#374151', margin: 0 }}>{announcement.message}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+                                <p style={{ fontSize: '0.875rem', color: isRead ? '#6b7280' : '#374151', margin: '0 0 0.5rem 0' }}>{announcement.message}</p>
 
-            {/* Status Change Notifications Section */}
-            {notifications.length > 0 && (
-                <div>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', margin: '0 0 1rem 0' }}>
-                        Registration Updates
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {notifications.map((notif) => (
-                            <div
-                                key={notif.id}
-                                onClick={() => !notif.read && markAsRead(notif.id)}
-                                style={{
-                                    padding: '1rem',
-                                    borderRadius: '0.75rem',
-                                    border: notif.read ? '1px solid #e5e7eb' : '2px solid #3b82f6',
-                                    background: notif.read ? '#f9fafb' : '#eff6ff',
-                                    cursor: notif.read ? 'default' : 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <span style={{ fontWeight: '600', color: '#111827' }}>{notif.title}</span>
-                                        {!notif.read && <span style={{ width: '8px', height: '8px', background: '#3b82f6', borderRadius: '50%' }}></span>}
-                                    </div>
-                                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{notif.timestamp}</span>
-                                </div>
-                                <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 0.5rem 0' }}>{notif.message}</p>
-                                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                    <span>📍 {notif.eventName}</span>
-                                    <span style={{ margin: '0 0.5rem' }}>•</span>
-                                    <span>{notif.organizationName}</span>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    {!isRead ? (
+                                        <span style={{ fontSize: '0.7rem', color: '#3b82f6', fontWeight: '600' }}>Click to mark as read</span>
+                                    ) : (
+                                        <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                            Read
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
-            )}
-
-            {notifications.length === 0 && announcements.length === 0 && (
+            ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3rem 0', textAlign: 'center' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ marginBottom: '1rem' }}>
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
-                    <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>No notifications or announcements yet</p>
+                    <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>No announcements yet</p>
                 </div>
             )}
         </div>
     );
 };
-
 
 
 const VolunteerDashboard = () => {
@@ -236,7 +294,7 @@ const VolunteerDashboard = () => {
     const [allEvents, setAllEvents] = useState([]);
     const [recommendedEvents, setRecommendedEvents] = useState([]);
     const [modalOpen, setModalOpen] = useState(null);
-    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+    const [unreadAnnouncementsCount, setUnreadAnnouncementsCount] = useState(0);
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -244,6 +302,14 @@ const VolunteerDashboard = () => {
     const navigate = useNavigate();
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
+    // ── Eager badge: runs on dashboard mount, before any tab is clicked ───────
+    React.useEffect(() => {
+        if (loggedInUser?.id) {
+            fetchUnreadAnnouncementsCount(loggedInUser.id).then(count => {
+                setUnreadAnnouncementsCount(count);
+            });
+        }
+    }, []); // empty deps = fires immediately on mount
 
     const fetchUnreadCount = async () => {
         try {
@@ -291,11 +357,6 @@ const VolunteerDashboard = () => {
         if(!loggedInUser || userType !== "volunteer"){
             navigate("/login");
         }
-
-        const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
-        const myNotifications = stored.filter(n => n.volunteerId === loggedInUser?.email);
-        const unreadCount = myNotifications.filter(n => !n.read).length;
-        setUnreadNotificationsCount(unreadCount);
     }, [activeTab]);
 
 
@@ -521,8 +582,10 @@ const VolunteerDashboard = () => {
                     >
                         My Registrations
                     </button>
+
+                    {/* ── Announcements tab (was: Notifications) ── */}
                     <button
-                        onClick={() => setActiveTab('notifications')}
+                        onClick={() => setActiveTab('announcements')}
                         style={{
                             padding: '0.75rem 1.5rem',
                             borderRadius: '0.75rem',
@@ -530,16 +593,16 @@ const VolunteerDashboard = () => {
                             border: 'none',
                             cursor: 'pointer',
                             transition: 'all 0.3s',
-                            background: activeTab === 'notifications' ? 'white' : 'transparent',
-                            color: activeTab === 'notifications' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'notifications' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                            background: activeTab === 'announcements' ? 'white' : 'transparent',
+                            color: activeTab === 'announcements' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'announcements' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
                             position: 'relative'
                         }}
-                        onMouseOver={(e) => { if (activeTab !== 'notifications') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
-                        onMouseOut={(e) => { if (activeTab !== 'notifications') e.currentTarget.style.background = 'transparent' }}
+                        onMouseOver={(e) => { if (activeTab !== 'announcements') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
+                        onMouseOut={(e) => { if (activeTab !== 'announcements') e.currentTarget.style.background = 'transparent' }}
                     >
-                        Notifications
-                        {unreadNotificationsCount > 0 && (
+                        Announcements
+                        {unreadAnnouncementsCount > 0 && (
                             <span style={{
                                 position: 'absolute',
                                 top: '0.25rem',
@@ -557,10 +620,11 @@ const VolunteerDashboard = () => {
                                 padding: '0 0.25rem',
                                 boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
                             }}>
-                                {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                                {unreadAnnouncementsCount > 9 ? '9+' : unreadAnnouncementsCount}
                             </span>
                         )}
                     </button>
+
                     <button
                         onClick={() => setActiveTab('messages')}
                         style={{
@@ -625,16 +689,13 @@ const VolunteerDashboard = () => {
                     </div>
                 )}
 
-                {activeTab === 'notifications' && (
-                    <VolunteerNotifications
-                        onNotificationRead={() => {
-                            const stored = JSON.parse(localStorage.getItem("notifications") || "[]");
-                            const myNotifications = stored.filter(n => n.volunteerId === loggedInUser?.email);
-                            const unreadCount = myNotifications.filter(n => !n.read).length;
-                            setUnreadNotificationsCount(unreadCount);
-                        }}
+                {/* ── Announcements tab content (was: notifications) ── */}
+                {activeTab === 'announcements' && (
+                    <VolunteerAnnouncements
+                        onUnreadCountChange={(count) => setUnreadAnnouncementsCount(count)}
                     />
                 )}
+
                 {activeTab === 'messages' && (
                     <MessagesTab currentUser={loggedInUser} />
                 )}
@@ -687,7 +748,6 @@ const VolunteerDashboard = () => {
                                                 hour12: true
                                             })}`}
                                             location={event.location}
-
                                             requirements={event.requirements || 'No specific requirements'}
                                             onRegister={refreshEvents}
                                         />
@@ -775,7 +835,6 @@ const VolunteerDashboard = () => {
                                                 hour12: true
                                             })}`}
                                             location={event.location}
-
                                             requirements={event.requirements || 'No specific requirements'}
                                             onRegister={refreshEvents}
                                         />
