@@ -25,7 +25,8 @@ const VolunteerProfile = () => {
 
             try {
                 // Fetch fresh data from backend
-                const response = await fetch(`http://localhost:5000/api/auth/profile/${loggedInUser.id}`);
+                //const userId = String(loggedInUser.id);
+                const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`);
                 const data = await response.json();
 
                 if (data.success) {

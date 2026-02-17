@@ -419,4 +419,188 @@ router.put("/:eventId/cancel", async (req, res) => {
     }
 });
 
+/*
+VOLUNTEER REGISTRATION ENDPOINT
+POST /api/events/:eventId/register
+*/
+router.post("/:eventId/register", async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const { volunteerId, volunteerEmail, volunteerName } = req.body;
+
+        if (!volunteerId && !volunteerEmail) {
+            return res.status(400).json({
+                success: false,
+                message: "Volunteer ID or email is required."
+            });
+        }
+
+        // Find the event
+        const event = await Event.findById(eventId);
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Event not found."
+            });
+        }
+
+        // Check if event is full
+        if (event.volunteersRegistered >= event.volunteersNeeded) {
+            return res.status(400).json({
+                success: false,
+                message: "Event is already full."
+            });
+        }
+
+        // Check if volunteer is already registered
+        const alreadyRegistered = event.registrations.some(
+            reg => reg.volunteer && reg.volunteer.toString() === volunteerId
+        );
+
+        if (alreadyRegistered) {
+            return res.status(400).json({
+                success: false,
+                message: "You are already registered for this event."
+            });
+        }
+
+        // Add registration
+        event.registrations.push({
+            volunteer: volunteerId,
+            status: "pending",
+            registeredAt: new Date()
+        });
+
+        // Increment registered count
+        event.volunteersRegistered = event.volunteersRegistered + 1;
+
+        await event.save();
+
+        res.json({
+            success: true,
+            message: "Successfully registered for the event!",
+            event: event
+        });
+
+    } catch (error) {
+        console.error('Error registering for event:', error);
+        res.status(500).json({
+            success: false,
+            message: "Server error while registering for event."
+        });
+    }
+});
+
+/*
+GET VOLUNTEER'S REGISTRATIONS
+GET /api/events/volunteer/:volunteerId/registrations
+*/
+router.get("/volunteer/:volunteerId/registrations", async (req, res) => {
+    try {
+        const { volunteerId } = req.params;
+
+        // Find all events where this volunteer is registered
+        const events = await Event.find({
+            "registrations.volunteer": volunteerId
+        })
+            .populate('organizerId', 'name email')
+            .sort({ startdate: 1 });
+
+        // Filter to get only this volunteer's registrations
+        const registrations = events.map(event => {
+            const registration = event.registrations.find(
+                reg => reg.volunteer && reg.volunteer.toString() === volunteerId
+            );
+            return {
+                event: event,
+                registrationStatus: registration ? registration.status : 'unknown',
+                registeredAt: registration ? registration.registeredAt : null
+            };
+        });
+
+        res.json({
+            success: true,
+            registrations: registrations
+        });
+
+    } catch (error) {
+        console.error('Error fetching registrations:', error);
+        res.status(500).json({
+            success: false,
+            message: "Server error while fetching registrations."
+        });
+    }
+});
+
+/*
+CANCEL REGISTRATION
+DELETE /api/events/:eventId/register/:volunteerId
+*/
+router.delete("/:eventId/register/:volunteerId", async (req, res) => {
+    try {
+        const { eventId, volunteerId } = req.params;
+
+        const event = await Event.findById(eventId);
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Event not found."
+            });
+        }
+
+        // Find and remove the registration
+        const registrationIndex = event.registrations.findIndex(
+            reg => reg.volunteer && reg.volunteer.toString() === volunteerId
+        );
+
+        if (registrationIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: "Registration not found."
+            });
+        }
+
+        event.registrations.splice(registrationIndex, 1);
+        event.volunteersRegistered = Math.max(0, event.volunteersRegistered - 1);
+
+        await event.save();
+
+        res.json({
+            success: true,
+            message: "Registration cancelled successfully."
+        });
+
+    } catch (error) {
+        console.error('Error cancelling registration:', error);
+        res.status(500).json({
+            success: false,
+            message: "Server error while cancelling registration."
+        });
+    }
+});
+
+//Event er volunteer
+router.get("/:eventId/volunteers", async (req, res) => {
+    try {
+        const { eventId } = req.params;
+
+        const event = await Event.findById(eventId)
+            .populate("registrations.volunteer", "name email phoneNumber skills");
+
+        if (!event) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        res.json(event.registrations);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error fetching volunteers" });
+    }
+});
+
+
+
 module.exports = router;

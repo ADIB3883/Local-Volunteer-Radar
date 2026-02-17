@@ -4,45 +4,60 @@ import { Calendar, Clock, MapPin, CheckCircle, XCircle, AlertCircle } from 'luci
 const MyRegistrations = () => {
     const [registrations, setRegistrations] = useState([]);
     const [filter, setFilter] = useState('All');
+    const [loading, setLoading] = useState(true);
 
-
-
-    const loadRegistrations = () => {
+    const loadRegistrations = async () => {
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        if (!loggedInUser) return;
+        if (!loggedInUser) {
+            setLoading(false);
+            return;
+        }
 
-        const allRegistrations = JSON.parse(localStorage.getItem('eventRegistrations')) || [];
-        const userRegistrations = allRegistrations.filter(
-            reg => reg.volunteerEmail === loggedInUser.email
-        );
-        console.log(userRegistrations);
+        try {
+            setLoading(true);
+            console.log('Fetching registrations for user ID:', loggedInUser.id);
 
-        setRegistrations(userRegistrations);
+            // Fetch registrations from API
+            const response = await fetch(
+                `http://localhost:5000/api/events/volunteer/${loggedInUser.id}/registrations`
+            );
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch registrations');
+            }
+
+            const data = await response.json();
+            console.log('API Response:', data);
+
+            if (data.success) {
+                setRegistrations(data.registrations);
+            } else {
+                console.error('Failed to load registrations:', data.message);
+            }
+        } catch (error) {
+            console.error('Error loading registrations:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         loadRegistrations();
     }, []);
 
-    const [events, setEvents] = useState([]);
-
-    useEffect(() => {
-        const storedEvents = JSON.parse(localStorage.getItem('events')) || [];
-        setEvents(storedEvents);
-    }, []);
-
     const filteredRegistrations = filter === 'All'
         ? registrations
-        : registrations.filter(reg => reg.status === filter);
+        : registrations.filter(reg => reg.registrationStatus.toLowerCase() === filter.toLowerCase());
 
     const getStatusBadge = (status) => {
         const styles = {
-            Pending: { bg: '#FEF3C7', color: '#92400E', icon: AlertCircle },
-            Approved: { bg: '#D1FAE5', color: '#065F46', icon: CheckCircle },
-            Rejected: { bg: '#FEE2E2', color: '#991B1B', icon: XCircle }
+            pending: { bg: '#FEF3C7', color: '#92400E', icon: AlertCircle },
+            approved: { bg: '#D1FAE5', color: '#065F46', icon: CheckCircle },
+            rejected: { bg: '#FEE2E2', color: '#991B1B', icon: XCircle }
         };
 
-        const style = styles[status] || styles.Pending;
+        const normalizedStatus = status.toLowerCase();
+        const style = styles[normalizedStatus] || styles.pending;
         const Icon = style.icon;
 
         return (
@@ -58,10 +73,27 @@ const MyRegistrations = () => {
                 fontWeight: '600'
             }}>
                 <Icon size={16} />
-                {status}
+                {status.charAt(0).toUpperCase() + status.slice(1)}
             </div>
         );
     };
+
+    const getCountByStatus = (status) => {
+        if (status === 'All') return registrations.length;
+        return registrations.filter(r => r.registrationStatus.toLowerCase() === status.toLowerCase()).length;
+    };
+
+    if (loading) {
+        return (
+            <div style={{
+                textAlign: 'center',
+                padding: '3rem',
+                color: '#6b7280'
+            }}>
+                <p style={{ fontSize: '1rem' }}>Loading your registrations...</p>
+            </div>
+        );
+    }
 
     if (registrations.length === 0) {
         return (
@@ -70,6 +102,12 @@ const MyRegistrations = () => {
                 padding: '3rem',
                 color: '#6b7280'
             }}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" style={{ margin: '0 auto 1rem' }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
                 <p style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem' }}>
                     No registrations yet
                 </p>
@@ -104,8 +142,18 @@ const MyRegistrations = () => {
                             cursor: 'pointer',
                             transition: 'all 0.2s'
                         }}
+                        onMouseOver={(e) => {
+                            if (filter !== filterOption) {
+                                e.currentTarget.style.background = '#f9fafb';
+                            }
+                        }}
+                        onMouseOut={(e) => {
+                            if (filter !== filterOption) {
+                                e.currentTarget.style.background = 'white';
+                            }
+                        }}
                     >
-                        {filterOption} ({filterOption === 'All' ? registrations.length : registrations.filter(r => r.status === filterOption).length})
+                        {filterOption} ({getCountByStatus(filterOption)})
                     </button>
                 ))}
             </div>
@@ -116,97 +164,143 @@ const MyRegistrations = () => {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
                 gap: '1.5rem'
             }}>
-                {filteredRegistrations.map((reg) =>{
-
-                    const event = events.find(ev => ev.id === reg.eventId);
+                {filteredRegistrations.map((reg, index) => {
+                    const event = reg.event;
 
                     if (!event) return null; // safety check
 
-                    return(
-                    <div
-                        key={reg.id}
-                        style={{
-                            background: 'white',
-                            border: '2px solid #e5e7eb',
-                            borderRadius: '1rem',
-                            padding: '1.5rem',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            transition: 'all 0.3s'
-                        }}
-                    >
-                        {/* Header */}
-                        <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'start',
-                            marginBottom: '1rem'
-                        }}>
-                            <h3 style={{
-                                fontSize: '1.125rem',
-                                fontWeight: 'bold',
-                                color: '#111827',
-                                margin: 0,
-                                flex: 1
+                    return (
+                        <div
+                            key={index}
+                            style={{
+                                background: 'white',
+                                border: '2px solid #e5e7eb',
+                                borderRadius: '1rem',
+                                padding: '1.5rem',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                transition: 'all 0.3s'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                                e.currentTarget.style.borderColor = '#3b82f6';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                                e.currentTarget.style.borderColor = '#e5e7eb';
+                            }}
+                        >
+                            {/* Header */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'start',
+                                marginBottom: '1rem'
                             }}>
-                                {event.eventName}
-                            </h3>
-                            {getStatusBadge(reg.status)}
-                        </div>
+                                <div style={{ flex: 1, marginRight: '1rem' }}>
+                                    <h3 style={{
+                                        fontSize: '1.125rem',
+                                        fontWeight: 'bold',
+                                        color: '#111827',
+                                        margin: '0 0 0.25rem 0'
+                                    }}>
+                                        {event.eventName}
+                                    </h3>
+                                    <p style={{
+                                        fontSize: '0.75rem',
+                                        color: '#6b7280',
+                                        margin: 0
+                                    }}>
+                                        Organized by: {event.organizerId?.name || 'Unknown'}
+                                    </p>
+                                </div>
+                                {getStatusBadge(reg.registrationStatus)}
+                            </div>
 
-                        {/* Event Details */}
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.75rem',
-                            marginBottom: '1rem'
-                        }}>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.875rem',
-                                color: '#4b5563'
-                            }}>
-                                <Calendar size={16} style={{ color: '#3b82f6' }} />
-                                <span>{event.startdate}</span>
-                            </div>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.875rem',
-                                color: '#4b5563'
-                            }}>
-                                <Clock size={16} style={{ color: '#10b981' }} />
-                                <span>{event.startTime}&nbsp;-&nbsp;{event.endTime}</span>
-                            </div>
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                fontSize: '0.875rem',
-                                color: '#4b5563'
-                            }}>
-                                <MapPin size={16} style={{ color: '#ef4444' }} />
-                                <span>{event.location}</span>
-                            </div>
-                        </div>
+                            {/* Event Description */}
+                            {event.description && (
+                                <p style={{
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563',
+                                    margin: '0 0 1rem 0',
+                                    lineHeight: '1.4'
+                                }}>
+                                    {event.description.length > 120
+                                        ? event.description.substring(0, 120) + '...'
+                                        : event.description}
+                                </p>
+                            )}
 
-                        {/* Registration Date */}
-                        <div style={{
-                            paddingTop: '1rem',
-                            borderTop: '1px solid #e5e7eb',
-                            fontSize: '0.75rem',
-                            color: '#9ca3af'
-                        }}>
-                            Registered on {new Date(reg.registeredAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
+                            {/* Event Details */}
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.75rem',
+                                marginBottom: '1rem'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563'
+                                }}>
+                                    <Calendar size={16} style={{ color: '#3b82f6' }} />
+                                    <span>
+                                        {`${new Date(event.startdate).toLocaleDateString('en-US', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}`}
+                                    </span>
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563'
+                                }}>
+                                    <Clock size={16} style={{ color: '#10b981' }} />
+                                    <span>{event.startTime} - {event.endTime}</span>
+                                </div>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: '#4b5563'
+                                }}>
+                                    <MapPin size={16} style={{ color: '#ef4444' }} />
+                                    <span>{event.location}</span>
+                                </div>
+                            </div>
+
+                            {/* Registration Date */}
+                            {reg.registeredAt && (
+                                <div style={{
+                                    paddingTop: '1rem',
+                                    borderTop: '1px solid #e5e7eb',
+                                    fontSize: '0.75rem',
+                                    color: '#9ca3af'
+                                }}>
+                                    Registered on {new Date(reg.registeredAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                )})}
+                    );
+                })}
             </div>
 
             {filteredRegistrations.length === 0 && filter !== 'All' && (
