@@ -68,7 +68,7 @@ app.use('/api', loginRoutes);
 app.use('/api', signupRoutes);
 app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/organizers', OrganizerRoutes);
-app.use('/api', VolunteerProfileRoutes);
+app.use('/api/volunteers', VolunteerProfileRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });
