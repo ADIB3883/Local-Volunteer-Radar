@@ -738,7 +738,8 @@ const VolunteerDashboard = () => {
                                             description={event.description}
                                             tags={[
                                                 { name: event.category || 'general', type: 'skill' },
-                                                { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
+                                                //{ name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
+                                                { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
                                             ]}
                                             date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
                                             time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
@@ -825,7 +826,8 @@ const VolunteerDashboard = () => {
                                             description={event.description}
                                             tags={[
                                                 { name: event.category || 'general', type: 'skill' },
-                                                { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
+                                                //{ name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
+                                                { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
                                             ]}
                                             date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
                                             time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {

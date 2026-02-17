@@ -71,7 +71,10 @@ const EventInfo = () => {
         return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
     };
 
-    const capacityPercentage = (event.volunteersRegistered / event.volunteersNeeded) * 100;
+    //const capacityPercentage = (event.volunteersRegistered / event.volunteersNeeded) * 100;
+
+    const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
+    const capacityPercentage = (approvedCount / event.volunteersNeeded) * 100;
 
     return (
         <>
@@ -155,11 +158,11 @@ const EventInfo = () => {
                                 </div>
 
                                 <span className="absolute text-[#0065E0] top-[21%] right-[7%] font-sans font-bold text-[16px] leading-[17px]">
-                  {event.volunteersRegistered || 0} / {event.volunteersNeeded}
+                  {approvedCount} / {event.volunteersNeeded}
                 </span>
 
                                 <span className="absolute text-[#0065E0] top-[50%] left-[3.3%] font-sans font-bold text-[24px] leading-[17px]">
-                  {event.volunteersRegistered || 0}
+                  {approvedCount}
                 </span>
 
                                 <div className="absolute top-[70%] left-[3%] bg-[#E2E2E2] w-[90%] h-[11px] rounded-[7px]">
