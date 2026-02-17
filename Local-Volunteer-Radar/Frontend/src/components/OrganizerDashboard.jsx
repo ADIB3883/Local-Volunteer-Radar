@@ -22,6 +22,7 @@ const OrganizerDashboard = () => {
     const [organizerName, setOrganizerName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showMessagesModal, setShowMessagesModal] = useState(false);
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
     const [alertConfig, setAlertConfig] = useState({
         isOpen: false,
         title: '',
@@ -43,7 +44,40 @@ const OrganizerDashboard = () => {
         endTime: '',
         requirements: ''
     });
+    const Toast = ({ message, type = 'info', onClose }) => {
+        React.useEffect(() => {
+            const timer = setTimeout(() => { onClose(); }, 4000);
+            return () => clearTimeout(timer);
+        }, [onClose]);
 
+        const bgColors = {
+            success: '#10b981',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6'
+        };
+
+        const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+
+        return (
+            <div style={{
+                position: 'fixed', top: '2rem', right: '2rem',
+                background: bgColors[type], color: 'white',
+                padding: '1rem 1.5rem', borderRadius: '0.75rem',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                minWidth: '300px', maxWidth: '500px', zIndex: 9999,
+                animation: 'slideInRight 0.3s ease-out'
+            }}>
+                <style>{`@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
+                <div style={{ width: '1.5rem', height: '1.5rem', background: 'rgba(255,255,255,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold' }}>
+                    {icons[type]}
+                </div>
+                <span style={{ flex: 1, fontSize: '0.95rem', fontWeight: '500' }}>{message}</span>
+                <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.25rem', padding: 0, width: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+        );
+    };
     // Show alert helper function
     const showAlert = (title, message, icon = 'info', buttonText = 'Got it', buttonColor = 'bg-blue-500 hover:bg-blue-600', onCloseRedirect = null) => {
         setAlertConfig({
@@ -71,6 +105,11 @@ const OrganizerDashboard = () => {
         if (redirect) {
             redirect();
         }
+    };
+
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+        setTimeout(() => setToast({ visible: false, message: '', type: 'success' }), 3000);
     };
 
     // Check authentication and get organizer data
@@ -283,7 +322,10 @@ const OrganizerDashboard = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('loggedInUser');
-        navigate('/login');
+        showToast('Logged out successfully', 'success');
+        setTimeout(() => {
+            navigate('/login');
+        }, 1000);
     };
 
     const handleAnnouncements = () => {
@@ -879,6 +921,15 @@ const OrganizerDashboard = () => {
                     onCloseRedirect={alertConfig.onCloseRedirect}
                 />
             </div>
+
+            {/* Toast Notification */}
+            {toast.visible && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ visible: false, message: '', type: 'success' })}
+                />
+            )}
         </div>
     );
 };

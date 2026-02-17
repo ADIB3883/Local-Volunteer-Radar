@@ -18,6 +18,7 @@ const AdminDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('');
     const [sortBy, setSortBy] = useState('');
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
     const [modalOpen, setModalOpen] = useState(null);
     const [pendingUsers, setPendingUsers] = useState([]);
     const [loadingPending, setLoadingPending] = useState(false);
@@ -108,6 +109,45 @@ const AdminDashboard = () => {
         } catch (err) {
             console.error("Failed to fetch pending events:", err);
         }
+    };
+    const Toast = ({ message, type = 'info', onClose }) => {
+        React.useEffect(() => {
+            const timer = setTimeout(() => { onClose(); }, 4000);
+            return () => clearTimeout(timer);
+        }, [onClose]);
+
+        const bgColors = {
+            success: '#10b981',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            info: '#3b82f6'
+        };
+
+        const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+
+        return (
+            <div style={{
+                position: 'fixed', top: '2rem', right: '2rem',
+                background: bgColors[type], color: 'white',
+                padding: '1rem 1.5rem', borderRadius: '0.75rem',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                minWidth: '300px', maxWidth: '500px', zIndex: 9999,
+                animation: 'slideInRight 0.3s ease-out'
+            }}>
+                <style>{`@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
+                <div style={{ width: '1.5rem', height: '1.5rem', background: 'rgba(255,255,255,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold' }}>
+                    {icons[type]}
+                </div>
+                <span style={{ flex: 1, fontSize: '0.95rem', fontWeight: '500' }}>{message}</span>
+                <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.25rem', padding: 0, width: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+            </div>
+        );
+    };
+    //Toast helper function to show success or error messages
+    const showToast = (message, type = 'success') => {
+        setToast({ visible: true, message, type });
+        setTimeout(() => setToast({ visible: false, message: '', type: 'success' }), 3000);
     };
 
     // Helper to safely extract date from schema format
@@ -346,7 +386,9 @@ const AdminDashboard = () => {
     };
 
     const handleLogoutClick = () => {
-        navigate('/login');
+        localStorage.removeItem('loggedInUser');
+        showToast('Logged out successfully', 'success');
+        setTimeout(() => navigate('/login'), 1000);
     };
 
     const totalVolunteers = useMemo(
@@ -422,6 +464,8 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             )}
+
+
 
             {/* Main Content */}
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
@@ -1060,7 +1104,13 @@ const AdminDashboard = () => {
                     </>
                 )}
             </div>
-
+            {toast.visible && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ visible: false, message: '', type: 'success' })}
+                />
+            )}
         </div>
     );
 };
