@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require("mongoose");
+const { sendApprovalEmail, sendRejectionEmail } = require('../services/emailService');
 const Volunteer = mongoose.model('Volunteer');
 const Organizer = mongoose.model('Organizer');
 const User = mongoose.model('User');
@@ -41,7 +42,6 @@ router.get('/pending', async (req, res) => {
     }
 });
 
-// ✅ 3. Your existing approve/reject routes (keep these LAST)
 router.patch('/approve/:type/:id', async (req, res) => {
     try {
         const { type, id } = req.params;
@@ -62,6 +62,10 @@ router.patch('/approve/:type/:id', async (req, res) => {
         user.isPending = false;
         await user.save();
 
+        if (user.email) {
+            await sendApprovalEmail(user.email, user.name, type);
+        }
+
         res.json({ success: true, message: `${type} approved successfully`, data: user });
     } catch (error) {
         console.error('Error approving user:', error);
@@ -72,7 +76,6 @@ router.patch('/approve/:type/:id', async (req, res) => {
 router.delete('/reject/:type/:id', async (req, res) => {
     try {
         const { type, id } = req.params;
-
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ success: false, error: 'Invalid user ID' });
         }
@@ -84,12 +87,19 @@ router.delete('/reject/:type/:id', async (req, res) => {
             return res.status(404).json({ success: false, error: `${type} not found` });
         }
 
+        const userEmail = user.email;
+        const userName = user.name;
+
         // Delete from Volunteer/Organizer collection
         await Model.findByIdAndDelete(id);
 
         // Delete from User collection if exists
-        if (user.email) {
-            await User.deleteOne({ email: user.email });
+        if (userEmail) {
+            await User.deleteOne({ email: userEmail });
+        }
+
+        if (userEmail) {
+            await sendRejectionEmail(userEmail, userName, type);
         }
 
         res.json({ success: true, message: `${type} rejected and removed successfully` });
