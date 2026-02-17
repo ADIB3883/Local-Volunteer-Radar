@@ -504,7 +504,11 @@ const OrganizerDashboard = () => {
                     <div className="h-80 px-8 py-8">
                         {filteredEvents.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredEvents.map((event) => (
+                                {filteredEvents.map((event) => {
+
+                                    const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
+
+                                    return (
                                     <div key={event._id} className="bg-white rounded-xl border-2 border-blue-400 hover:shadow-md transition-shadow" style={{ padding: '24px' }}>
                                         <div className="flex items-start justify-between" style={{ marginBottom: '16px', paddingLeft: '4px', paddingRight: '4px' }}>
                                             <h3 className="text-xl font-bold text-gray-900">{event.eventName}</h3>
@@ -523,13 +527,13 @@ const OrganizerDashboard = () => {
                                                     <span>Volunteers</span>
                                                 </div>
                                                 <span className="text-sm font-semibold text-gray-900">
-                                                    {event.volunteersRegistered || 0} / {event.volunteersNeeded}
+                                                    {approvedCount || 0} / {event.volunteersNeeded}
                                                 </span>
                                             </div>
                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                 <div
                                                     className="bg-blue-500 h-2 rounded-full transition-all"
-                                                    style={{ width: `${((event.volunteersRegistered || 0) / event.volunteersNeeded) * 100}%` }}
+                                                    style={{ width: `${((approvedCount || 0) / event.volunteersNeeded) * 100}%` }}
                                                 ></div>
                                             </div>
                                         </div>
@@ -577,7 +581,8 @@ const OrganizerDashboard = () => {
                                             </button>
                                         </div>
                                     </div>
-                                ))}
+                                )}
+                                )}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center text-center py-6">

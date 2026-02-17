@@ -5,6 +5,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const socketIO = require('socket.io');
+const cron = require('node-cron');
+const Event = require('./Models/Event');
+
 require('dotenv').config();
 
 const loginRoutes = require('./Routes/loginRoutes');
@@ -56,8 +59,49 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
         } catch (error) {
             console.error('❌ Error checking/creating admin:', error);
         }
+
+        cron.schedule('*/15 * * * *', async () => {
+            try {
+                const now = new Date();
+                const todayDate = now.toISOString().split('T')[0];       // "2026-02-17"
+                const currentTime = now.toTimeString().slice(0, 5);      // "14:30"
+
+                const result = await Event.updateMany(
+                    {
+                        status: 'active',
+                        $or: [
+                            // End date is in the past
+                            { enddate: { $lt: todayDate } },
+                            // End date is today AND end time has passed
+                            {
+                                enddate: todayDate,
+                                endTime: { $lte: currentTime }
+                            }
+                        ]
+                    },
+                    {
+                        $set: {
+                            status: 'completed',
+                            isCompleted: true,
+                            completedAt: now
+                        }
+                    }
+                );
+
+                if (result.modifiedCount > 0) {
+                    console.log(`✅ Auto-completed ${result.modifiedCount} expired event(s)`);
+                }
+            } catch (error) {
+                console.error('❌ Cron job error:', error);
+            }
+        });
+
+        console.log('Event auto-complete cron job started');
+
     })
     .catch((err) => console.error('❌ MongoDB connection error:', err));
+
+
 
 app.use('/api/users', userApproveRejectRoutes);
 app.use('/api/admin/events', eventRoutes);
