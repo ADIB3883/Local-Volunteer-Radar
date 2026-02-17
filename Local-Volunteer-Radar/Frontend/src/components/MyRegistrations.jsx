@@ -15,12 +15,11 @@ const MyRegistrations = () => {
 
         try {
             setLoading(true);
-            console.log('Fetching registrations for user ID:', loggedInUser.id);
+            console.log('Fetching registrations for user email:', loggedInUser.email);
 
-            // Fetch registrations from API
-            const response = await fetch(
-                `http://localhost:5000/api/events/volunteer/${loggedInUser.id}/registrations`
-            );
+            // Fetch registrations from API using email
+            const response = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+
 
             if (!response.ok) {
                 throw new Error('Failed to fetch registrations');
@@ -40,6 +39,7 @@ const MyRegistrations = () => {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         loadRegistrations();

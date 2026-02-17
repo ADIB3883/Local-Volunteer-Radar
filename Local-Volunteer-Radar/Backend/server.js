@@ -21,6 +21,7 @@ const adminAnalyticsRoutes = require('./Routes/adminAnalyticsRoutes');
 const User = require('./Models/User');
 const eventRoutes = require("./Routes/eventRoutes");
 const forgotPasswordRoutes = require('./Routes/forgotPasswordRoutes');
+const googleAuthRoutes = require('./Routes/googleAuthRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -115,6 +116,7 @@ app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/organizers', OrganizerRoutes);
 app.use('/api', VolunteerProfileRoutes);
 app.use('/api/forgot-password', forgotPasswordRoutes);
+app.use('/auth', googleAuthRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: '✅ Backend is running!' });

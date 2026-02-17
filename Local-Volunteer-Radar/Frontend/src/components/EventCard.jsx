@@ -19,6 +19,7 @@ const EventCard = ({
     const [loading, setLoading] = useState(false);
 
     // Check registration status on mount and when eventId changes
+    // Check registration status on mount and when eventId changes
     useEffect(() => {
         const checkRegistrationStatus = async () => {
             const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -31,20 +32,12 @@ const EventCard = ({
                     const eventData = await response.json();
 
                     console.log('Checking registration for event:', eventId);
-                    console.log('User ID:', loggedInUser.id);
+                    console.log('User email:', loggedInUser.email);
                     console.log('Event registrations:', eventData.registrations);
 
-                    // Check if this user is in the registrations
+                    // Check if this user's email is in the registrations
                     const userRegistration = eventData.registrations?.find(
-                        reg => {
-                            // Handle both ObjectId and string comparison
-                            const volunteerId = reg.volunteer?._id || reg.volunteer;
-                            const userId = loggedInUser.id || loggedInUser._id;
-
-                            console.log('Comparing:', volunteerId, 'with', userId);
-
-                            return volunteerId && volunteerId.toString() === userId.toString();
-                        }
+                        reg => reg.volunteerEmail === loggedInUser.email
                     );
 
                     console.log('Found registration:', userRegistration);
@@ -62,6 +55,7 @@ const EventCard = ({
 
         checkRegistrationStatus();
     }, [eventId]);
+
 
     const handleRegister = async () => {
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));

@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const Event = require("../Models/Event");
+const { addEventToCalendar } = require('../services/googleCalendarService');
+const User = require('../Models/User');
 
 /*
 1️⃣ CREATE EVENT
@@ -208,8 +210,7 @@ router.get("/:eventId", async (req, res) => {
     try {
         const { eventId } = req.params;
         const event = await Event.findById(eventId)
-            .populate('organizerId', 'name email')
-            .populate('registrations.volunteer', 'name email');
+            .populate('organizerId', 'name email');
 
         if (!event) {
             return res.status(404).json({ message: "Event not found." });
@@ -221,6 +222,7 @@ router.get("/:eventId", async (req, res) => {
         res.status(500).json({ message: "Server error while fetching event." });
     }
 });
+
 
 /*
 5️⃣ UPDATE EVENT
@@ -445,16 +447,15 @@ POST /api/events/:eventId/register
 router.post("/:eventId/register", async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { volunteerId, volunteerEmail, volunteerName } = req.body;
+        const { volunteerEmail, volunteerName } = req.body;
 
-        if (!volunteerId && !volunteerEmail) {
+        if (!volunteerEmail) {
             return res.status(400).json({
                 success: false,
-                message: "Volunteer ID or email is required."
+                message: "Volunteer email is required."
             });
         }
 
-        // Find the event
         const event = await Event.findById(eventId);
 
         if (!event) {
@@ -464,7 +465,6 @@ router.post("/:eventId/register", async (req, res) => {
             });
         }
 
-        // Check if event is full
         if (event.volunteersRegistered >= event.volunteersNeeded) {
             return res.status(400).json({
                 success: false,
@@ -472,9 +472,8 @@ router.post("/:eventId/register", async (req, res) => {
             });
         }
 
-        // Check if volunteer is already registered
         const alreadyRegistered = event.registrations.some(
-            reg => reg.volunteer && reg.volunteer.toString() === volunteerId
+            reg => reg.volunteerEmail === volunteerEmail
         );
 
         if (alreadyRegistered) {
@@ -484,14 +483,13 @@ router.post("/:eventId/register", async (req, res) => {
             });
         }
 
-        // Add registration
         event.registrations.push({
-            volunteer: volunteerId,
+            volunteerEmail,
+            volunteerName,
             status: "pending",
             registeredAt: new Date()
         });
 
-        // Increment registered count
         event.volunteersRegistered = event.volunteersRegistered + 1;
 
         await event.save();
@@ -511,25 +509,24 @@ router.post("/:eventId/register", async (req, res) => {
     }
 });
 
+
 /*
 GET VOLUNTEER'S REGISTRATIONS
 GET /api/events/volunteer/:volunteerId/registrations
 */
-router.get("/volunteer/:volunteerId/registrations", async (req, res) => {
+router.get("/volunteer/:volunteerEmail/registrations", async (req, res) => {
     try {
-        const { volunteerId } = req.params;
+        const { volunteerEmail } = req.params;
 
-        // Find all events where this volunteer is registered
         const events = await Event.find({
-            "registrations.volunteer": volunteerId
+            "registrations.volunteerEmail": volunteerEmail
         })
             .populate('organizerId', 'name email')
             .sort({ startdate: 1 });
 
-        // Filter to get only this volunteer's registrations
         const registrations = events.map(event => {
             const registration = event.registrations.find(
-                reg => reg.volunteer && reg.volunteer.toString() === volunteerId
+                reg => reg.volunteerEmail === volunteerEmail
             );
             return {
                 event: event,
@@ -552,13 +549,14 @@ router.get("/volunteer/:volunteerId/registrations", async (req, res) => {
     }
 });
 
+
 /*
 CANCEL REGISTRATION
 DELETE /api/events/:eventId/register/:volunteerId
 */
-router.delete("/:eventId/register/:volunteerId", async (req, res) => {
+router.delete("/:eventId/register/:volunteerEmail", async (req, res) => {
     try {
-        const { eventId, volunteerId } = req.params;
+        const { eventId, volunteerEmail } = req.params;
 
         const event = await Event.findById(eventId);
 
@@ -569,9 +567,8 @@ router.delete("/:eventId/register/:volunteerId", async (req, res) => {
             });
         }
 
-        // Find and remove the registration
         const registrationIndex = event.registrations.findIndex(
-            reg => reg.volunteer && reg.volunteer.toString() === volunteerId
+            reg => reg.volunteerEmail === volunteerEmail
         );
 
         if (registrationIndex === -1) {
@@ -600,19 +597,41 @@ router.delete("/:eventId/register/:volunteerId", async (req, res) => {
     }
 });
 
+
 //Event er volunteer
 router.get("/:eventId/volunteers", async (req, res) => {
     try {
         const { eventId } = req.params;
 
-        const event = await Event.findById(eventId)
-            .populate("registrations.volunteer", "name email phoneNumber skills");
+        const event = await Event.findById(eventId);
 
         if (!event) {
             return res.status(404).json({ message: "Event not found" });
         }
 
-        res.json(event.registrations);
+        const Volunteer = require('../Models/Volunteer');
+
+        // Enrich registration data with volunteer details
+        const enrichedRegistrations = await Promise.all(
+            event.registrations.map(async (reg) => {
+                const volunteer = await Volunteer.findOne({ email: reg.volunteerEmail });
+
+                return {
+                    ...reg.toObject(),
+                    volunteerDetails: volunteer ? {
+                        name: volunteer.name,
+                        email: volunteer.email,
+                        phoneNumber: volunteer.phoneNumber,
+                        skills: volunteer.skills
+                    } : {
+                        name: reg.volunteerName || 'Unknown',
+                        email: reg.volunteerEmail
+                    }
+                };
+            })
+        );
+
+        res.json(enrichedRegistrations);
 
     } catch (error) {
         console.error(error);
