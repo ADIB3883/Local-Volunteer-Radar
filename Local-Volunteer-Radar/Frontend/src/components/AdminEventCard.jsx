@@ -155,37 +155,6 @@ export default function AdminEventCard({ event, children, showBadges = true, ico
                         <MapPin size={14} color={iconColor} />
                         <span><strong>Location:</strong> {event.location || 'N/A'}</span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <User size={14} color={iconColor} />
-                        <span><strong>Organizer ID:</strong> {event.organizerId?.$oid || 'N/A'}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <AlertCircle size={14} color={iconColor} />
-                        <span><strong>Volunteers:</strong> {event.volunteersRegistered || 0}/{event.volunteersNeeded || 0}</span>
-                    </div>
-                    <div style={{ marginBottom: "0.5rem" }}>
-                        <div
-                            style={{
-                                background: "#e5e7eb",
-                                borderRadius: "0.25rem",
-                                height: "0.75rem",
-                                overflow: "hidden",
-                                marginTop: "0.25rem",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    background: `${((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) >= 1 ? "#10b981" : "#3b82f6"}`,
-                                    height: "100%",
-                                    width: `${Math.min(((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) * 100, 100)}%`,
-                                    transition: "width 0.3s ease",
-                                }}
-                            />
-                        </div>
-                        <span style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "0.25rem", display: "block" }}>
-                            {Math.round(((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) * 100)}% filled
-                        </span>
-                    </div>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
@@ -249,8 +218,6 @@ export default function AdminEventCard({ event, children, showBadges = true, ico
                         <div style={{ color: "#6b7280", marginTop: "0.3rem" }}>
                             <div>Created: {formatDate(event.createdAt)}</div>
                             <div>Updated: {formatDate(event.updatedAt)}</div>
-                            <div>Announcements: {event.announcements?.length || 0}</div>
-                            <div>Registrations: {event.registrations?.length || 0}</div>
                         </div>
                     </div>
                 </div>
