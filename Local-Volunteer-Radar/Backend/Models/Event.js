@@ -96,9 +96,8 @@ const EventSchema = new mongoose.Schema(
         //Volunteer Registrations
         registrations: [
             {
-                volunteer: {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: "User",
+                volunteerEmail: {
+                    type: String,
                     required: true,
                 },
 

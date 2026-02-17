@@ -15,7 +15,6 @@ const VolunteerProfile = () => {
 
     useEffect(() => {
         const fetchUserProfile = async () => {
-            // Get initial user data from localStorage
             const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
 
             if (!loggedInUser) {
@@ -24,43 +23,38 @@ const VolunteerProfile = () => {
             }
 
             try {
-                // Fetch fresh data from backend
-                //const userId = String(loggedInUser.id);
                 const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`);
                 const data = await response.json();
 
                 if (data.success) {
-                    // Update state with fresh data
                     setVolunteer({
                         ...data.user,
-                        fullName: data.user.name // Add fullName mapping
+                        fullName: data.user.name
                     });
 
-                    // Optionally update localStorage with fresh data
+                    // Check if calendar is connected
+                    setIsCalendarConnected(!!data.user.googleAccessToken);
+
                     localStorage.setItem('loggedInUser', JSON.stringify({
                         ...data.user,
                         fullName: data.user.name
                     }));
-                } else {
-                    // If fetch fails, use localStorage data
-                    setVolunteer({
-                        ...loggedInUser,
-                        fullName: loggedInUser.name
-                    });
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
-                // Fallback to localStorage data
-                setVolunteer({
-                    ...loggedInUser,
-                    fullName: loggedInUser.name
-                });
             } finally {
                 setLoading(false);
             }
         };
 
         fetchUserProfile();
+        // Check for calendar connection callback
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('calendar') === 'connected') {
+            setIsCalendarConnected(true);
+            // Clean URL
+            window.history.replaceState({}, '', '/volunteer-profile');
+        }
     }, [navigate]);
 
     if (loading || !volunteer) {
@@ -102,10 +96,6 @@ const VolunteerProfile = () => {
     };
 
 
-    const handleConnectCalendar = () => {
-        setIsCalendarConnected(!isCalendarConnected);
-    };
-
     const qrPayload = JSON.stringify({
         type: 'VOLUNTEER_PROFILE',
         id: volunteer.id,
@@ -118,6 +108,60 @@ const VolunteerProfile = () => {
         : [];
 
     const availability = volunteer.availability || [];
+
+// Add this function before the return statement in VolunteerProfile component
+    const handleConnectCalendar = async () => {
+        if (isCalendarConnected) {
+            // Disconnect calendar
+            try {
+                const response = await fetch(`http://localhost:5000/api/profile/${volunteer.email}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        googleAccessToken: null,
+                        googleRefreshToken: null
+                    })
+                });
+
+                if (response.ok) {
+                    setIsCalendarConnected(false);
+                    alert('Google Calendar disconnected successfully!');
+                }
+            } catch (error) {
+                console.error('Error disconnecting calendar:', error);
+            }
+        } else {
+            // Connect calendar - get auth URL
+            try {
+                const response = await fetch('http://localhost:5000/auth/google/auth-url');
+                const data = await response.json();
+
+                // Open OAuth popup
+                const width = 500;
+                const height = 600;
+                const left = window.screen.width / 2 - width / 2;
+                const top = window.screen.height / 2 - height / 2;
+
+                window.open(
+                    `${data.url}&state=${encodeURIComponent(volunteer.email)}`,
+                    'Google Calendar Authorization',
+                    `width=${width},height=${height},left=${left},top=${top}`
+                );
+
+                // Listen for successful connection
+                window.addEventListener('message', (event) => {
+                    if (event.data === 'calendar-connected') {
+                        setIsCalendarConnected(true);
+                        alert('Google Calendar connected successfully!');
+                    }
+                });
+            } catch (error) {
+                console.error('Error getting auth URL:', error);
+                alert('Failed to connect to Google Calendar');
+            }
+        }
+    };
+
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>

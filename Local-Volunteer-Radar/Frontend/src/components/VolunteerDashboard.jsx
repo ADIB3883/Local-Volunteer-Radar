@@ -18,10 +18,10 @@ const socket = io('http://localhost:5000');
 
 // ─── Helper: fetch unread count without mounting the tab component ─────────
 // Called by VolunteerDashboard on mount so the badge appears immediately.
-const fetchUnreadAnnouncementsCount = async (userId) => {
+const fetchUnreadAnnouncementsCount = async (userEmail) => {
     try {
-        if (!userId) return 0;
-        const regRes = await fetch(`http://localhost:5000/api/events/volunteer/${userId}/registrations`);
+        if (!userEmail) return 0;
+        const regRes = await fetch(`http://localhost:5000/api/events/volunteer/${userEmail}/registrations`);
         const regData = await regRes.json();
         if (!regData.success) return 0;
 
@@ -52,6 +52,7 @@ const fetchUnreadAnnouncementsCount = async (userId) => {
     }
 };
 
+
 // ─── Announcements Tab Component ──────────────────────────────────────────
 const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
     const [announcements, setAnnouncements] = useState([]);
@@ -78,11 +79,13 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
     const fetchAnnouncements = async () => {
         try {
             setLoading(true);
-            if (!loggedInUser?.id) return;
+            if (!loggedInUser?.email) return;
 
+            // Use email instead of id
             const registrationsResponse = await fetch(
-                `http://localhost:5000/api/events/volunteer/${loggedInUser.id}/registrations`
+                `http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`
             );
+
             const registrationsData = await registrationsResponse.json();
 
             if (registrationsData.success) {
@@ -302,14 +305,14 @@ const VolunteerDashboard = () => {
     const navigate = useNavigate();
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
-    // ── Eager badge: runs on dashboard mount, before any tab is clicked ───────
     React.useEffect(() => {
-        if (loggedInUser?.id) {
-            fetchUnreadAnnouncementsCount(loggedInUser.id).then(count => {
+        if (loggedInUser?.email) {
+            fetchUnreadAnnouncementsCount(loggedInUser.email).then(count => {
                 setUnreadAnnouncementsCount(count);
             });
         }
-    }, []); // empty deps = fires immediately on mount
+    }, []);
+
 
     const fetchUnreadCount = async () => {
         try {
