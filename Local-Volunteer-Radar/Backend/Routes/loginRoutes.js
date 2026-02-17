@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const User = require('../Models/User');
 const Volunteer = require('../Models/Volunteer');
 const Organizer = require('../Models/Organizer');
@@ -33,7 +34,9 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        if (password !== user.password) {
+        // Compare hashed password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid email or password'
