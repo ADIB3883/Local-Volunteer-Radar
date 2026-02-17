@@ -450,10 +450,11 @@ router.post("/:eventId/register", async (req, res) => {
         const { eventId } = req.params;
         const { volunteerEmail, volunteerName } = req.body;
 
-        if (!volunteerEmail) {
+        // Validate required fields first
+        if (!volunteerEmail || !volunteerName) {
             return res.status(400).json({
                 success: false,
-                message: "Volunteer email is required."
+                message: "Volunteer email and name are required."
             });
         }
 
@@ -484,6 +485,7 @@ router.post("/:eventId/register", async (req, res) => {
             });
         }
 
+        // Add registration
         event.registrations.push({
             volunteerEmail,
             volunteerName,
@@ -493,7 +495,27 @@ router.post("/:eventId/register", async (req, res) => {
 
         event.volunteersRegistered = event.volunteersRegistered + 1;
 
+        // Save the event first
         await event.save();
+
+        // Then try to add to Google Calendar
+        try {
+            const user = await User.findOne({ email: volunteerEmail });
+            if (user && user.googleAccessToken) {
+                const eventDetails = {
+                    title: event.eventName,
+                    description: event.description,
+                    location: event.location,
+                    startDate: new Date(`${event.startdate}T${event.startTime}`).toISOString(),
+                    endDate: new Date(`${event.enddate}T${event.endTime}`).toISOString()
+                };
+
+                await addEventToCalendar(user.googleAccessToken, eventDetails);
+            }
+        } catch (calendarError) {
+            console.error('Google Calendar error:', calendarError);
+            // Don't fail registration if calendar sync fails
+        }
 
         res.json({
             success: true,
@@ -509,6 +531,7 @@ router.post("/:eventId/register", async (req, res) => {
         });
     }
 });
+
 
 
 /*
