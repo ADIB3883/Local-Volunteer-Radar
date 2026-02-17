@@ -91,6 +91,25 @@ router.get("/organizer/:organizerId", async (req, res) => {
     try {
         const { organizerId } = req.params;
 
+        const now = new Date();
+        const todayDate = now.toISOString().split('T')[0];
+        const currentTime = now.toTimeString().slice(0, 5);
+
+        // Auto-complete any expired events for this organizer immediately
+        await Event.updateMany(
+            {
+                organizerId,
+                status: 'active',
+                $or: [
+                    { enddate: { $lt: todayDate } },
+                    { enddate: todayDate, endTime: { $lte: currentTime } }
+                ]
+            },
+            {
+                $set: { status: 'completed', isCompleted: true, completedAt: now }
+            }
+        );
+
         const events = await Event.find({ organizerId }).sort({ createdAt: -1 });
 
         res.json(events);
