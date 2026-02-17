@@ -1,13 +1,10 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Users, TrendingUp } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users } from 'lucide-react';
 
 const ActiveEventsOrganizerModal = ({ events }) => {
-    const organizerId = "org_123";
-
-    // Filter for active events by this organizer
-    const activeEvents = events.filter(e =>
-        e.organizerId === organizerId && e.status === 'active'
-    );
+    // Dashboard already fetches events for the correct organizer,
+    // so just filter by status here — no hardcoded organizerId needed.
+    const activeEvents = events.filter(e => e.status === 'active');
 
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
@@ -42,7 +39,7 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                 }}>
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Total Spots</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
-                        {activeEvents.reduce((sum, e) => sum + Number(e.volunteersNeeded), 0)}
+                        {activeEvents.reduce((sum, e) => sum + Number(e.volunteersNeeded || 0), 0)}
                     </p>
                 </div>
                 <div style={{
@@ -68,7 +65,7 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
                         {activeEvents.map((event) => (
                             <div
-                                key={event.id}
+                                key={event._id}
                                 style={{
                                     background: 'white',
                                     border: '2px solid #3b82f6',
@@ -96,7 +93,9 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                             background: '#dbeafe',
                                             color: '#1e40af',
                                             borderRadius: '0.25rem',
-                                            fontWeight: '500'
+                                            fontWeight: '500',
+                                            whiteSpace: 'nowrap',
+                                            marginLeft: '0.5rem'
                                         }}>
                                             {event.category}
                                         </span>
@@ -106,11 +105,21 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
                                         <Calendar size={16} />
-                                        <span>{formatDate(event.startdate)}</span>
+                                        <span>
+                                            {`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
+                                        </span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
                                         <Clock size={16} />
-                                        <span>{event.startTime} - {event.endTime}</span>
+                                        <span>
+                                            {new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                                hour: 'numeric', minute: '2-digit', hour12: true
+                                            })}
+                                            {' – '}
+                                            {new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                                hour: 'numeric', minute: '2-digit', hour12: true
+                                            })}
+                                        </span>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
                                         <MapPin size={16} />
@@ -137,14 +146,14 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                             <div style={{
                                                 background: '#3b82f6',
                                                 height: '100%',
-                                                width: `${(event.volunteersRegistered / event.volunteersNeeded) * 100}%`,
+                                                width: `${Math.min(((event.volunteersRegistered || 0) / event.volunteersNeeded) * 100, 100)}%`,
                                                 borderRadius: '0.25rem',
                                                 transition: 'width 0.3s'
                                             }} />
                                         </div>
                                     </div>
                                     <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>
-                                        {event.volunteersRegistered}/{event.volunteersNeeded}
+                                        {event.volunteersRegistered || 0}/{event.volunteersNeeded}
                                     </span>
                                 </div>
                             </div>

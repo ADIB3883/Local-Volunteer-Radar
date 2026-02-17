@@ -1,14 +1,13 @@
 import React from 'react';
-import { Calendar, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 const EventsCreatedModal = ({ events }) => {
-    const organizerId = "org_123";
-
-    const myEvents = events.filter(e => e.organizerId === organizerId);
-
-    const activeEvents = myEvents.filter(e => e.status === 'active');
-    const pendingEvents = myEvents.filter(e => e.status === 'pending');
-    const completedEvents = myEvents.filter(e => e.status === 'completed');
+    // Dashboard already fetches events scoped to the logged-in organizer,
+    // so no organizerId filtering needed here.
+    const activeEvents = events.filter(e => e.status === 'active');
+    const pendingEvents = events.filter(e => e.status === 'pending');
+    const completedEvents = events.filter(e => e.status === 'completed');
+    const cancelledEvents = events.filter(e => e.status === 'cancelled');
 
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
@@ -16,11 +15,12 @@ const EventsCreatedModal = ({ events }) => {
     };
 
     const getStatusColor = (status) => {
-        switch(status) {
-            case 'active': return { bg: '#dcfce7', text: '#166534', icon: '#10b981' };
-            case 'pending': return { bg: '#fef3c7', text: '#92400e', icon: '#f59e0b' };
+        switch (status) {
+            case 'active':    return { bg: '#dcfce7', text: '#166534', icon: '#10b981' };
+            case 'pending':   return { bg: '#fef3c7', text: '#92400e', icon: '#f59e0b' };
             case 'completed': return { bg: '#e0e7ff', text: '#3730a3', icon: '#6366f1' };
-            default: return { bg: '#f3f4f6', text: '#374151', icon: '#6b7280' };
+            case 'cancelled': return { bg: '#fee2e2', text: '#991b1b', icon: '#ef4444' };
+            default:          return { bg: '#f3f4f6', text: '#374151', icon: '#6b7280' };
         }
     };
 
@@ -42,7 +42,7 @@ const EventsCreatedModal = ({ events }) => {
                 }}>
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Total</p>
                     <p style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
-                        {myEvents.length}
+                        {events.length}
                     </p>
                 </div>
                 <div style={{
@@ -81,23 +81,35 @@ const EventsCreatedModal = ({ events }) => {
                         {completedEvents.length}
                     </p>
                 </div>
+                <div style={{
+                    background: 'white',
+                    padding: '1rem',
+                    borderRadius: '0.75rem',
+                    textAlign: 'center',
+                    border: '1px solid #e5e7eb'
+                }}>
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Cancelled</p>
+                    <p style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#ef4444', margin: 0 }}>
+                        {cancelledEvents.length}
+                    </p>
+                </div>
             </div>
 
             {/* Events List */}
-            {myEvents.length > 0 ? (
+            {events.length > 0 ? (
                 <>
                     <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', marginBottom: '1rem' }}>
                         All Your Events
                     </h3>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '400px', overflowY: 'auto' }}>
-                        {myEvents
+                        {[...events]
                             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                             .map((event) => {
                                 const statusColors = getStatusColor(event.status);
                                 return (
                                     <div
-                                        key={event.id}
+                                        key={event._id}
                                         style={{
                                             background: 'white',
                                             border: '1px solid #e5e7eb',
@@ -122,7 +134,7 @@ const EventsCreatedModal = ({ events }) => {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#6b7280' }}>
                                                         <Calendar size={12} />
-                                                        <span>{formatDate(event.startdate)}</span>
+                                                        <span>{`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}</span>
                                                     </div>
                                                     <span style={{
                                                         fontSize: '0.75rem',
@@ -142,7 +154,9 @@ const EventsCreatedModal = ({ events }) => {
                                                 color: statusColors.text,
                                                 borderRadius: '0.375rem',
                                                 fontWeight: '500',
-                                                textTransform: 'capitalize'
+                                                textTransform: 'capitalize',
+                                                marginLeft: '0.5rem',
+                                                whiteSpace: 'nowrap'
                                             }}>
                                                 {event.status}
                                             </span>
@@ -159,10 +173,12 @@ const EventsCreatedModal = ({ events }) => {
                                         }}>
                                             <span>
                                                 Volunteers: <strong style={{ color: '#4b5563' }}>
-                                                    {event.volunteersRegistered}/{event.volunteersNeeded}
+                                                    {event.volunteersRegistered || 0}/{event.volunteersNeeded}
                                                 </strong>
                                             </span>
-                                            <span>{event.location}</span>
+                                            <span style={{ textAlign: 'right', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {event.location}
+                                            </span>
                                         </div>
                                     </div>
                                 );
