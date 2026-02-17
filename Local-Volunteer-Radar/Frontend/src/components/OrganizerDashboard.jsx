@@ -537,13 +537,23 @@ const OrganizerDashboard = () => {
                                         <div className="space-y-2" style={{ marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px' }}>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <Calendar className="w-4 h-4 text-blue-500" />
-                                                <span>{formatDate(event.startdate)}</span>
+                                                <span> {`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
-                                                <span>{event.startTime} - {event.endTime}</span>
+                                                <span>
+                                                    {`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                                        hour: 'numeric',
+                                                        minute: '2-digit',
+                                                        hour12: true
+                                                    })}`}
+                                                </span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-gray-600">
                                                 <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
