@@ -10,28 +10,101 @@ const ForgotPassword = () => {
     const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [attemptsRemaining, setAttemptsRemaining] = useState(5);
 
-    const handleSendOTP = (e) => {
+    const handleSendOTP = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
-        // Simulate OTP sending (replace with actual API call)
-        if (email) {
-            setSuccessMessage('OTP sent to your email. Please check your inbox.');
-            setStep('otp');
+        try {
+            const response = await fetch('http://localhost:5000/api/forgot-password/send-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setSuccessMessage('OTP sent to your email. Please check your inbox.');
+                setStep('otp');
+                setAttemptsRemaining(5); // Reset attempts
+            } else {
+                setError(data.error || 'Failed to send OTP');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+            console.error('Send OTP error:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleVerifyOTP = (e) => {
+    const handleVerifyOTP = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
-        // Simulate OTP verification (replace with actual API call)
-        if (otp.length === 6) {
-            // If OTP is valid, navigate to reset password page
-            navigate('/reset-password', { state: { email } });
-        } else {
-            setError('Invalid or expired OTP');
+        try {
+            const response = await fetch('http://localhost:5000/api/forgot-password/verify-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, otp }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Navigate to reset password page with email and OTP
+                navigate('/reset-password', { state: { email, otp } });
+            } else {
+                setError(data.error || 'Failed to verify OTP');
+                if (data.attemptsRemaining !== undefined) {
+                    setAttemptsRemaining(data.attemptsRemaining);
+                }
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+            console.error('Verify OTP error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        setError('');
+        setSuccessMessage('');
+        setOtp('');
+        setLoading(true);
+
+        try {
+            const response = await fetch('http://localhost:5000/api/forgot-password/send-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setSuccessMessage('New OTP sent to your email.');
+                setAttemptsRemaining(5);
+            } else {
+                setError(data.error || 'Failed to resend OTP');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+            console.error('Resend OTP error:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -41,6 +114,7 @@ const ForgotPassword = () => {
         setOtp('');
         setError('');
         setSuccessMessage('');
+        setAttemptsRemaining(5);
     };
 
     const handleBackToSignIn = () => {
@@ -149,37 +223,37 @@ const ForgotPassword = () => {
                                             className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900"
                                             placeholder="you@example.com"
                                             required
+                                            disabled={loading}
                                         />
                                     </div>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity"
+                                    disabled={loading}
+                                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Send OTP
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleBackToSignIn}
-                                    className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                                    {loading ? 'Sending...' : 'Send OTP'}
+                                </button><button
+                                type="button"
+                                onClick={handleBackToSignIn}
+                                className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                            >
+                                <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
                                 >
-                                    <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                                        />
-                                    </svg>
-                                    Back to Sign In
-                                </button>
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                    />
+                                </svg>
+                                Back to Sign In
+                            </button>
                             </form>
                         )}
 
@@ -217,24 +291,42 @@ const ForgotPassword = () => {
                                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900 text-center text-2xl tracking-widest font-semibold"
                                         placeholder="123456"
                                         maxLength="6"
-                                        required
+                                        requireddisabled={loading}
                                     />
-                                    <p className="text-xs text-gray-500">
-                                        OTP is valid for 10 minutes. Check console for demo OTP.
-                                    </p>
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-xs text-gray-500">
+                                            OTP is valid for 10 minutes
+                                        </p>
+                                        {attemptsRemaining < 5 && (
+                                            <p className="text-xs text-orange-600 font-medium">
+                                                {attemptsRemaining} attempts remaining
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity"
+                                    disabled={loading || otp.length !== 6}
+                                    className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Verify OTP
+                                    {loading ? 'Verifying...' : 'Verify OTP'}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleResendOTP}
+                                    disabled={loading}
+                                    className="w-full text-teal-600 hover:text-teal-700 font-medium text-sm transition-colors disabled:opacity-50"
+                                >
+                                    Didn't receive OTP? Resend
                                 </button>
 
                                 <button
                                     type="button"
                                     onClick={handleUseDifferentEmail}
-                                    className="w-full py-3 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                                    disabled={loading}
+                                    className="w-full py-3 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
                                 >
                                     Use Different Email
                                 </button>

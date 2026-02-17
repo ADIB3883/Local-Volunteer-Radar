@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const User = require('../Models/User');
 const Volunteer = require('../Models/Volunteer');
 const Organizer = require('../Models/Organizer');
@@ -24,10 +25,13 @@ router.post('/signup', async (req, res) => {
             });
         }
 
+        // Hash password before saving
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         // Create authentication entry
         const newUser = new User({
             email,
-            password, // hash in production
+            password: hashedPassword,
             type: userType
         });
 
@@ -74,7 +78,6 @@ router.post('/signup', async (req, res) => {
                 description: organizer.description
             };
         }
-
 
         console.log('✅ User created successfully:', email);
 

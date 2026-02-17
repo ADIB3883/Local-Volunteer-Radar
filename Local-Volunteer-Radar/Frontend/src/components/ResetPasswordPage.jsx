@@ -9,6 +9,7 @@ const ResetPassword = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const email = location.state?.email || '';
+    const otp = location.state?.otp || '';
 
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,6 +18,13 @@ const ResetPassword = () => {
     const [error, setError] = useState('');
     const [passwordStrength, setPasswordStrength] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Redirect if email or OTP is missing
+    if (!email || !otp) {
+        navigate('/forgot-password');
+        return null;
+    }
 
     // Password strength checker
     const checkPasswordStrength = (password) => {
@@ -37,11 +45,10 @@ const ResetPassword = () => {
     const handleNewPasswordChange = (e) => {
         const value = e.target.value;
         setNewPassword(value);
-        checkPasswordStrength(value);
-        setError('');
+        checkPasswordStrength(value);setError('');
     };
 
-    const handleResetPassword = (e) => {
+    const handleResetPassword = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -55,13 +62,38 @@ const ResetPassword = () => {
             return;
         }
 
-        console.log('Password reset for:', email);
 
-        setShowSuccess(true);
+        setLoading(true);
 
-        setTimeout(() => {
-            navigate('/login');
-        }, 2000);
+        try {
+            const response = await fetch('http://localhost:5000/api/forgot-password/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    otp,
+                    newPassword
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setShowSuccess(true);
+                setTimeout(() => {
+                    navigate('/login');
+                }, 2000);
+            } else {
+                setError(data.error || 'Failed to reset password');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+            console.error('Reset password error:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const getStrengthColor = () => {
@@ -126,33 +158,31 @@ const ResetPassword = () => {
                     <p className="text-lg text-gray-600 leading-relaxed">
                         Your new password must be different from your previous password.
                         We recommend following these security tips for a stronger password.
-                    </p>
-                    <ul className="space-y-4">
-                        <li className="flex items-start gap-3">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                            <span className="text-gray-700">
+                    </p><ul className="space-y-4">
+                    <li className="flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                        <span className="text-gray-700">
                                 Consider using at least 8-10 characters for better security
                             </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                            <span className="text-gray-700">
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                        <span className="text-gray-700">
                                 Mix letters, numbers, and symbols for stronger protection
                             </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                            <span className="text-gray-700">
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                        <span className="text-gray-700">
                                 Avoid using common words or easily guessable information
                             </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                            <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                            <span className="text-gray-700">
+                    </li><li className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
+                    <span className="text-gray-700">
                                 Make sure both passwords match before submitting
                             </span>
-                        </li>
-                    </ul>
+                </li>
+                </ul>
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-xl p-8 w-full">
@@ -206,12 +236,13 @@ const ResetPassword = () => {
                                     onChange={handleNewPasswordChange}
                                     className="w-full pl-12 pr-12 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900"
                                     placeholder="Enter new password"
-                                    required
+                                    requireddisabled={loading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowNewPassword(!showNewPassword)}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
+                                    disabled={loading}
                                 >
                                     <img
                                         src={showNewPassword ? hidePasswordIcon : showPasswordIcon}
@@ -263,11 +294,13 @@ const ResetPassword = () => {
                                     className="w-full pl-12 pr-12 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 text-gray-900"
                                     placeholder="Confirm new password"
                                     required
+                                    disabled={loading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
+                                    disabled={loading}
                                 >
                                     <img
                                         src={showConfirmPassword ? hidePasswordIcon : showPasswordIcon}
@@ -291,15 +324,17 @@ const ResetPassword = () => {
 
                         <button
                             type="submit"
-                            className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity"
+                            disabled={loading || newPassword !== confirmPassword || !newPassword}
+                            className="w-full py-3.5 rounded-lg bg-gradient-to-r from-blue-500 to-teal-600 text-white font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Reset Password
+                            {loading ? 'Resetting Password...' : 'Reset Password'}
                         </button>
 
                         <button
                             type="button"
                             onClick={() => navigate('/login')}
-                            className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                            disabled={loading}
+                            className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors disabled:opacity-50"
                         >
                             <svg
                                 className="w-4 h-4"
