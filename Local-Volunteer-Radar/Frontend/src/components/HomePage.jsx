@@ -88,7 +88,18 @@ function HomePage() {
                     }}></div>
 
                     {/* Content */}
-                    <div style={{ position: 'relative', zIndex: 2 }}>
+                    <div style={{
+                        position: 'relative',
+                        zIndex: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        height: '100%',
+                        minHeight: '80vh',
+                        padding: '0 20px'
+                    }}>
                         <h1 className="copa-hero-title">
                             Connect with <span className="highlight1">Volunteer</span> <span className="highlight2">Opportunities</span> Near You
                         </h1>
