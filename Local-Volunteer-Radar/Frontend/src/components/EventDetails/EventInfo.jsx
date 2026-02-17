@@ -103,8 +103,8 @@ const EventInfo = () => {
                                 <div className="flex flex-col">
                                     <span className="text-[#686868] font-sans font-normal text-[11px]">Date</span>
                                     <span className="text-[#000000] font-sans font-normal text-[16px] leading-[16px]">
-                    {formatDate(event.startdate)}
-                  </span>
+                                        {`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
+                                    </span>
                                 </div>
                             </div>
 
@@ -116,8 +116,16 @@ const EventInfo = () => {
                                 <div className="flex flex-col">
                                     <span className="text-[#686868] font-sans font-normal text-[11px]">Time</span>
                                     <span className="text-[#000000] font-sans font-normal text-[16px] leading-[16px]">
-                    {event.startTime} - {event.endTime}
-                  </span>
+                                        {`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                        })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                        })}`}
+                                    </span>
                                 </div>
                             </div>
 

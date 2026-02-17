@@ -11,7 +11,7 @@ import EventVolunteerInfo from "./EventVolunteerInfo.jsx";
 import QuickAction from "./QuickAction.jsx";
 
 const API_URL = 'http://localhost:5000/api/events';
-const VOLUNTEER_API_URL = 'http://localhost:5000/api/profile'; // Your volunteer profile endpoint
+const VOLUNTEER_API_URL = 'http://localhost:5000/api/profile';
 
 function EventDetails() {
     const { eventId } = useParams();

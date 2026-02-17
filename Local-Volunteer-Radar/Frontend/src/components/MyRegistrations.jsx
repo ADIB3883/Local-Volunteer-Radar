@@ -246,17 +246,7 @@ const MyRegistrations = () => {
                                 }}>
                                     <Calendar size={16} style={{ color: '#3b82f6' }} />
                                     <span>
-                                        {`${new Date(event.startdate).toLocaleDateString('en-US', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}`}
+                                        {`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
                                     </span>
                                 </div>
                                 <div style={{
@@ -267,7 +257,17 @@ const MyRegistrations = () => {
                                     color: '#4b5563'
                                 }}>
                                     <Clock size={16} style={{ color: '#10b981' }} />
-                                    <span>{event.startTime} - {event.endTime}</span>
+                                    <span>
+                                        {`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                        })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                            hour: 'numeric',
+                                            minute: '2-digit',
+                                            hour12: true
+                                        })}`}
+                                    </span>
                                 </div>
                                 <div style={{
                                     display: 'flex',

@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Calendar, Clock, MapPin, User, FileText, CheckSquare, Tag, AlertCircle, Database, Copy, Check } from "lucide-react";
 
-export default function AdminEventCard({ event, children, showBadges = true, iconColor = "#6b7280", enableCopyId = false, showParticipants = true }) {
+export default function AdminEventCard({ event, children, showBadges = true, iconColor = "#6b7280", enableCopyId = false }) {
     const [copied, setCopied] = useState(false);
     const [showCopiedPopup, setShowCopiedPopup] = useState(false);
-    const [organizer, setOrganizer] = useState(null);
-    const [organizerLoading, setOrganizerLoading] = useState(false);
 
     const handleCopyId = async (e) => {
         e.stopPropagation();
@@ -48,33 +46,6 @@ export default function AdminEventCard({ event, children, showBadges = true, ico
     const getApprovalColor = (isApproved) => {
         return isApproved ? "#10b981" : "#ef4444";
     };
-
-    // Fetch organizer data when event.organizerId changes
-    useEffect(() => {
-        const fetchOrganizer = async () => {
-            if (!event?.organizerId) return;
-            
-            const organizerId = event.organizerId.$oid || event.organizerId;
-            if (!organizerId) return;
-
-            setOrganizerLoading(true);
-            try {
-                const response = await fetch(`http://localhost:5000/api/organizers/${organizerId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.user) {
-                        setOrganizer(data.user);
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching organizer:', error);
-            } finally {
-                setOrganizerLoading(false);
-            }
-        };
-
-        fetchOrganizer();
-    }, [event?.organizerId]);
 
     return (
         <div
@@ -185,64 +156,36 @@ export default function AdminEventCard({ event, children, showBadges = true, ico
                         <span><strong>Location:</strong> {event.location || 'N/A'}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        {organizerLoading ? (
-                            <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#e5e7eb", animation: "pulse 1s infinite" }} />
-                        ) : organizer ? (
-                            <>
-                                {organizer.profilePicture ? (
-                                    <img 
-                                        src={organizer.profilePicture} 
-                                        alt={organizer.name}
-                                        style={{ width: "24px", height: "24px", borderRadius: "50%", objectFit: "cover" }}
-                                    />
-                                ) : (
-                                    <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#9ca3af", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "12px" }}>
-                                        {organizer.name?.charAt(0)?.toUpperCase()}
-                                    </div>
-                                )}
-                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                    <span style={{ fontWeight: 600, fontSize: "0.8rem" }}>{organizer.name || 'N/A'}</span>
-                                    <span style={{ fontSize: "0.7rem", color: "#6b7280" }}>ID: {event.organizerId?.$oid || 'N/A'}</span>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <User size={14} color={iconColor} />
-                                <span><strong>Organizer:</strong> {event.organizerId?.$oid || 'N/A'}</span>
-                            </>
-                        )}
+                        <User size={14} color={iconColor} />
+                        <span><strong>Organizer ID:</strong> {event.organizerId?.$oid || 'N/A'}</span>
                     </div>
-                    {showParticipants && (
-                        <>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                                <AlertCircle size={14} color={iconColor} />
-                                <span><strong>Volunteers:</strong> {event.volunteersRegistered || 0}/{event.volunteersNeeded || 0}</span>
-                            </div>
-                            <div style={{ marginBottom: "0.5rem" }}>
-                                <div
-                                    style={{
-                                        background: "#e5e7eb",
-                                        borderRadius: "0.25rem",
-                                        height: "0.75rem",
-                                        overflow: "hidden",
-                                        marginTop: "0.25rem",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            background: `${((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) >= 1 ? "#10b981" : "#3b82f6"}`,
-                                            height: "100%",
-                                            width: `${Math.min(((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) * 100, 100)}%`,
-                                            transition: "width 0.3s ease",
-                                        }}
-                                    />
-                                </div>
-                                <span style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "0.25rem", display: "block" }}>
-                                    {Math.round(((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) * 100)}% filled
-                                </span>
-                            </div>
-                        </>
-                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                        <AlertCircle size={14} color={iconColor} />
+                        <span><strong>Volunteers:</strong> {event.volunteersRegistered || 0}/{event.volunteersNeeded || 0}</span>
+                    </div>
+                    <div style={{ marginBottom: "0.5rem" }}>
+                        <div
+                            style={{
+                                background: "#e5e7eb",
+                                borderRadius: "0.25rem",
+                                height: "0.75rem",
+                                overflow: "hidden",
+                                marginTop: "0.25rem",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    background: `${((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) >= 1 ? "#10b981" : "#3b82f6"}`,
+                                    height: "100%",
+                                    width: `${Math.min(((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) * 100, 100)}%`,
+                                    transition: "width 0.3s ease",
+                                }}
+                            />
+                        </div>
+                        <span style={{ fontSize: "0.7rem", color: "#6b7280", marginTop: "0.25rem", display: "block" }}>
+                            {Math.round(((event.volunteersRegistered || 0) / (event.volunteersNeeded || 1)) * 100)}% filled
+                        </span>
+                    </div>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
