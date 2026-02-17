@@ -92,11 +92,6 @@ const ActiveEventsModal = ({ events }) => {
                                     {event.category}
                                 </span>
                             </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>
-                                <Building2 size={14} />
-                                <span>{event.organization}</span>
-                            </div>
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
