@@ -173,7 +173,7 @@ const EventsCreatedModal = ({ events }) => {
                                         }}>
                                             <span>
                                                 Volunteers: <strong style={{ color: '#4b5563' }}>
-                                                    {event.volunteersRegistered || 0}/{event.volunteersNeeded}
+                                                    {(event.registrations || []).filter(r => r.status === 'approved').length}/{event.volunteersNeeded}
                                                 </strong>
                                             </span>
                                             <span style={{ textAlign: 'right', maxWidth: '50%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

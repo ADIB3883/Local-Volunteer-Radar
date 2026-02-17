@@ -50,7 +50,7 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                 }}>
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Registered</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7', margin: 0 }}>
-                        {activeEvents.reduce((sum, e) => sum + Number(e.volunteersRegistered || 0), 0)}
+                        {activeEvents.reduce((sum, e) => sum + (e.registrations || []).filter(r => r.status === 'approved').length, 0)}
                     </p>
                 </div>
             </div>
@@ -146,14 +146,14 @@ const ActiveEventsOrganizerModal = ({ events }) => {
                                             <div style={{
                                                 background: '#3b82f6',
                                                 height: '100%',
-                                                width: `${Math.min(((event.volunteersRegistered || 0) / event.volunteersNeeded) * 100, 100)}%`,
+                                                width: `${Math.min(((event.registrations || []).filter(r => r.status === 'approved').length / event.volunteersNeeded) * 100, 100)}%`,
                                                 borderRadius: '0.25rem',
                                                 transition: 'width 0.3s'
                                             }} />
                                         </div>
                                     </div>
                                     <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>
-                                        {event.volunteersRegistered || 0}/{event.volunteersNeeded}
+                                        {(event.registrations || []).filter(r => r.status === 'approved').length}/{event.volunteersNeeded}
                                     </span>
                                 </div>
                             </div>

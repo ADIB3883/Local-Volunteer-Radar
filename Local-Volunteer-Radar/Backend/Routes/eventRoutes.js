@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const Event = require("../Models/Event");
-
+const Organizer = require("../Models/Organizer");
 /*
 1️⃣ CREATE EVENT
 POST /api/events
@@ -519,36 +519,47 @@ router.get("/volunteer/:volunteerId/registrations", async (req, res) => {
     try {
         const { volunteerId } = req.params;
 
-        // Find all events where this volunteer is registered
         const events = await Event.find({
             "registrations.volunteer": volunteerId
         })
-            .populate('organizerId', 'name email')
+            .populate('organizerId', 'name email') // populates from User (only has email)
             .sort({ startdate: 1 });
 
-        // Filter to get only this volunteer's registrations
-        const registrations = events.map(event => {
+        // For each event, look up organizer name from Organizer collection using email
+        const registrations = await Promise.all(events.map(async (event) => {
             const registration = event.registrations.find(
                 reg => reg.volunteer && reg.volunteer.toString() === volunteerId
             );
+
+            // Look up organizer name from Organizer collection
+            let organizerName = 'Unknown';
+            if (event.organizerId?.email) {
+                const organizer = await Organizer.findOne(
+                    { email: event.organizerId.email },
+                    'name'
+                );
+                if (organizer) organizerName = organizer.name;
+            }
+
+            // Attach organizer name to the event object
+            const eventObj = event.toObject();
+            eventObj.organizerId = {
+                ...eventObj.organizerId,
+                name: organizerName
+            };
+
             return {
-                event: event,
+                event: eventObj,
                 registrationStatus: registration ? registration.status : 'unknown',
                 registeredAt: registration ? registration.registeredAt : null
             };
-        });
+        }));
 
-        res.json({
-            success: true,
-            registrations: registrations
-        });
+        res.json({ success: true, registrations });
 
     } catch (error) {
         console.error('Error fetching registrations:', error);
-        res.status(500).json({
-            success: false,
-            message: "Server error while fetching registrations."
-        });
+        res.status(500).json({ success: false, message: "Server error while fetching registrations." });
     }
 });
 

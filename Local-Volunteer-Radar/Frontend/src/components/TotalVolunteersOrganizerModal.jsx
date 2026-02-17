@@ -4,9 +4,9 @@ import { Users, Calendar } from 'lucide-react';
 const TotalVolunteersOrganizerModal = ({ events }) => {
     // Dashboard already fetches events scoped to the logged-in organizer,
     // so no organizerId filtering needed here.
-    const totalVolunteers = events.reduce((sum, e) => sum + Number(e.volunteersRegistered || 0), 0);
-
-    const eventsWithVolunteers = events.filter(e => (e.volunteersRegistered || 0) > 0);
+    const getApproved = (e) => (e.registrations || []).filter(r => r.status === 'approved').length;
+    const totalVolunteers = events.reduce((sum, e) => sum + getApproved(e), 0);
+    const eventsWithVolunteers = events.filter(e => getApproved(e) > 0);
 
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
@@ -73,7 +73,7 @@ const TotalVolunteersOrganizerModal = ({ events }) => {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '350px', overflowY: 'auto' }}>
                         {eventsWithVolunteers
-                            .sort((a, b) => (b.volunteersRegistered || 0) - (a.volunteersRegistered || 0))
+                            .sort((a, b) => getApproved(b) - getApproved(a))
                             .map((event) => (
                                 <div
                                     key={event._id}
@@ -105,7 +105,7 @@ const TotalVolunteersOrganizerModal = ({ events }) => {
                                         </div>
                                         <div style={{ textAlign: 'right', marginLeft: '0.5rem' }}>
                                             <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
-                                                {event.volunteersRegistered || 0}
+                                                {getApproved(event)}
                                             </p>
                                             <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>
                                                 of {event.volunteersNeeded}
@@ -122,7 +122,7 @@ const TotalVolunteersOrganizerModal = ({ events }) => {
                                         <div style={{
                                             background: '#10b981',
                                             height: '100%',
-                                            width: `${Math.min(((event.volunteersRegistered || 0) / event.volunteersNeeded) * 100, 100)}%`,
+                                            width: `${Math.min((getApproved(event) / event.volunteersNeeded) * 100, 100)}%`,
                                             borderRadius: '0.25rem',
                                             transition: 'width 0.3s'
                                         }} />
