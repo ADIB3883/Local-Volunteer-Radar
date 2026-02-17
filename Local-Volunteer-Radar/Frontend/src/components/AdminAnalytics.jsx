@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
 import AdminChart from "./AdminChart.jsx";
 
 const getTrendInfo = (statement) => {
-    if (statement.includes("Unchanged")) {
+    if (!statement) return { color: "#9ca3af", icon: Minus, bg: "#f3f4f6" };
+    if (statement.toLowerCase().includes("unavailable")) {
+        return { color: "#9ca3af", icon: Minus, bg: "#f3f4f6" };
+    }
+    if (statement.toLowerCase().includes("no change") || statement.toLowerCase().includes("unchanged")) {
         return { color: "#3b82f6", icon: Minus, bg: "#dbeafe" };
     } else if (statement.includes("-") || statement.toLowerCase().includes("decrease")) {
         return { color: "#ef4444", icon: TrendingDown, bg: "#fee2e2" };
@@ -47,43 +51,50 @@ const AnalyticsCard = ({ title, value, statement, data }) => {
     );
 };
 
-export default function AdminAnalytics() {
-    const [analyticsData, setAnalyticsData] = useState(null);
+const LoadingSpinner = ({ message = "Loading..." }) => (
+    <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3rem',
+        color: '#6b7280'
+    }}>
+        <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+        <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>{message}</p>
+    </div>
+);
 
-    useEffect(() => {
-        fetch("/api/admin/analytics")
-            .then(res => res.json())
-            .then(data => setAnalyticsData(data))
-            .catch(err => console.error("Error fetching analytics:", err));
-    }, []);
-
-    if (!analyticsData) return null;
+export default function AdminAnalytics({ analytics }) {
+    if (!analytics) {
+        return <LoadingSpinner message="Loading analytics..." />;
+    }
 
     return (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))", gap: "1.5rem" }}>
             <AnalyticsCard
                 title="Hours Worked (Yearly)"
-                value={`${analyticsData.analytics.hoursWorked.reduce((a, b) => a + b, 0)} hrs`}
-                statement={analyticsData.trendStatement.hoursWorked}
-                data={analyticsData.analytics.hoursWorked}
+                value={`${analytics.analytics.hoursWorked.reduce((a, b) => a + b, 0)} hrs`}
+                statement={analytics.trendStatement.hoursWorked}
+                data={analytics.analytics.hoursWorked}
             />
             <AnalyticsCard
                 title="Volunteer Enrollment (Yearly)"
-                value={analyticsData.analytics.volunteers.reduce((a, b) => a + b, 0)}
-                statement={analyticsData.trendStatement.volunteers}
-                data={analyticsData.analytics.volunteers}
+                value={analytics.analytics.volunteers.reduce((a, b) => a + b, 0)}
+                statement={analytics.trendStatement.volunteers}
+                data={analytics.analytics.volunteers}
             />
             <AnalyticsCard
-                title="NGO Enrollment (Yearly)"
-                value={analyticsData.analytics.ngos.reduce((a, b) => a + b, 0)}
-                statement={analyticsData.trendStatement.ngos}
-                data={analyticsData.analytics.ngos}
+                title="Organizer Enrollment (Yearly)"
+                value={analytics.analytics.organizer.reduce((a, b) => a + b, 0)}
+                statement={analytics.trendStatement.organizer}
+                data={analytics.analytics.organizer}
             />
             <AnalyticsCard
                 title="Active Events (Yearly)"
-                value={analyticsData.analytics.activeEvents.reduce((a, b) => a + b, 0)}
-                statement={analyticsData.trendStatement.activeEvents}
-                data={analyticsData.analytics.activeEvents}
+                value={analytics.analytics.activeEvents.reduce((a, b) => a + b, 0)}
+                statement={analytics.trendStatement.activeEvents}
+                data={analytics.analytics.activeEvents}
             />
         </div>
     );

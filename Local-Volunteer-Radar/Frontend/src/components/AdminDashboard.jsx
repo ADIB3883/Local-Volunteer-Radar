@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import './AdminStyles.css';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building, Search, ChevronDown, X, Sparkles } from 'lucide-react';
+import { Users, Building, Search, ChevronDown, X, Sparkles, Mail, Phone, MapPin, Calendar, Tag, Briefcase, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import StatCard from './StatCard.jsx';
 import AdminNavbar from "./AdminNavbar.jsx";
 import AdminAnalytics from "./AdminAnalytics.jsx";
@@ -11,6 +11,22 @@ import Modal from './Modal';
 import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
 import ActiveEventsModal from './ActiveEventsModal';
+import PartnerModal from './PartnerModal.jsx';
+
+// Loading spinner component
+const LoadingSpinner = ({ message = "Loading..." }) => (
+    <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3rem',
+        color: '#6b7280'
+    }}>
+        <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+        <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>{message}</p>
+    </div>
+);
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('partner');
@@ -36,6 +52,7 @@ const AdminDashboard = () => {
     const [pendingSortBy, setPendingSortBy] = useState('');
     const [eventSearchQuery, setEventSearchQuery] = useState('');
     const [eventSortBy, setEventSortBy] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState({ show: false, userId: null, userName: '' });
 
     const fetchUsers = async (endpoint, setter) => {
         try {
@@ -64,17 +81,17 @@ const AdminDashboard = () => {
         fetchUsers('/users/pending', setPendingUsers);
     };
 
-    // useEffect(() => {
-    //     fetch("http://localhost:5000/api/admin/analytics")
-    //         .then((res) => res.json())
-    //         .then((data) => {
-    //             console.log("Fetched analytics:", data);
-    //             setAnalytics(data);
-    //         })
-    //         .catch((err) => {
-    //             console.error("Error fetching analytics:", err);
-    //         });
-    // }, []);
+    useEffect(() => {
+        fetch("http://localhost:5000/api/admin/analytics")
+            .then((res) => res.json())
+            .then((data) => {
+                console.log("Fetched analytics:", data);
+                setAnalytics(data);
+            })
+            .catch((err) => {
+                console.error("Error fetching analytics:", err);
+            });
+    }, []);
 
     useEffect(() => {
         const fetchPendingEvents = async () => {
@@ -284,6 +301,23 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     const [selectedStat, setSelectedStat] = useState(null);
+    const [activeEvents, setActiveEvents] = useState([]);
+
+    // Fetch active events
+    useEffect(() => {
+        const fetchActiveEvents = async () => {
+            try {
+                const res = await fetch('http://localhost:5000/api/events/active');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                setActiveEvents(Array.isArray(data) ? data : data.events || []);
+            } catch (err) {
+                console.error('Error fetching active events:', err);
+                setActiveEvents([]);
+            }
+        };
+        fetchActiveEvents();
+    }, []);
 
     // Fetch pending users when the tab changes to pendingRegistrations
     useEffect(() => {
@@ -341,12 +375,47 @@ const AdminDashboard = () => {
         setTimeout(() => setShowNotification(false), 3000);
     };
 
-    const handleAnnouncementsClick = () => {
-
-    };
-
     const handleLogoutClick = () => {
         navigate('/login');
+    };
+
+    const handleDeleteUser = async (userId) => {
+        try {
+            const userType = selectedUser.type || (selectedUser.organizationType ? 'organizer' : 'volunteer');
+            const endpoint = userType === 'organizer' ? '/organizers' : '/volunteers';
+            
+            const res = await fetch(`http://localhost:5000/api${endpoint}/${userId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            
+            setUsers(prev => prev.filter(u => (u._id?.$oid || u._id) !== userId));
+            setSelectedUser(null);
+            setDeleteConfirm({ show: false, userId: null, userName: '' });
+            
+            setNotificationConfig({
+                borderColor: 'border-red-500',
+                bgColor: 'bg-red-500',
+                message: `User deleted successfully!`
+            });
+            setShowNotification(true);
+            setTimeout(() => setShowNotification(false), 3000);
+        } catch (err) {
+            console.error('Delete error:', err);
+            setNotificationConfig({
+                borderColor: 'border-red-500',
+                bgColor: 'bg-red-500',
+                message: 'Failed to delete user'
+            });
+            setShowNotification(true);
+            setTimeout(() => setShowNotification(false), 3000);
+        }
+    };
+
+    const initiateDelete = (userId, userName) => {
+        setDeleteConfirm({ show: true, userId, userName });
     };
 
     const totalVolunteers = useMemo(
@@ -359,7 +428,54 @@ const AdminDashboard = () => {
         [users]
     );
 
-    const stats = [
+    // Format volunteer data for modal
+    const volunteerData = useMemo(() => {
+        return (users || []).filter(u => u.type === 'volunteer').map(v => ({
+            id: v._id?.$oid || v._id || v.id,
+            name: v.name || 'Unknown',
+            email: v.email || '',
+            location: v.address || v.location || 'Unknown',
+            joinedDate: formatDate(v.createdAt || v.joinedDate),
+            eventsCompleted: 0,
+            hoursContributed: 0,
+            skills: getSkillsDisplay(v.skills) || [],
+            profilePicture: v.profilePicture || ''
+        }));
+    }, [users]);
+
+    // Format organizer data for modal
+    const organizerData = useMemo(() => {
+        return (users || []).filter(u => u.type === 'organizer').map(o => ({
+            id: o._id?.$oid || o._id || o.id,
+            name: o.name || 'Unknown',
+            email: o.email || '',
+            location: o.address || o.location || 'Unknown',
+            joinedDate: formatDate(o.createdAt || o.joinedDate),
+            eventsCreated: 0,
+            totalVolunteers: 0,
+            category: o.category || 'General',
+            status: o.isVerified ? 'verified' : 'pending',
+            profilePicture: o.profilePicture || ''
+        }));
+    }, [users]);
+
+    // Format active events data for modal
+    const formattedActiveEvents = useMemo(() => {
+        return (activeEvents || []).map(e => ({
+            id: e._id?.$oid || e._id || e.id,
+            name: e.eventName || 'Unknown',
+            organization: e.organizerId?.name || e.organizerName || 'Unknown',
+            date: e.startdate || 'Unknown',
+            time: `${e.startTime || '00:00'} - ${e.endTime || '00:00'}`,
+            location: e.location || 'Unknown',
+            category: e.category || 'General',
+            volunteersRegistered: e.volunteersRegistered || 0,
+            volunteersNeeded: e.volunteersNeeded || 0,
+            status: 'active'
+        }));
+    }, [activeEvents]);
+
+    const stats = useMemo(() => [
         {
             id: 'volunteers',
             title: 'Total Volunteers',
@@ -369,7 +485,7 @@ const AdminDashboard = () => {
             iconColor: '#3b82f6',
             iconBg: '#dbeafe',
             modalTitle: 'Total Volunteers',
-            modalContent: <TotalVolunteerModal />
+            modalContent: <TotalVolunteerModal volunteers={volunteerData} />
         },
         {
             id: 'organizers',
@@ -380,20 +496,20 @@ const AdminDashboard = () => {
             iconColor: '#06b6d4',
             iconBg: '#cffafe',
             modalTitle: 'Total Organizers',
-            modalContent: <TotalOrganizerModal />
+            modalContent: <TotalOrganizerModal organizers={organizerData} />
         },
         {
             id: 'events',
             title: 'Active Events',
-            value: '2',
+            value: activeEvents.length,
             subtitle: 'Events taking place',
             icon: Sparkles,
             iconColor: '#a855f7',
             iconBg: '#f3e8ff',
             modalTitle: 'Ongoing Events',
-            modalContent: <ActiveEventsModal />
+            modalContent: <ActiveEventsModal events={formattedActiveEvents} />
         }
-    ];
+    ], [totalVolunteers, totalOrganizers, activeEvents.length, volunteerData, organizerData, formattedActiveEvents]);
 
     const closeModal = () => {
         setSelectedUser(null);
@@ -404,7 +520,6 @@ const AdminDashboard = () => {
             {/* Navbar */}
             <AdminNavbar
                 title="Admin Dashboard"
-                onAnnouncementsClick={handleAnnouncementsClick}
                 onLogoutClick={handleLogoutClick}
             />
 
@@ -494,36 +609,36 @@ const AdminDashboard = () => {
                     >
                         Partners
                     </button>
-                    {/*<button*/}
-                    {/*    onClick={() => setActiveTab('analytics')}*/}
-                    {/*    style={{*/}
-                    {/*        padding: '0.5rem 1rem',*/}
-                    {/*        borderRadius: '0.625rem',*/}
-                    {/*        fontWeight: '500',*/}
-                    {/*        fontSize: '0.875rem',*/}
-                    {/*        border: 'none',*/}
-                    {/*        cursor: 'pointer',*/}
-                    {/*        transition: 'all 0.2s ease',*/}
-                    {/*        background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',*/}
-                    {/*        color: activeTab === 'analytics' ? '#111827' : '#4b5563',*/}
-                    {/*        boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',*/}
-                    {/*        whiteSpace: 'nowrap'*/}
-                    {/*    }}*/}
-                    {/*    onMouseEnter={(e) => {*/}
-                    {/*        if (activeTab !== 'analytics') {*/}
-                    {/*            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';*/}
-                    {/*            e.currentTarget.style.color = '#374151';*/}
-                    {/*        }*/}
-                    {/*    }}*/}
-                    {/*    onMouseLeave={(e) => {*/}
-                    {/*        if (activeTab !== 'analytics') {*/}
-                    {/*            e.currentTarget.style.background = 'transparent';*/}
-                    {/*            e.currentTarget.style.color = '#4b5563';*/}
-                    {/*        }*/}
-                    {/*    }}*/}
-                    {/*>*/}
-                    {/*    Analytics*/}
-                    {/*</button>*/}
+                    <button
+                        onClick={() => setActiveTab('analytics')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.625rem',
+                            fontWeight: '500',
+                            fontSize: '0.875rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === 'analytics' ? 'rgba(255, 255, 255, 0.9)' : 'transparent',
+                            color: activeTab === 'analytics' ? '#111827' : '#4b5563',
+                            boxShadow: activeTab === 'analytics' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none',
+                            whiteSpace: 'nowrap'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'analytics') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#374151';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'analytics') {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = '#4b5563';
+                            }
+                        }}
+                    >
+                        Analytics
+                    </button>
                     <button
                         onClick={() => setActiveTab('pendingRegistrations')}
                         style={{
@@ -574,11 +689,15 @@ const AdminDashboard = () => {
                     </button>
                 </div>
 
-                {/*{activeTab === 'analytics' && (*/}
-                {/*    <div style={{ marginBottom: '1.5rem' }}>*/}
-                {/*        <AdminAnalytics analytics={analytics} />*/}
-                {/*    </div>*/}
-                {/*)}*/}
+                {activeTab === 'analytics' && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        {analytics ? (
+                            <AdminAnalytics analytics={analytics} />
+                        ) : (
+                            <LoadingSpinner message="Loading analytics..." />
+                        )}
+                    </div>
+                )}
 
                 {activeTab === 'partner' && (
                     <>
@@ -667,63 +786,72 @@ const AdminDashboard = () => {
 
                         {/* Partners List */}
                         <div style={{ margin: '0 auto' }}>
-                            <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
-                                {/* Table Header */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '2fr 2fr 1fr 1fr',
-                                    gap: '1rem',
-                                    padding: '1rem 1.5rem',
-                                    borderBottom: '1px solid #f3f4f6',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '600',
-                                    color: '#6b7280'
-                                }}>
-                                    <div>NAME</div>
-                                    <div>EMAIL</div>
-                                    <div>TYPE</div>
-                                    <div>JOINED</div>
-                                </div>
+                            {loading ? (
+                                <LoadingSpinner message="Loading partners..." />
+                            ) : (
+                                <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+                                    {/* Table Header */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '2fr 2fr 1fr 1fr',
+                                        gap: '1rem',
+                                        padding: '1rem 1.5rem',
+                                        borderBottom: '1px solid #f3f4f6',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600',
+                                        color: '#6b7280'
+                                    }}>
+                                        <div>NAME</div>
+                                        <div>EMAIL</div>
+                                        <div>TYPE</div>
+                                        <div>JOINED</div>
+                                    </div>
 
-                                {/* Table Rows */}
-                                {filteredAndSortedUsers
-                                    .filter(user => user.type !== 'admin')
-                                    .map((user) => (
-                                        <div
-                                            key={user._id.$oid}
-                                            onClick={() => setSelectedUser(user)}
-                                            style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '2fr 2fr 1fr 1fr',
-                                                gap: '1rem',
-                                                padding: '1rem 1.5rem',
-                                                alignItems: 'center',
-                                                borderBottom: '1px solid #f3f4f6',
-                                                cursor: 'pointer',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{
-                                                    width: '2.5rem', height: '2.5rem', borderRadius: '50%',
-                                                    background: getAvatarColor(user.name || 'User'),
-                                                    color: 'white', fontWeight: '600', fontSize: '0.875rem',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                                }}>
-                                                    {getInitials(user.name || 'User')}
-                                                </div>
-                                                <span style={{ fontWeight: '500', color: '#111827' }}>
+                                    {/* Table Rows */}
+                                    {filteredAndSortedUsers
+                                        .filter(user => user.type !== 'admin')
+                                        .map((user) => (
+                                            <div
+                                                key={user._id.$oid}
+                                                onClick={() => setSelectedUser(user)}
+                                                style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: '2fr 2fr 1fr 1fr',
+                                                    gap: '1rem',
+                                                    padding: '1rem 1.5rem',
+                                                    alignItems: 'center',
+                                                    borderBottom: '1px solid #f3f4f6',
+                                                    cursor: 'pointer',
+                                                    transition: 'background-color 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <div style={{
+                                                        width: '2.5rem', height: '2.5rem', borderRadius: '50%',
+                                                        background: user.profilePicture ? 'transparent' : getAvatarColor(user.name || 'User'),
+                                                        color: 'white', fontWeight: '600', fontSize: '0.875rem',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        overflow: 'hidden',
+                                                        objectFit: 'cover'
+                                                    }}>
+                                                        {user.profilePicture ? (
+                                                            <img src={user.profilePicture} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        ) : (
+                                                            getInitials(user.name || 'User')
+                                                        )}
+                                                    </div>
+                                                    <span style={{ fontWeight: '500', color: '#111827' }}>
                                     {user.name || 'Unnamed'}
                                 </span>
-                                            </div>
+                                                </div>
 
-                                            <div style={{ color: '#000', fontSize: '0.875rem' }}>
-                                                {user.email || 'No email'}
-                                            </div>
+                                                <div style={{ color: '#000', fontSize: '0.875rem' }}>
+                                                    {user.email || 'No email'}
+                                                </div>
 
-                                            <div>
+                                                <div>
                                 <span style={{
                                     padding: '0.375rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
                                     fontWeight: '500',
@@ -734,90 +862,73 @@ const AdminDashboard = () => {
                                 }}>
                                     {user.type?.toUpperCase() || 'UNKNOWN'}
                                 </span>
-                                            </div>
+                                                </div>
 
-                                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                                                {formatDate(user.createdAt)}  {/* ✅ Schema field */}
+                                                <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                                                    {formatDate(user.createdAt)}  {/* ✅ Schema field */}
+                                                </div>
                                             </div>
+                                        ))}
+
+                                    {filteredAndSortedUsers.length === 0 && (
+                                        <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+                                            No partners found
                                         </div>
-                                    ))}
-
-                                {filteredAndSortedUsers.length === 0 && (
-                                    <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
-                                        No partners found
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Fixed Modal */}
-                            {selectedUser && (
-                                <div style={{ /* your existing modal overlay styles */ }} onClick={() => setSelectedUser(null)}>
-                                    <div style={{ /* your existing modal content styles */ }} onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => setSelectedUser(null)} style={{ /* close button styles */ }}>
-                                            <X size={18} />
-                                        </button>
+                            <PartnerModal 
+                                selectedUser={selectedUser} 
+                                onClose={() => setSelectedUser(null)} 
+                                initiateDelete={initiateDelete}
+                                formatDate={formatDate}
+                                getInitials={getInitials}
+                                getAvatarColor={getAvatarColor}
+                                getSkillsDisplay={getSkillsDisplay}
+                            />
 
-                                        {/* Header */}
-                                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                            <div style={{ /* avatar styles */ }}>
-                                                {getInitials(selectedUser.name || 'User')}
+                            {/* Delete Confirmation Dialog */}
+                            {deleteConfirm.show && (
+                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}>
+                                    <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <div style={{ background: '#fee2e2', borderRadius: '50%', padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <AlertCircle size={24} color="#dc2626" />
                                             </div>
-                                            <h2>{selectedUser.name || 'Unnamed'}</h2>
-                                            <p style={{ color: '#6b7280' }}>{selectedUser.email || 'No email'}</p>
+                                            <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '700', color: '#111827' }}>Delete User?</h3>
                                         </div>
-
-                                        {/* Schema-safe Details */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Type</span>
-                                                <span style={{
-                                                    padding: '0.25rem 0.75rem', borderRadius: '1rem', fontSize: '0.75rem',
-                                                    background: '#e9d5ff', color: '#6b21a8'
-                                                }}>
-                                    {selectedUser.type || 'Unknown'}
-                                </span>
-                                            </div>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Email</span>
-                                                <span style={{ fontWeight: '500' }}>{selectedUser.email || 'N/A'}</span>
-                                            </div>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                <span style={{ color: '#6b7280', fontWeight: '500' }}>Joined</span>
-                                                <span style={{ fontWeight: '500' }}>{formatDate(selectedUser.createdAt)}</span>
-                                            </div>
-
-                                            {selectedUser.phoneNumber && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Phone</span>
-                                                    <span style={{ fontWeight: '500' }}>{selectedUser.phoneNumber}</span>
-                                                </div>
-                                            )}
-
-                                            {selectedUser.address && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Address</span>
-                                                    <span style={{ fontWeight: '500', maxWidth: '60%' }}>{selectedUser.address}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Schema-safe Skills (handles both formats) */}
-                                            {selectedUser.skills && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0' }}>
-                                                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Skills</span>
-                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                        {getSkillsDisplay(selectedUser.skills).map((skill, i) => (
-                                                            <span key={i} style={{
-                                                                padding: '0.25rem 0.625rem', borderRadius: '0.375rem',
-                                                                background: '#f3f4f6', color: '#374151', fontSize: '0.75rem'
-                                                            }}>
-                                                {skill}
-                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                        <p style={{ margin: '0 0 1rem 0', color: '#374151', fontSize: '0.875rem' }}>
+                                            Are you sure you want to delete <strong>{deleteConfirm.userName}</strong>? This action cannot be undone.
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <button
+                                                onClick={() => setDeleteConfirm({ show: false, userId: null, userName: '' })}
+                                                style={{
+                                                    flex: 1, padding: '0.75rem 1rem', border: '1px solid #d1d5db',
+                                                    background: 'white', color: '#374151', borderRadius: '0.625rem',
+                                                    cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteUser(deleteConfirm.userId)}
+                                                style={{
+                                                    flex: 1, padding: '0.75rem 1rem', background: '#dc2626',
+                                                    color: 'white', border: 'none', borderRadius: '0.625rem',
+                                                    cursor: 'pointer', fontWeight: '600', fontSize: '0.875rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -945,6 +1056,7 @@ const AdminDashboard = () => {
                                             joiningDate={userData.createdAt?.$date || 'N/A'}
                                             description={userData.description || userData.bio || 'N/A'}
                                             skills={userData.skills || {}}
+                                            profilePicture={userData.profilePicture || ''}
                                             onApprove={handleUserApprove}
                                             onReject={handleUserReject}
                                         />

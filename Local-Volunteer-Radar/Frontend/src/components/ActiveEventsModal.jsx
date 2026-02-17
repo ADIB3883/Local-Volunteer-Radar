@@ -1,36 +1,24 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Users, Building2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Building2, Loader2 } from 'lucide-react';
 
 const ActiveEventsModal = ({ events }) => {
-    // Sample data - replace with actual data
-    const sampleEvents = [
-        {
-            id: 1,
-            name: 'Beach Cleanup Drive',
-            organization: 'Green Earth Foundation',
-            date: 'Jan 15, 2026',
-            time: '8:00 AM - 12:00 PM',
-            location: 'Cox\'s Bazar Beach',
-            category: 'Environment',
-            volunteersRegistered: 15,
-            volunteersNeeded: 20,
-            status: 'active'
-        },
-        {
-            id: 2,
-            name: 'Food Distribution Campaign',
-            organization: 'Food For All',
-            date: 'Jan 16, 2026',
-            time: '2:00 PM - 6:00 PM',
-            location: 'Mirpur Community Center',
-            category: 'Distribution',
-            volunteersRegistered: 12,
-            volunteersNeeded: 15,
-            status: 'active'
-        },
-    ];
+    const data = events && events.length > 0 ? events : [];
 
-    const data = events || sampleEvents;
+    if (!events) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem',
+                color: '#6b7280'
+            }}>
+                <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>Loading events...</p>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -48,7 +36,7 @@ const ActiveEventsModal = ({ events }) => {
                     textAlign: 'center'
                 }}>
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Active Events</p>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7', margin: 0 }}>{data.length}</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#a855f7', margin: 0 }}>{data && data.length > 0 ? data.length : 0}</p>
                 </div>
                 <div style={{
                     background: 'white',
@@ -56,20 +44,9 @@ const ActiveEventsModal = ({ events }) => {
                     borderRadius: '0.75rem',
                     textAlign: 'center'
                 }}>
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Total Volunteers</p>
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Registered Volunteers</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6', margin: 0 }}>
-                        {data.reduce((sum, e) => sum + e.volunteersRegistered, 0)}
-                    </p>
-                </div>
-                <div style={{
-                    background: 'white',
-                    padding: '1rem',
-                    borderRadius: '0.75rem',
-                    textAlign: 'center'
-                }}>
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Spots Available</p>
-                    <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', margin: 0 }}>
-                        {data.reduce((sum, e) => sum + (e.volunteersNeeded - e.volunteersRegistered), 0)}
+                        {data && data.length > 0 ? data.reduce((sum, e) => sum + (e.volunteersRegistered || 0), 0) : 0}
                     </p>
                 </div>
             </div>

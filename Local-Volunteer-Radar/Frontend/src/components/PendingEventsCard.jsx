@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckCircle, XCircle } from "lucide-react";
 import EventCardLayout from "./AdminEventCard.jsx";
 
 export default function PendingEventsCard({ event, onActionComplete }) {
@@ -86,8 +87,13 @@ export default function PendingEventsCard({ event, onActionComplete }) {
                         color: "#fff",
                         fontWeight: 600,
                         cursor: loading ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.5rem"
                     }}
                 >
+                    <CheckCircle size={16} />
                     {loading && action !== "approve"
                         ? "Approving..."
                         : action === "approve"
@@ -107,8 +113,13 @@ export default function PendingEventsCard({ event, onActionComplete }) {
                         color: "#fff",
                         fontWeight: 600,
                         cursor: loading ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.5rem"
                     }}
                 >
+                    <XCircle size={16} />
                     {loading && action !== "reject"
                         ? "Rejecting..."
                         : action === "reject"

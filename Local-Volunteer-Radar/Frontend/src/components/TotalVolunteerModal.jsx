@@ -1,62 +1,33 @@
 import React from 'react';
-import { User, MapPin, Calendar, Award } from 'lucide-react';
+import { User, MapPin, Calendar, Award, Loader2 } from 'lucide-react';
 
 const TotalVolunteersModal = ({ volunteers }) => {
-    // Sample data - replace with actual data
-    const sampleVolunteers = [
-        {
-            id: 1,
-            name: 'Sarah Ahmed',
-            email: 'sarah.ahmed@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Dec 1, 2024',
-            eventsCompleted: 5,
-            hoursContributed: 20,
-            skills: ['Teaching', 'Community Outreach']
-        },
-        {
-            id: 2,
-            name: 'Karim Rahman',
-            email: 'karim.r@email.com',
-            location: 'Chittagong',
-            joinedDate: 'Nov 15, 2024',
-            eventsCompleted: 8,
-            hoursContributed: 32,
-            skills: ['First-Aid', 'Distribution']
-        },
-        {
-            id: 3,
-            name: 'Nadia Islam',
-            email: 'nadia.islam@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Nov 20, 2024',
-            eventsCompleted: 3,
-            hoursContributed: 12,
-            skills: ['Education', 'Environment']
-        },
-        {
-            id: 4,
-            name: 'Fahim Hassan',
-            email: 'fahim.h@email.com',
-            location: 'Sylhet',
-            joinedDate: 'Dec 5, 2024',
-            eventsCompleted: 6,
-            hoursContributed: 24,
-            skills: ['Technology', 'Teaching']
-        },
-        {
-            id: 5,
-            name: 'Tasnim Chowdhury',
-            email: 'tasnim.c@email.com',
-            location: 'Dhaka',
-            joinedDate: 'Oct 28, 2024',
-            eventsCompleted: 10,
-            hoursContributed: 40,
-            skills: ['Community Outreach', 'Distribution']
-        },
-    ];
+    const data = volunteers && volunteers.length > 0 ? volunteers : [];
 
-    const data = volunteers || sampleVolunteers;
+    const getInitials = (name) => name?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'UN';
+    
+    const getAvatarColor = (name) => {
+        const colors = ['#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
+
+    if (!volunteers) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3rem',
+                color: '#6b7280'
+            }}>
+                <Loader2 size={32} className="animate-spin mb-4" style={{ animation: 'spin 1s linear infinite' }} />
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500' }}>Loading volunteers...</p>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -118,14 +89,21 @@ const TotalVolunteersModal = ({ volunteers }) => {
                             <div style={{
                                 width: '3rem',
                                 height: '3rem',
-                                background: '#dbeafe',
+                                background: volunteer.profilePicture ? 'transparent' : getAvatarColor(volunteer.name || 'User'),
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                flexShrink: 0
+                                flexShrink: 0,
+                                overflow: 'hidden',
+                                objectFit: 'cover',
+                                color: 'white'
                             }}>
-                                <User size={24} color="#3b82f6" />
+                                {volunteer.profilePicture ? (
+                                    <img src={volunteer.profilePicture} alt={volunteer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <span style={{ fontWeight: '600', fontSize: '0.875rem' }}>{getInitials(volunteer.name || 'User')}</span>
+                                )}
                             </div>
 
                             <div style={{ flex: 1 }}>

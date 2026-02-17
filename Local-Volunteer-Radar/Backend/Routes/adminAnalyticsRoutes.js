@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../Models/User');
+const Volunteer = require('../Models/Volunteer');
+const Organizer = require('../Models/Organizer');
 const Event = require('../Models/Event');
 const mongoose = require('mongoose');
 
@@ -15,9 +17,13 @@ const getPast12Months = () => {
 };
 
 const calculateTrend = (currentTotal, previousTotal) => {
-    if (previousTotal === 0) return 'N/A';
+    if (!previousTotal || previousTotal === 0) {
+        if (!currentTotal || currentTotal === 0) return 'No change';
+        return 'Unavailable';
+    }
+
     const change = ((currentTotal - previousTotal) / previousTotal) * 100;
-    if (change === 0) return 'Unchanged';
+    if (change === 0) return 'No change';
     return change > 0 ? `${change.toFixed(0)}% Increase` : `${Math.abs(change).toFixed(0)}% Decrease`;
 };
 
@@ -28,33 +34,29 @@ router.get('/', async (req, res) => {
         const startDate = new Date(months[0].year, new Date(months[0].month + ' 1').getMonth(), 1);
         const endDate = new Date(months[11].year, new Date(months[11].month + ' 1').getMonth() + 1, 0, 23, 59, 59);
 
-        const volunteersData = await User.aggregate([
-            { $match: { type: 'volunteer', joinedDate: { $gte: startDate, $lte: endDate } } },
+        const volunteersData = await Volunteer.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
             {
                 $group: {
-                    _id: { month: { $month: '$joinedDate' }, year: { $year: '$joinedDate' } },
-                    count: { $sum: 1 },
-                    hoursWorked: { $sum: '$hoursVolunteered' }
+                    _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
+                    count: { $sum: 1 }
                 }
             }
         ]);
 
-        const ngosData = await User.aggregate([
-            { $match: { type: 'ngo', joinedDate: { $gte: startDate, $lte: endDate } } },
-            { $group: { _id: { month: { $month: '$joinedDate' }, year: { $year: '$joinedDate' } }, count: { $sum: 1 } } }
+        const organizerData = await Organizer.aggregate([
+            { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+            { $group: { _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } }, count: { $sum: 1 } } }
         ]);
 
         const activeEventsData = await Event.aggregate([
-            {
-                $match: {
-                    isApproved: true,
-                    date: { $gte: startDate.toISOString().split('T')[0], $lte: endDate.toISOString().split('T')[0] }
-                }
-            },
+            { $addFields: { eventDate: { $dateFromString: { dateString: '$startdate' } } } },
+            { $match: { isApproved: true, eventDate: { $gte: startDate, $lte: endDate } } },
             {
                 $group: {
-                    _id: { month: { $month: { $dateFromString: { dateString: '$date' } } }, year: { $year: { $dateFromString: { dateString: '$date' } } } },
-                    count: { $sum: 1 }
+                    _id: { month: { $month: '$eventDate' }, year: { $year: '$eventDate' } },
+                    count: { $sum: 1 },
+                    volunteersRegistered: { $sum: { $ifNull: ['$volunteersRegistered', 0] } }
                 }
             }
         ]);
@@ -62,21 +64,23 @@ router.get('/', async (req, res) => {
         const fillMonths = (data, field) => {
             return months.map((m, idx) => {
                 const match = data.find(d => d._id.month === idx + 1 && d._id.year === m.year);
-                return field === 'hoursWorked' ? (match ? match.hoursWorked : 0) : match ? match.count : 0;
+                if (!match) return 0;
+                if (field === 'hoursWorked') return match.volunteersRegistered || 0;
+                return match.count || 0;
             });
         };
 
         const analytics = {
-            hoursWorked: fillMonths(volunteersData, 'hoursWorked'),
+            hoursWorked: fillMonths(activeEventsData, 'hoursWorked'),
             volunteers: fillMonths(volunteersData, 'count'),
-            ngos: fillMonths(ngosData, 'count'),
+            organizer: fillMonths(organizerData, 'count'),
             activeEvents: fillMonths(activeEventsData, 'count')
         };
 
         const trendStatement = {
             hoursWorked: calculateTrend(analytics.hoursWorked[11], analytics.hoursWorked[10]),
             volunteers: calculateTrend(analytics.volunteers[11], analytics.volunteers[10]),
-            ngos: calculateTrend(analytics.ngos[11], analytics.ngos[10]),
+            organizer: calculateTrend(analytics.organizer[11], analytics.organizer[10]),
             activeEvents: calculateTrend(analytics.activeEvents[11], analytics.activeEvents[10])
         };
 

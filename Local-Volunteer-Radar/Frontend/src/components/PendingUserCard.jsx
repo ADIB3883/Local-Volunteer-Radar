@@ -1,4 +1,5 @@
 import {useState} from "react";
+import { CheckCircle, XCircle } from "lucide-react";
 
 const PendingUserCard = ({
                              id,
@@ -11,11 +12,21 @@ const PendingUserCard = ({
                              joiningDate,
                              description = type === 'Organizer' ? '' : undefined,
                              skills = type === 'Volunteer' ? {} : undefined,
+                             profilePicture = '',
                              onApprove,
                              onReject
                          }) => {
     const [action, setAction] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    const getInitials = (userName) => userName?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || 'UN';
+    
+    const getAvatarColor = (userName) => {
+        const colors = ['#f97316', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
+        let hash = 0;
+        for (let i = 0; i < userName.length; i++) hash = userName.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+    };
 
     const badgeStyles = {
         Volunteer: {
@@ -99,6 +110,27 @@ const PendingUserCard = ({
         >
             {/* Header */}
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{
+                    width: '3.5rem',
+                    height: '3.5rem',
+                    background: profilePicture ? 'transparent' : getAvatarColor(name || 'User'),
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    objectFit: 'cover',
+                    color: 'white',
+                    fontWeight: '600',
+                    fontSize: '1rem'
+                }}>
+                    {profilePicture ? (
+                        <img src={profilePicture} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        getInitials(name || 'User')
+                    )}
+                </div>
                 <div style={{ flex: 1 }}>
                     <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
                         {name}
@@ -182,9 +214,14 @@ const PendingUserCard = ({
                             color: '#ffffff',
                             fontWeight: 600,
                             transition: 'all 0.3s ease',
-                            opacity: loading ? 0.7 : 1
+                            opacity: loading ? 0.7 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem'
                         }}
                     >
+                        <CheckCircle size={18} />
                         {action === 'accept' ? 'Accepted!' : loading ? 'Processing...' : 'Accept'}
                     </button>
                 )}
@@ -203,9 +240,14 @@ const PendingUserCard = ({
                             color: '#ffffff',
                             fontWeight: 600,
                             transition: 'all 0.3s ease',
-                            opacity: loading ? 0.7 : 1
+                            opacity: loading ? 0.7 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem'
                         }}
                     >
+                        <XCircle size={18} />
                         {action === 'reject' ? 'Rejected!' : loading ? 'Processing...' : 'Reject'}
                     </button>
                 )}
