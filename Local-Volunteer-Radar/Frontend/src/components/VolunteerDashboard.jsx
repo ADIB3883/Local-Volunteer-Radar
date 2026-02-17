@@ -676,18 +676,16 @@ const VolunteerDashboard = () => {
                                                 { name: event.category || 'general', type: 'skill' },
                                                 { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                             ]}
-                                            date={`${new Date(event.startdate).toLocaleDateString('en-US', {
-                                                weekday: 'long',
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
-                                                weekday: 'long',
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
+                                            date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
+                                            time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                hour12: true
                                             })}`}
-                                            time={`${event.startTime} - ${event.endTime}`}
                                             location={event.location}
 
                                             requirements={event.requirements || 'No specific requirements'}
@@ -766,18 +764,16 @@ const VolunteerDashboard = () => {
                                                 { name: event.category || 'general', type: 'skill' },
                                                 { name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                             ]}
-                                            date={`${new Date(event.startdate).toLocaleDateString('en-US', {
-                                                weekday: 'long',
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })} - ${new Date(event.enddate).toLocaleDateString('en-US', {
-                                                weekday: 'long',
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
+                                            date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
+                                            time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                hour12: true
+                                            })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                hour12: true
                                             })}`}
-                                            time={`${event.startTime} - ${event.endTime}`}
                                             location={event.location}
 
                                             requirements={event.requirements || 'No specific requirements'}
