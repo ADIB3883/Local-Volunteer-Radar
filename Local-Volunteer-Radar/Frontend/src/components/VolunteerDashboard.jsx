@@ -64,7 +64,10 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
         }
     });
     const [loading, setLoading] = useState(true);
+
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+
+
 
     React.useEffect(() => {
         fetchAnnouncements();
@@ -312,7 +315,80 @@ const VolunteerDashboard = () => {
             });
         }
     }, []);
+    const [completedEventsCount, setCompletedEventsCount] = useState(0);
+    React.useEffect(() => {
+        const fetchCompletedCount = async () => {
+            try {
+                if (!loggedInUser?.email) return;
+                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const data = await res.json();
+                if (data.success) {
+                    const count = data.registrations.filter(
+                        reg => reg.registrationStatus === 'approved' &&
+                            reg.event.status !== 'completed' &&
+                            reg.event.status !== 'cancelled'
+                    ).length;
+                    setCompletedEventsCount(count);
+                }
+            } catch (err) {
+                console.error('Error fetching completed events count:', err);
+            }
+        };
+        fetchCompletedCount();
+    }, []);
 
+    const [totalHoursVolunteered, setTotalHoursVolunteered] = useState(0);
+    React.useEffect(() => {
+        const fetchTotalHours = async () => {
+            try {
+                if (!loggedInUser?.email) return;
+                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const data = await res.json();
+                if (data.success) {
+                    const total = data.registrations
+                        .filter(reg => reg.registrationStatus === 'approved' && reg.event.status === 'completed')
+                        .reduce((sum, { event }) => {
+                            if (!event.startTime || !event.endTime) return sum;
+                            const [sh, sm] = event.startTime.split(':').map(Number);
+                            const [eh, em] = event.endTime.split(':').map(Number);
+                            const dailyMins = (eh * 60 + em) - (sh * 60 + sm);
+                            if (dailyMins <= 0) return sum;
+
+                            const start = new Date(event.startdate);
+                            const end = new Date(event.enddate || event.startdate);
+                            const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+                            return sum + (dailyMins / 60) * days;
+                        }, 0);
+                    setTotalHoursVolunteered(Math.round(total * 10) / 10);
+                }
+            } catch (err) {
+                console.error('Error fetching total hours:', err);
+            }
+        };
+        fetchTotalHours();
+    }, []);
+
+    const [activeRegistrationsCount, setActiveRegistrationsCount] = useState(0);
+    React.useEffect(() => {
+        const fetchActiveCount = async () => {
+            try {
+                if (!loggedInUser?.email) return;
+                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const data = await res.json();
+                if (data.success) {
+                    const count = data.registrations.filter(
+                        reg => reg.event.status === 'active' &&
+                            (reg.registrationStatus === 'approved' || reg.registrationStatus === 'pending')
+                    ).length;
+                    setActiveRegistrationsCount(count);
+                }
+            } catch (err) {
+                console.error('Error fetching active registrations count:', err);
+            }
+        };
+        fetchActiveCount();
+    }, []);
 
     const fetchUnreadCount = async () => {
         try {
@@ -376,7 +452,7 @@ const VolunteerDashboard = () => {
         {
             id: 'events',
             title: 'Events Completed',
-            value: '12',
+            value: completedEventsCount.toString(),
             subtitle: 'Successfully completed',
             icon: CheckCircle,
             iconColor: '#3b82f6',
@@ -387,7 +463,7 @@ const VolunteerDashboard = () => {
         {
             id: 'hours',
             title: 'Hours Volunteered',
-            value: '40',
+            value: totalHoursVolunteered.toString(),
             subtitle: 'Hours contributed',
             icon: Clock,
             iconColor: '#10b981',
@@ -398,14 +474,15 @@ const VolunteerDashboard = () => {
         {
             id: 'registration',
             title: 'Active Registration',
-            value: '0',
+            value: activeRegistrationsCount.toString(),
             subtitle: 'Upcoming events',
             icon: Calendar,
             iconColor: '#06b6d4',
             iconBg: '#cffafe',
             modalTitle: 'Active Registrations',
             modalContent: <ActiveRegistrationModal />
-        },
+        }
+        /*,
         {
             id: 'skills',
             title: 'Skills Utilized',
@@ -416,7 +493,7 @@ const VolunteerDashboard = () => {
             iconBg: '#f3e8ff',
             modalTitle: 'Skills Utilized',
             modalContent: <SkillsUtilizedModal />
-        }
+        }*/
     ];
 
 
@@ -719,16 +796,16 @@ const VolunteerDashboard = () => {
                         ) : (
                             <>
                                 {/* Recommended Section */}
-                                <div style={{ background: 'linear-gradient(to right, #eff6ff, #eef2ff)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid #dbeafe', boxShadow: '0 10px 20px -3px rgba(0, 0, 0, 0.15)' }}>
+                                {/*<div style={{ background: 'linear-gradient(to right, #eff6ff, #eef2ff)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid #dbeafe', boxShadow: '0 10px 20px -3px rgba(0, 0, 0, 0.15)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                         <Sparkles size={20} style={{ color: '#3b82f6' }} />
                                         <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Recommended For You</h2>
                                     </div>
                                     <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>Events matching your skills and location</p>
-                                </div>
+                                </div>*/}
 
                                 {/* Event Cards - Recommended */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem', maxWidth: '100%' }}>
+                                {/*<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem', maxWidth: '100%' }}>
                                     {recommendedEvents.map((event) => (
                                         <EventCard
                                             key={event._id}
@@ -756,7 +833,7 @@ const VolunteerDashboard = () => {
                                             onRegister={refreshEvents}
                                         />
                                     ))}
-                                </div>
+                                </div>*/}
 
                                 {/* Search and Filter Section */}
                                 <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
