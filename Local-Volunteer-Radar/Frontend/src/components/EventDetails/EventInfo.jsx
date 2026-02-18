@@ -12,6 +12,68 @@ import { X } from "lucide-react";
 
 const API_URL = 'http://localhost:5000/api/events';
 
+// ─── Custom Alert Popup ───────────────────────────────────────────────────────
+const CustomAlert = ({ alert, onClose }) => {
+    if (!alert) return null;
+
+    const styles = {
+        success: { color: '#16a34a', bg: '#f0fdf4', border: '#16a34a' },
+        error:   { color: '#dc2626', bg: '#fef2f2', border: '#dc2626' },
+        info:    { color: '#0067DD', bg: '#eff6ff', border: '#0067DD' },
+    };
+    const s = styles[alert.type] || styles.info;
+
+    const Icon = () => {
+        if (alert.type === 'success') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 15.5 9.5"/>
+            </svg>
+        );
+        if (alert.type === 'error') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        );
+        return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+            <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+            <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', padding: '1.75rem', maxWidth: '400px', width: '90%', border: `1.5px solid ${s.border}`, animation: 'popIn 0.18s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flexShrink: 0, background: s.bg, borderRadius: '50%', padding: '6px', display: 'flex' }}>
+                        <Icon />
+                    </div>
+                    <div>
+                        {alert.title && <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111', margin: '0 0 0.3rem 0' }}>{alert.title}</p>}
+                        <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{alert.message}</p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ padding: '0.45rem 1.5rem', background: s.color, color: 'white', border: 'none', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                        onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const EventInfo = () => {
     const { eventId } = useParams();
     const [event, setEvent] = useState(null);
@@ -20,6 +82,20 @@ const EventInfo = () => {
     // Edit modal state
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editData, setEditData] = useState({});
+
+    // ─── Custom alert state ───────────────────────────────────────────────────
+    const [alertState, setAlertState] = useState(null);
+
+    const showAlert = (message, type = 'info', title = '', onClose = null) => {
+        setAlertState({ message, type, title, onClose });
+    };
+
+    const handleAlertClose = () => {
+        const cb = alertState?.onClose;
+        setAlertState(null);
+        if (cb) cb();
+    };
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
         fetchEvent();
@@ -32,7 +108,7 @@ const EventInfo = () => {
             setEvent(response.data);
         } catch (error) {
             console.error("Error fetching event:", error);
-            alert("Failed to load event details");
+            showAlert('Failed to load event details', 'error', 'Load Error');
         } finally {
             setLoading(false);
         }
@@ -43,10 +119,10 @@ const EventInfo = () => {
             const response = await axios.put(`${API_URL}/${eventId}`, editData);
             setEvent(response.data);
             setIsEditOpen(false);
-            alert("Event updated successfully!");
+            showAlert('Event updated successfully!', 'success', 'Event Updated');
         } catch (error) {
             console.error("Error updating event:", error);
-            alert(error.response?.data?.message || "Failed to update event");
+            showAlert(error.response?.data?.message || 'Failed to update event', 'error', 'Update Failed');
         }
     };
 
@@ -71,13 +147,14 @@ const EventInfo = () => {
         return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
     };
 
-    //const capacityPercentage = (event.volunteersRegistered / event.volunteersNeeded) * 100;
-
     const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
     const capacityPercentage = (approvedCount / event.volunteersNeeded) * 100;
 
     return (
         <>
+            {/* Custom Alert Popup */}
+            <CustomAlert alert={alertState} onClose={handleAlertClose} />
+
             <div className="relative top-[15vh] left-[5vw] h-[411px] max-w-[90vw] bg-[#0065E0] rounded-[20px]">
                 <div className="absolute left-[4px] h-[411px] min-h-[300px] w-[90vw] bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)]">
                     {/* Header */}
@@ -158,12 +235,12 @@ const EventInfo = () => {
                                 </div>
 
                                 <span className="absolute text-[#0065E0] top-[21%] right-[7%] font-sans font-bold text-[16px] leading-[17px]">
-                  {approvedCount} / {event.volunteersNeeded}
-                </span>
+                                    {approvedCount} / {event.volunteersNeeded}
+                                </span>
 
                                 <span className="absolute text-[#0065E0] top-[50%] left-[3.3%] font-sans font-bold text-[24px] leading-[17px]">
-                  {approvedCount}
-                </span>
+                                    {approvedCount}
+                                </span>
 
                                 <div className="absolute top-[70%] left-[3%] bg-[#E2E2E2] w-[90%] h-[11px] rounded-[7px]">
                                     <div
@@ -173,18 +250,18 @@ const EventInfo = () => {
                                 </div>
 
                                 <span className="absolute text-[#404040] font-sans font-normal text-[14px] top-[78%] left-[3.8%]">
-                  {Math.round(capacityPercentage)}% capacity filled
-                </span>
+                                    {Math.round(capacityPercentage)}% capacity filled
+                                </span>
                             </div>
 
                             {/* Requirements box */}
                             <div className="absolute bg-[#FAFAFA] border border-[#C5C5C5] min-w-[80%] h-[74px] top-[74%] rounded-[20px]">
-                <span className="absolute font-sans font-bold text-[15px] text-[#939393] top-[7%] left-[3%]">
-                  Requirements
-                </span>
+                                <span className="absolute font-sans font-bold text-[15px] text-[#939393] top-[7%] left-[3%]">
+                                    Requirements
+                                </span>
                                 <span className="absolute font-sans font-normal text-[14px] top-[50%] left-[3%]">
-                  {event.requirements || "No specific requirements"}
-                </span>
+                                    {event.requirements || "No specific requirements"}
+                                </span>
                             </div>
                         </div>
                     </div>
