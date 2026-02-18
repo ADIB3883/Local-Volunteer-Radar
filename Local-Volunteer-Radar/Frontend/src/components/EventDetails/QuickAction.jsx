@@ -34,7 +34,6 @@ const QuickAction = () => {
             return;
         }
 
-        // Check for approved volunteers
         const approvedVolunteers = event.registrations.filter(
             reg => reg.status === 'approved'
         );
@@ -57,8 +56,6 @@ const QuickAction = () => {
             setAnnouncementTitle("");
             setAnnouncementMessage("");
             setIsPopupOpen(false);
-
-            // Refresh event data
             await fetchEvent();
         } catch (error) {
             console.error('Error sending announcement:', error);
@@ -66,90 +63,74 @@ const QuickAction = () => {
         }
     };
 
-    const formatSkills = (skills) => {
-        if (!skills || typeof skills !== "object") return "";
-
-        return Object.entries(skills)
-            .filter(([_, value]) => value === true)
-            .map(([key]) =>
-                key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, str => str.toUpperCase())
-            )
-            .join(" | ");
-    };
-
-    const handleExportApprovedVolunteers = () => {
+    const handleExportApprovedVolunteers = async () => {
         if (!event) {
             alert("Event not found");
             return;
         }
 
-        // Only approved volunteers
-        const approvedVolunteers = event.registrations.filter(
+        const approvedRegistrations = event.registrations.filter(
             reg => reg.status === 'approved'
         );
 
-        if (approvedVolunteers.length === 0) {
+        if (approvedRegistrations.length === 0) {
             alert("No approved volunteers to export");
             return;
         }
 
-        // Event info rows
-        const eventInfoRows = [
-            ["Event Name", event.eventName],
-            ["Event Date", event.startdate || ""],
-            ["Event Location", event.location || ""],
-            ["Total Approved Volunteers", approvedVolunteers.length],
-            []
-        ];
+        try {
+            // Fetch enriched volunteer details from backend
+            const response = await axios.get(`${API_URL}/${eventId}/volunteers`);
+            const enrichedVolunteers = response.data;
 
-        // Headers
-        const headers = [
-            "Name",
-            "Email",
-            "Phone",
-            "Registered Date",
-            "Status"
-        ];
+            // Only keep approved ones
+            const approved = enrichedVolunteers.filter(v => v.status === 'approved');
 
-        // Rows
-        const rows = approvedVolunteers.map(v => [
-            v.volunteer?.name || "N/A",
-            v.volunteer?.email || "N/A",
-            v.volunteer?.phone || "N/A",
-            new Date(v.registeredAt).toLocaleDateString("en-GB"),
-            v.status
-        ]);
+            // Event info rows
+            const eventInfoRows = [
+                ["Event Name", event.eventName],
+                ["Event Date", `${event.startdate || ""} - ${event.enddate || ""}`],
+                ["Event Location", event.location || ""],
+                ["Total Approved Volunteers", approved.length],
+                []
+            ];
 
-        // Build CSV
-        const csvContent = [
-            ...eventInfoRows.map(row => row.join(",")),
-            headers.join(","),
-            ...rows.map(row =>
-                row.map(item => `"${item}"`).join(",")
-            )
-        ].join("\n");
+            const headers = ["Name", "Email", "Phone", "Registered Date", "Status"];
 
-        const blob = new Blob([csvContent], {
-            type: "text/csv;charset=utf-8;"
-        });
+            const rows = approved.map(v => [
+                v.volunteerDetails?.name || "N/A",
+                v.volunteerDetails?.email || v.volunteerEmail || "N/A",
+                v.volunteerDetails?.phoneNumber || "N/A",
+                new Date(v.registeredAt).toLocaleDateString("en-GB"),
+                v.status
+            ]);
 
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
+            const csvContent = [
+                ...eventInfoRows.map(row => row.join(",")),
+                headers.join(","),
+                ...rows.map(row =>
+                    row.map(item => `"${item}"`).join(",")
+                )
+            ].join("\n");
 
-        link.href = url;
-        link.download = `event_${eventId}_approved_volunteers.csv`;
-        link.click();
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `event_${eventId}_approved_volunteers.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
 
-        URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error exporting volunteers:', error);
+            alert('Failed to export volunteer list');
+        }
     };
 
     const handleMarkAsComplete = async () => {
         const confirmAction = window.confirm(
             "Are you sure you want to mark this event as completed?"
         );
-
         if (!confirmAction) return;
 
         try {
@@ -166,7 +147,6 @@ const QuickAction = () => {
         const confirmAction = window.confirm(
             "Are you sure you want to cancel this event? This action cannot be undone."
         );
-
         if (!confirmAction) return;
 
         try {
@@ -206,7 +186,10 @@ const QuickAction = () => {
                         <span className="font-normal text-[16px]">Send Announcement</span>
                     </button>
 
-                    <button onClick={handleExportApprovedVolunteers} className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors">
+                    <button
+                        onClick={handleExportApprovedVolunteers}
+                        className="mb-3 border border-[#C5C5C5] w-[254px] h-[41px] rounded-[8px] flex items-center justify-evenly hover:bg-gray-50 transition-colors"
+                    >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="7 10 12 15 17 10"/>
