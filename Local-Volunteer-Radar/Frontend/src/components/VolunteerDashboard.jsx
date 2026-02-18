@@ -395,7 +395,7 @@ const VolunteerDashboard = () => {
                 if (data.success) {
                     const count = data.registrations.filter(
                         reg => reg.registrationStatus === 'approved' &&
-                            reg.event.status !== 'completed' &&
+                            reg.event.status == 'completed' &&
                             reg.event.status !== 'cancelled'
                     ).length;
                     setCompletedEventsCount(count);
