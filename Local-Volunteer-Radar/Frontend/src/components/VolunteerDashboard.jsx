@@ -16,8 +16,68 @@ import io from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
 
+// ─── Custom Alert Popup ───────────────────────────────────────────────────────
+const CustomAlert = ({ alert, onClose }) => {
+    if (!alert) return null;
+
+    const styles = {
+        success: { color: '#16a34a', bg: '#f0fdf4', border: '#16a34a' },
+        error:   { color: '#dc2626', bg: '#fef2f2', border: '#dc2626' },
+        info:    { color: '#0067DD', bg: '#eff6ff', border: '#0067DD' },
+    };
+    const s = styles[alert.type] || styles.info;
+
+    const Icon = () => {
+        if (alert.type === 'success') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 15.5 9.5"/>
+            </svg>
+        );
+        if (alert.type === 'error') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        );
+        return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+            <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+            <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', padding: '1.75rem', maxWidth: '400px', width: '90%', border: `1.5px solid ${s.border}`, animation: 'popIn 0.18s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flexShrink: 0, background: s.bg, borderRadius: '50%', padding: '6px', display: 'flex' }}>
+                        <Icon />
+                    </div>
+                    <div>
+                        {alert.title && <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111', margin: '0 0 0.3rem 0' }}>{alert.title}</p>}
+                        <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{alert.message}</p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ padding: '0.45rem 1.5rem', background: s.color, color: 'white', border: 'none', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                        onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // ─── Helper: fetch unread count without mounting the tab component ─────────
-// Called by VolunteerDashboard on mount so the badge appears immediately.
 const fetchUnreadAnnouncementsCount = async (userEmail) => {
     try {
         if (!userEmail) return 0;
@@ -67,13 +127,10 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
 
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
-
-
     React.useEffect(() => {
         fetchAnnouncements();
     }, []);
 
-    // Notify parent whenever read state or data changes
     React.useEffect(() => {
         const unread = announcements.filter(a => !readIds.has(String(a._id || a.id))).length;
         if (onUnreadCountChange) onUnreadCountChange(unread);
@@ -84,7 +141,6 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
             setLoading(true);
             if (!loggedInUser?.email) return;
 
-            // Use email instead of id
             const registrationsResponse = await fetch(
                 `http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`
             );
@@ -241,7 +297,6 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
                                     e.currentTarget.style.transform = 'translateY(0)';
                                 }}
                             >
-                                {/* Unread dot */}
                                 {!isRead && (
                                     <span style={{
                                         position: 'absolute',
@@ -305,6 +360,20 @@ const VolunteerDashboard = () => {
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // ─── Custom alert state ───────────────────────────────────────────────────
+    const [alertState, setAlertState] = useState(null);
+
+    const showAlert = (message, type = 'info', title = '', onClose = null) => {
+        setAlertState({ message, type, title, onClose });
+    };
+
+    const handleAlertClose = () => {
+        const cb = alertState?.onClose;
+        setAlertState(null);
+        if (cb) cb();
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     const navigate = useNavigate();
     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
@@ -315,6 +384,7 @@ const VolunteerDashboard = () => {
             });
         }
     }, []);
+
     const [completedEventsCount, setCompletedEventsCount] = useState(0);
     React.useEffect(() => {
         const fetchCompletedCount = async () => {
@@ -400,7 +470,6 @@ const VolunteerDashboard = () => {
         }
     };
 
-    // Socket connection and unread messages count
     React.useEffect(() => {
         if (loggedInUser) {
             socket.emit('join', loggedInUser.email);
@@ -416,8 +485,6 @@ const VolunteerDashboard = () => {
         }
     }, [loggedInUser]);
 
-
-    // Listen for openChat event from EventCard
     React.useEffect(() => {
         const handleOpenChat = () => {
             setActiveTab('messages');
@@ -430,14 +497,12 @@ const VolunteerDashboard = () => {
         };
     }, []);
 
-
     React.useEffect(() => {
         const userType = loggedInUser?.role || loggedInUser?.type;
-        if(!loggedInUser || userType !== "volunteer"){
+        if (!loggedInUser || userType !== "volunteer") {
             navigate("/login");
         }
     }, [activeTab]);
-
 
     const handleProfileClick = () => {
         navigate('/volunteer-profile');
@@ -482,28 +547,13 @@ const VolunteerDashboard = () => {
             modalTitle: 'Active Registrations',
             modalContent: <ActiveRegistrationModal />
         }
-        /*,
-        {
-            id: 'skills',
-            title: 'Skills Utilized',
-            value: '2',
-            subtitle: 'Active skill categories',
-            icon: TrendingUp,
-            iconColor: '#a855f7',
-            iconBg: '#f3e8ff',
-            modalTitle: 'Skills Utilized',
-            modalContent: <SkillsUtilizedModal />
-        }*/
     ];
-
-
 
     // Load events from backend API on mount
     React.useEffect(() => {
         const fetchEvents = async () => {
             try {
                 setLoading(true);
-                // Fetch approved events from backend
                 const response = await fetch('http://localhost:5000/api/events');
 
                 if (!response.ok) {
@@ -512,22 +562,16 @@ const VolunteerDashboard = () => {
 
                 const events = await response.json();
 
-                // Filter for approved events only (isApproved: true) and active status
                 const approvedEvents = events.filter(event =>
                     event.isApproved === true && event.status === 'active'
                 );
 
-                // Set all events
                 setAllEvents(approvedEvents);
-
-                // Set recommended events (first 2)
                 setRecommendedEvents(approvedEvents.slice(0, 2));
-
-                // Set initial filtered events
                 setFilteredEvents(approvedEvents);
             } catch (error) {
                 console.error('Error fetching events:', error);
-                alert('Failed to load events. Please try refreshing the page.');
+                showAlert('Failed to load events. Please try refreshing the page.', 'error', 'Load Error');
             } finally {
                 setLoading(false);
             }
@@ -536,13 +580,9 @@ const VolunteerDashboard = () => {
         fetchEvents();
     }, []);
 
-
-
-    // Filter function
     const handleFilter = () => {
         let filtered = [...allEvents];
 
-        // Filter by search query
         if (searchQuery.trim() !== '') {
             filtered = filtered.filter(event =>
                 event.eventName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -551,7 +591,6 @@ const VolunteerDashboard = () => {
             );
         }
 
-        // Filter by category
         if (selectedCategory !== 'All Category') {
             filtered = filtered.filter(event => {
                 return event.category?.toLowerCase() === selectedCategory.toLowerCase() ||
@@ -562,12 +601,10 @@ const VolunteerDashboard = () => {
         setFilteredEvents(filtered);
     };
 
-    // Call filter when search or category changes
     React.useEffect(() => {
         handleFilter();
     }, [searchQuery, selectedCategory, allEvents]);
 
-    // Function to refresh events after registration
     const refreshEvents = async () => {
         try {
             const response = await fetch('http://localhost:5000/api/events');
@@ -587,6 +624,9 @@ const VolunteerDashboard = () => {
 
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+            {/* Custom Alert Popup */}
+            <CustomAlert alert={alertState} onClose={handleAlertClose} />
+
             {/* Navbar */}
             <Navbar
                 userName={loggedInUser?.name || "Volunteer"}
@@ -663,7 +703,6 @@ const VolunteerDashboard = () => {
                         My Registrations
                     </button>
 
-                    {/* ── Announcements tab (was: Notifications) ── */}
                     <button
                         onClick={() => setActiveTab('announcements')}
                         style={{
@@ -764,12 +803,10 @@ const VolunteerDashboard = () => {
                         }}>
                             My Registrations
                         </h2>
-
                         <MyRegistrations />
                     </div>
                 )}
 
-                {/* ── Announcements tab content (was: notifications) ── */}
                 {activeTab === 'announcements' && (
                     <VolunteerAnnouncements
                         onUnreadCountChange={(count) => setUnreadAnnouncementsCount(count)}
@@ -795,46 +832,6 @@ const VolunteerDashboard = () => {
                             </div>
                         ) : (
                             <>
-                                {/* Recommended Section */}
-                                {/*<div style={{ background: 'linear-gradient(to right, #eff6ff, #eef2ff)', borderRadius: '1rem', padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid #dbeafe', boxShadow: '0 10px 20px -3px rgba(0, 0, 0, 0.15)' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                        <Sparkles size={20} style={{ color: '#3b82f6' }} />
-                                        <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Recommended For You</h2>
-                                    </div>
-                                    <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>Events matching your skills and location</p>
-                                </div>*/}
-
-                                {/* Event Cards - Recommended */}
-                                {/*<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem', maxWidth: '100%' }}>
-                                    {recommendedEvents.map((event) => (
-                                        <EventCard
-                                            key={event._id}
-                                            eventId={event._id}
-                                            organizerId={event.organizerId}
-                                            title={event.eventName}
-                                            description={event.description}
-                                            tags={[
-                                                { name: event.category || 'general', type: 'skill' },
-                                                //{ name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
-                                                { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
-                                            ]}
-                                            date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
-                                            time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            })}`}
-                                            location={event.location}
-                                            requirements={event.requirements || 'No specific requirements'}
-                                            onRegister={refreshEvents}
-                                        />
-                                    ))}
-                                </div>*/}
-
                                 {/* Search and Filter Section */}
                                 <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
                                     <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', alignItems: 'center' }}>
@@ -892,7 +889,7 @@ const VolunteerDashboard = () => {
                                     </span>
                                 </div>
 
-                                {/* Event Cards - All Events */}
+                                {/* Event Cards */}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', maxWidth: '100%' }}>
                                     {filteredEvents.map((event) => (
                                         <EventCard
@@ -903,7 +900,6 @@ const VolunteerDashboard = () => {
                                             description={event.description}
                                             tags={[
                                                 { name: event.category || 'general', type: 'skill' },
-                                                //{ name: `${event.volunteersNeeded - event.volunteersRegistered || 0} spots left`, type: 'spots' }
                                                 { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
                                             ]}
                                             date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}

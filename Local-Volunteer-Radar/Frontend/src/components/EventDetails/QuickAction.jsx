@@ -4,6 +4,99 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api/events';
 
+// ─── Custom Alert Popup ───────────────────────────────────────────────────────
+const CustomAlert = ({ alert, onClose }) => {
+    if (!alert) return null;
+
+    const styles = {
+        success: { color: '#16a34a', bg: '#f0fdf4', border: '#16a34a' },
+        error:   { color: '#dc2626', bg: '#fef2f2', border: '#dc2626' },
+        info:    { color: '#0067DD', bg: '#eff6ff', border: '#0067DD' },
+    };
+    const s = styles[alert.type] || styles.info;
+
+    const Icon = () => {
+        if (alert.type === 'success') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 15.5 9.5"/>
+            </svg>
+        );
+        if (alert.type === 'error') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        );
+        return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+            <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+            <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', padding: '1.75rem', maxWidth: '400px', width: '90%', border: `1.5px solid ${s.border}`, animation: 'popIn 0.18s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flexShrink: 0, background: s.bg, borderRadius: '50%', padding: '6px', display: 'flex' }}><Icon /></div>
+                    <div>
+                        {alert.title && <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111', margin: '0 0 0.3rem 0' }}>{alert.title}</p>}
+                        <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{alert.message}</p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={onClose}
+                            style={{ padding: '0.45rem 1.5rem', background: s.color, color: 'white', border: 'none', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                            onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                            onMouseOut={e => e.currentTarget.style.opacity = '1'}>
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Custom Confirm Popup ─────────────────────────────────────────────────────
+const CustomConfirm = ({ confirm, onConfirm, onCancel }) => {
+    if (!confirm) return null;
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+            <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+            <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', padding: '1.75rem', maxWidth: '400px', width: '90%', border: '1.5px solid #f59e0b', animation: 'popIn 0.18s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flexShrink: 0, background: '#fffbeb', borderRadius: '50%', padding: '6px', display: 'flex' }}>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div>
+                        {confirm.title && <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111', margin: '0 0 0.3rem 0' }}>{confirm.title}</p>}
+                        <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{confirm.message}</p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                    <button onClick={onCancel}
+                            style={{ padding: '0.45rem 1.25rem', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                            onMouseOver={e => e.currentTarget.style.background = '#f9fafb'}
+                            onMouseOut={e => e.currentTarget.style.background = 'white'}>
+                        Cancel
+                    </button>
+                    <button onClick={onConfirm}
+                            style={{ padding: '0.45rem 1.25rem', background: confirm.danger ? '#dc2626' : '#d97706', color: 'white', border: 'none', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                            onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                            onMouseOut={e => e.currentTarget.style.opacity = '1'}>
+                        {confirm.confirmLabel || 'Confirm'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const QuickAction = () => {
     const { eventId } = useParams();
     const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -11,6 +104,33 @@ const QuickAction = () => {
     const [announcementMessage, setAnnouncementMessage] = useState("");
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // ─── Dialog state ─────────────────────────────────────────────────────────
+    const [alertState, setAlertState] = useState(null);
+    const [confirmState, setConfirmState] = useState(null);
+
+    const showAlert = (message, type = 'info', title = '', onClose = null) => {
+        setAlertState({ message, type, title, onClose });
+    };
+
+    const handleAlertClose = () => {
+        const cb = alertState?.onClose;
+        setAlertState(null);
+        if (cb) cb();
+    };
+
+    const showConfirm = ({ title, message, confirmLabel, danger, onConfirm }) => {
+        setConfirmState({ title, message, confirmLabel, danger, onConfirm });
+    };
+
+    const handleConfirmYes = () => {
+        const cb = confirmState?.onConfirm;
+        setConfirmState(null);
+        if (cb) cb();
+    };
+
+    const handleConfirmNo = () => setConfirmState(null);
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
         fetchEvent();
@@ -30,16 +150,14 @@ const QuickAction = () => {
 
     const handleSendAnnouncement = async () => {
         if (!announcementTitle.trim() || !announcementMessage.trim()) {
-            alert("Please fill in both title and message");
+            showAlert('Please fill in both title and message', 'error', 'Missing Fields');
             return;
         }
 
-        const approvedVolunteers = event.registrations.filter(
-            reg => reg.status === 'approved'
-        );
+        const approvedVolunteers = event.registrations.filter(reg => reg.status === 'approved');
 
         if (approvedVolunteers.length === 0) {
-            alert("No approved volunteers to send announcement to");
+            showAlert('No approved volunteers to send announcement to', 'info', 'No Recipients');
             return;
         }
 
@@ -52,41 +170,41 @@ const QuickAction = () => {
                 sentBy: loggedInUser.id
             });
 
-            alert(`Announcement sent to ${approvedVolunteers.length} approved volunteer(s)!`);
-            setAnnouncementTitle("");
-            setAnnouncementMessage("");
-            setIsPopupOpen(false);
-            await fetchEvent();
+            showAlert(
+                `Announcement sent to ${approvedVolunteers.length} approved volunteer(s)!`,
+                'success',
+                'Announcement Sent',
+                async () => {
+                    setAnnouncementTitle("");
+                    setAnnouncementMessage("");
+                    setIsPopupOpen(false);
+                    await fetchEvent();
+                }
+            );
         } catch (error) {
             console.error('Error sending announcement:', error);
-            alert(error.response?.data?.message || 'Failed to send announcement');
+            showAlert(error.response?.data?.message || 'Failed to send announcement', 'error', 'Error');
         }
     };
 
     const handleExportApprovedVolunteers = async () => {
         if (!event) {
-            alert("Event not found");
+            showAlert('Event not found', 'error', 'Error');
             return;
         }
 
-        const approvedRegistrations = event.registrations.filter(
-            reg => reg.status === 'approved'
-        );
+        const approvedRegistrations = event.registrations.filter(reg => reg.status === 'approved');
 
         if (approvedRegistrations.length === 0) {
-            alert("No approved volunteers to export");
+            showAlert('No approved volunteers to export', 'info', 'Nothing to Export');
             return;
         }
 
         try {
-            // Fetch enriched volunteer details from backend
             const response = await axios.get(`${API_URL}/${eventId}/volunteers`);
             const enrichedVolunteers = response.data;
-
-            // Only keep approved ones
             const approved = enrichedVolunteers.filter(v => v.status === 'approved');
 
-            // Event info rows
             const eventInfoRows = [
                 ["Event Name", event.eventName],
                 ["Event Date", `${event.startdate || ""} - ${event.enddate || ""}`],
@@ -96,7 +214,6 @@ const QuickAction = () => {
             ];
 
             const headers = ["Name", "Email", "Phone", "Registered Date", "Status"];
-
             const rows = approved.map(v => [
                 v.volunteerDetails?.name || "N/A",
                 v.volunteerDetails?.email || v.volunteerEmail || "N/A",
@@ -108,9 +225,7 @@ const QuickAction = () => {
             const csvContent = [
                 ...eventInfoRows.map(row => row.join(",")),
                 headers.join(","),
-                ...rows.map(row =>
-                    row.map(item => `"${item}"`).join(",")
-                )
+                ...rows.map(row => row.map(item => `"${item}"`).join(","))
             ].join("\n");
 
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -120,43 +235,46 @@ const QuickAction = () => {
             link.download = `event_${eventId}_approved_volunteers.csv`;
             link.click();
             URL.revokeObjectURL(url);
-
         } catch (error) {
             console.error('Error exporting volunteers:', error);
-            alert('Failed to export volunteer list');
+            showAlert('Failed to export volunteer list', 'error', 'Export Failed');
         }
     };
 
-    const handleMarkAsComplete = async () => {
-        const confirmAction = window.confirm(
-            "Are you sure you want to mark this event as completed?"
-        );
-        if (!confirmAction) return;
-
-        try {
-            await axios.put(`${API_URL}/${eventId}/complete`);
-            alert("Event marked as completed");
-            await fetchEvent();
-        } catch (error) {
-            console.error('Error completing event:', error);
-            alert(error.response?.data?.message || 'Failed to complete event');
-        }
+    const handleMarkAsComplete = () => {
+        showConfirm({
+            title: 'Mark as Completed',
+            message: 'Are you sure you want to mark this event as completed?',
+            confirmLabel: 'Mark Complete',
+            danger: false,
+            onConfirm: async () => {
+                try {
+                    await axios.put(`${API_URL}/${eventId}/complete`);
+                    showAlert('Event marked as completed', 'success', 'Event Completed', fetchEvent);
+                } catch (error) {
+                    console.error('Error completing event:', error);
+                    showAlert(error.response?.data?.message || 'Failed to complete event', 'error', 'Error');
+                }
+            }
+        });
     };
 
-    const handleCancelEvent = async () => {
-        const confirmAction = window.confirm(
-            "Are you sure you want to cancel this event? This action cannot be undone."
-        );
-        if (!confirmAction) return;
-
-        try {
-            await axios.put(`${API_URL}/${eventId}/cancel`);
-            alert("Event has been cancelled");
-            await fetchEvent();
-        } catch (error) {
-            console.error('Error cancelling event:', error);
-            alert(error.response?.data?.message || 'Failed to cancel event');
-        }
+    const handleCancelEvent = () => {
+        showConfirm({
+            title: 'Cancel Event',
+            message: 'Are you sure you want to cancel this event? This action cannot be undone.',
+            confirmLabel: 'Cancel Event',
+            danger: true,
+            onConfirm: async () => {
+                try {
+                    await axios.put(`${API_URL}/${eventId}/cancel`);
+                    showAlert('Event has been cancelled', 'info', 'Event Cancelled', fetchEvent);
+                } catch (error) {
+                    console.error('Error cancelling event:', error);
+                    showAlert(error.response?.data?.message || 'Failed to cancel event', 'error', 'Error');
+                }
+            }
+        });
     };
 
     if (loading || !event) {
@@ -169,6 +287,10 @@ const QuickAction = () => {
 
     return (
         <>
+            {/* Custom Dialogs */}
+            <CustomAlert alert={alertState} onClose={handleAlertClose} />
+            <CustomConfirm confirm={confirmState} onConfirm={handleConfirmYes} onCancel={handleConfirmNo} />
+
             <div className="relative top-[25vh] left-[5.5vw] w-[90vw] py-3 bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)] flex flex-col">
                 <div className="relative bg-transparent w-full h-[30px]">
                     <span className="absolute left-[1.3%] text-black font-bold font-[16px]">Quick Actions</span>
