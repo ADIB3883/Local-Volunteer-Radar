@@ -3,6 +3,68 @@ import { Calendar, Clock, MapPin, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MapModal from './MapModal';
 
+// ─── Custom Alert Popup ───────────────────────────────────────────────────────
+const CustomAlert = ({ alert, onClose }) => {
+    if (!alert) return null;
+
+    const styles = {
+        success: { color: '#16a34a', bg: '#f0fdf4', border: '#16a34a' },
+        error:   { color: '#dc2626', bg: '#fef2f2', border: '#dc2626' },
+        info:    { color: '#0067DD', bg: '#eff6ff', border: '#0067DD' },
+    };
+    const s = styles[alert.type] || styles.info;
+
+    const Icon = () => {
+        if (alert.type === 'success') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 15.5 9.5"/>
+            </svg>
+        );
+        if (alert.type === 'error') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        );
+        return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+            <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+            <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', padding: '1.75rem', maxWidth: '400px', width: '90%', border: `1.5px solid ${s.border}`, animation: 'popIn 0.18s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flexShrink: 0, background: s.bg, borderRadius: '50%', padding: '6px', display: 'flex' }}>
+                        <Icon />
+                    </div>
+                    <div>
+                        {alert.title && <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111', margin: '0 0 0.3rem 0' }}>{alert.title}</p>}
+                        <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{alert.message}</p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ padding: '0.45rem 1.5rem', background: s.color, color: 'white', border: 'none', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                        onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const EventCard = ({
                        eventId,
                        title,
@@ -19,6 +81,20 @@ const EventCard = ({
     const [registrationStatus, setRegistrationStatus] = useState(null);
     const [loading, setLoading] = useState(false);
     const [mapOpen, setMapOpen] = useState(false);
+
+    // ─── Custom alert state ───────────────────────────────────────────────────
+    const [alertState, setAlertState] = useState(null);
+
+    const showAlert = (message, type = 'info', title = '', onClose = null) => {
+        setAlertState({ message, type, title, onClose });
+    };
+
+    const handleAlertClose = () => {
+        const cb = alertState?.onClose;
+        setAlertState(null);
+        if (cb) cb();
+    };
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
         const checkRegistrationStatus = async () => {
@@ -54,18 +130,17 @@ const EventCard = ({
         checkRegistrationStatus();
     }, [eventId]);
 
-
     const handleRegister = async () => {
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
         if (!loggedInUser) {
-            alert("Please login to register");
+            showAlert("Please login to register for events", "error", "Authentication Required");
             return;
         }
 
         const userType = loggedInUser.role || loggedInUser.type;
         if (userType !== "volunteer") {
-            alert("Only volunteers can register for events");
+            showAlert("Only volunteers can register for events", "error", "Access Denied");
             return;
         }
 
@@ -87,18 +162,30 @@ const EventCard = ({
             const data = await response.json();
 
             if (data.success) {
-                alert('Successfully registered for the event! Your registration is pending organizer approval.');
+                showAlert(
+                    'Successfully registered for the event! Your registration is pending organizer approval.',
+                    'success',
+                    'Registration Successful'
+                );
                 setRegistrationStatus('pending');
                 if (onRegister) {
                     onRegister();
                 }
             } else {
-                alert(data.message || 'Failed to register for event');
+                showAlert(
+                    data.message || 'Failed to register for event',
+                    'error',
+                    'Registration Failed'
+                );
             }
 
         } catch (error) {
             console.error('Error registering for event:', error);
-            alert('Error registering for event. Please try again.');
+            showAlert(
+                'Error registering for event. Please try again.',
+                'error',
+                'Registration Error'
+            );
         } finally {
             setLoading(false);
         }
@@ -108,13 +195,13 @@ const EventCard = ({
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
 
         if (!loggedInUser) {
-            alert("Please login to message organizers");
+            showAlert("Please login to message organizers", "error", "Authentication Required");
             return;
         }
 
         const userType = loggedInUser.role || loggedInUser.type;
         if (userType !== "volunteer") {
-            alert("Only volunteers can message organizers");
+            showAlert("Only volunteers can message organizers", "error", "Access Denied");
             return;
         }
 
@@ -148,7 +235,7 @@ const EventCard = ({
                 window.dispatchEvent(new CustomEvent('openChat', { detail: conversation }));
             } else {
                 console.error('Failed to create conversation');
-                alert('Failed to start conversation. Please try again.');
+                showAlert('Failed to start conversation. Please try again.', 'error', 'Connection Failed');
             }
         } catch (error) {
             console.error('Error creating conversation:', error);
@@ -183,6 +270,9 @@ const EventCard = ({
 
     return (
         <>
+            {/* Custom Alert Popup */}
+            <CustomAlert alert={alertState} onClose={handleAlertClose} />
+
             <div
                 style={{
                     background: 'white',
