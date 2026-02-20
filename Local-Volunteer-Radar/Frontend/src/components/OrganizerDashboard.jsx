@@ -1,17 +1,213 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X, MessageCircle } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Megaphone, LogOut, Plus, X, MessageCircle, Clock } from 'lucide-react';
 import logo from "../assets/logo.png";
 import Modal from './Modal';
 import ActiveEventsOrganizerModal from './ActiveEventsOrganizerModal';
 import TotalVolunteersOrganizerModal from './TotalVolunteersOrganizerModal';
 import EventsCreatedModal from './EventsCreatedModal';
 import MessagesTab from './MessageTab';
-import AlertModal from "./AlertModal";
 import axios from "axios";
+import io from 'socket.io-client';
 
 const API_URL = 'http://localhost:5000/api/events';
+const socket = io('http://localhost:5000');
 
+// ─── Helpers: same localStorage key MessagesTab uses ─────────────────────────
+const STORAGE_KEY = 'msgLastSeen';
+
+const getLastSeenMap = () => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch { return {}; }
+};
+
+const isConversationUnread = (conv) => {
+    if (!conv.lastMessageTime) return false;
+    const map = getLastSeenMap();
+    const lastSeen = map[conv.conversationId];
+    if (!lastSeen) return true;
+    return new Date(conv.lastMessageTime) > new Date(lastSeen);
+};
+
+// Fetch conversations and compute unread count from localStorage
+const fetchUnreadCountFromConversations = async (email) => {
+    try {
+        const res = await fetch(`http://localhost:5000/api/conversations/${email}`);
+        const data = await res.json();
+        if (!Array.isArray(data)) return 0;
+        return data.filter(isConversationUnread).length;
+    } catch {
+        return 0;
+    }
+};
+
+// ─── Custom Alert Popup ───────────────────────────────────────────────────────
+const CustomAlert = ({ alert, onClose }) => {
+    if (!alert) return null;
+
+    const styles = {
+        success: { color: '#16a34a', bg: '#f0fdf4', border: '#16a34a' },
+        error:   { color: '#dc2626', bg: '#fef2f2', border: '#dc2626' },
+        warning: { color: '#d97706', bg: '#fffbeb', border: '#d97706' },
+        info:    { color: '#0067DD', bg: '#eff6ff', border: '#0067DD' },
+    };
+    const s = styles[alert.type] || styles.info;
+
+    const Icon = () => {
+        if (alert.type === 'success') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 15.5 9.5"/>
+            </svg>
+        );
+        if (alert.type === 'error') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+        );
+        if (alert.type === 'warning') return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        );
+        return (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}>
+            <style>{`@keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }`}</style>
+            <div style={{ background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.18)', padding: '1.75rem', maxWidth: '400px', width: '90%', border: `1.5px solid ${s.border}`, animation: 'popIn 0.18s ease' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flexShrink: 0, background: s.bg, borderRadius: '50%', padding: '6px', display: 'flex' }}>
+                        <Icon />
+                    </div>
+                    <div>
+                        {alert.title && <p style={{ fontWeight: '700', fontSize: '1rem', color: '#111', margin: '0 0 0.3rem 0' }}>{alert.title}</p>}
+                        <p style={{ fontSize: '0.9rem', color: '#374151', margin: 0, lineHeight: '1.5' }}>{alert.message}</p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ padding: '0.45rem 1.5rem', background: s.color, color: 'white', border: 'none', borderRadius: '9999px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '600' }}
+                        onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                        onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                    >
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg, onClick }) => (
+    <div
+        style={{
+            background: 'white', borderRadius: '1rem', padding: '1.5rem',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s', borderLeft: `4px solid ${iconColor}`, cursor: 'pointer'
+        }}
+        onMouseOver={e => { e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+        onMouseOut={e => { e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+        onClick={onClick}
+    >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: '#4b5563', margin: 0 }}>{title}</h3>
+            <div style={{ background: iconBg, padding: '0.5rem', borderRadius: '0.5rem' }}>
+                <Icon size={20} style={{ color: iconColor }} />
+            </div>
+        </div>
+        <p style={{ fontSize: '2.25rem', fontWeight: 'bold', color: '#1f2937', margin: '0 0 0.5rem 0' }}>{value}</p>
+        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{subtitle}</p>
+    </div>
+);
+
+// ─── Organizer Event Card ─────────────────────────────────────────────────────
+const OrganizerEventCard = ({ event, onViewDetails }) => {
+    const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
+    const progressPct = Math.min(((approvedCount || 0) / event.volunteersNeeded) * 100, 100);
+    const statusColors = {
+        pending:   { color: '#d97706', bg: '#fffbeb' },
+        active:    { color: '#10b981', bg: '#d1fae5' },
+        completed: { color: '#6b7280', bg: '#f3f4f6' },
+        cancelled: { color: '#ef4444', bg: '#fef2f2' },
+    };
+    const sc = statusColors[event.status] || statusColors.active;
+
+    return (
+        <div
+            style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', transition: 'box-shadow 0.3s' }}
+            onMouseOver={e => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
+            onMouseOut={e => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0, flex: 1, paddingRight: '0.5rem' }}>{event.eventName}</h3>
+                <span style={{ padding: '0.2rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600', color: sc.color, background: sc.bg, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {event.status}
+                </span>
+            </div>
+            {event.category && (
+                <div style={{ marginBottom: '1rem' }}>
+                    <span style={{ padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', border: '1px solid #67e8f9', color: '#0891b2', background: '#cffafe' }}>
+                        {event.category}
+                    </span>
+                </div>
+            )}
+            <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                        <Users size={14} style={{ color: '#3b82f6' }} /><span>Volunteers</span>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827' }}>{approvedCount} / {event.volunteersNeeded}</span>
+                </div>
+                <div style={{ width: '100%', background: '#e5e7eb', borderRadius: '9999px', height: '6px' }}>
+                    <div style={{ width: `${progressPct}%`, background: 'linear-gradient(to right, #3b82f6, #10b981)', borderRadius: '9999px', height: '6px', transition: 'width 0.3s' }} />
+                </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#374151' }}>
+                    <Calendar size={14} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                    <span>{`${new Date(event.startdate).toLocaleDateString('en-GB')} – ${new Date(event.enddate).toLocaleDateString('en-GB')}`}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#374151' }}>
+                    <Clock size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+                    <span>{`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} – ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#374151' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" style={{ flexShrink: 0 }}>
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{event.location}</span>
+                </div>
+            </div>
+            <button
+                onClick={() => onViewDetails(event._id)}
+                style={{ width: '100%', padding: '0.65rem', background: 'linear-gradient(to right, #3b82f6, #10b981)', color: 'white', fontWeight: '600', fontSize: '0.875rem', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                View Details & Manage
+            </button>
+        </div>
+    );
+};
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 const OrganizerDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('active');
@@ -21,134 +217,71 @@ const OrganizerDashboard = () => {
     const [organizerId, setOrganizerId] = useState(null);
     const [organizerName, setOrganizerName] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showMessagesModal, setShowMessagesModal] = useState(false);
-    const [alertConfig, setAlertConfig] = useState({
-        isOpen: false,
-        title: '',
-        message: '',
-        icon: 'info',
-        buttonText: 'Got it',
-        buttonColor: 'bg-blue-500 hover:bg-blue-600',
-        onCloseRedirect: null
-    });
+    const [showMessagesTab, setShowMessagesTab] = useState(false);
+    const [alertState, setAlertState] = useState(null);
+
+    // Badge count — driven by MessagesTab via onUnreadCountChange
+    const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
     const [formData, setFormData] = useState({
-        eventName: '',
-        description: '',
-        startdate: '',
-        enddate: '',
-        location: '',
-        volunteersNeeded: '',
-        category: '',
-        startTime: '',
-        endTime: '',
-        requirements: ''
+        eventName: '', description: '', startdate: '', enddate: '',
+        location: '', volunteersNeeded: '', category: '',
+        startTime: '', endTime: '', requirements: ''
     });
 
-    // Show alert helper function
-    const showAlert = (title, message, icon = 'info', buttonText = 'Got it', buttonColor = 'bg-blue-500 hover:bg-blue-600', onCloseRedirect = null) => {
-        setAlertConfig({
-            isOpen: true,
-            title,
-            message,
-            icon,
-            buttonText,
-            buttonColor,
-            onCloseRedirect
-        });
+    const showAlert = (message, type = 'info', title = '', onClose = null) => setAlertState({ message, type, title, onClose });
+    const handleAlertClose = () => {
+        const cb = alertState?.onClose;
+        setAlertState(null);
+        if (cb) cb();
     };
 
-    const closeAlert = () => {
-        const redirect = alertConfig.onCloseRedirect;
-        setAlertConfig({
-            isOpen: false,
-            title: '',
-            message: '',
-            icon: 'info',
-            buttonText: 'Got it',
-            buttonColor: 'bg-blue-500 hover:bg-blue-600',
-            onCloseRedirect: null
-        });
-        if (redirect) {
-            redirect();
-        }
-    };
-
-    // Check authentication and get organizer data
+    // Auth check
     useEffect(() => {
         const userStr = localStorage.getItem('loggedInUser');
-        console.log('User from localStorage:', userStr);
-
-        if (!userStr) {
-            console.log('No user found, redirecting to login');
-            navigate('/login');
-            return;
-        }
-
+        if (!userStr) { navigate('/login'); return; }
         try {
             const user = JSON.parse(userStr);
-            console.log('Parsed user:', user);
-
             if (user.role !== 'organizer') {
-                console.log('User is not organizer, role:', user.role);
-                showAlert(
-                    'Access Denied',
-                    'This page is for organizers only.',
-                    'error',
-                    'Go to Login',
-                    'bg-red-500 hover:bg-red-600',
-                    () => navigate('/login')
-                );
+                showAlert('This page is for organizers only.', 'error', 'Access Denied', () => navigate('/login'));
                 return;
             }
-
             if (user.id) {
                 setOrganizerId(user.id);
                 setOrganizerName(user.name || 'Organization');
-                console.log('Organizer ID set:', user.id);
             } else {
-                console.log('No user ID found');
-                showAlert(
-                    'Authentication Error',
-                    'User ID not found. Please login again.',
-                    'error',
-                    'Go to Login',
-                    'bg-red-500 hover:bg-red-600',
-                    () => navigate('/login')
-                );
+                showAlert('User ID not found. Please login again.', 'error', 'Authentication Error', () => navigate('/login'));
             }
-        } catch (error) {
-            console.error('Error parsing user data:', error);
-            navigate('/login');
-        }
+        } catch { navigate('/login'); }
     }, [navigate]);
 
-    // Fetch events when organizerId is available
+    // Fetch events
     useEffect(() => {
-        if (organizerId) {
-            fetchEvents();
-        }
+        if (organizerId) fetchEvents();
+    }, [organizerId]);
+
+    // ── Initial unread count on load (before MessagesTab mounts) ──────────────
+    useEffect(() => {
+        if (!organizerId) return;
+        fetchUnreadCountFromConversations(organizerId).then(setUnreadMessagesCount);
+
+        // Socket: when a new message arrives refresh the count from conversations
+        socket.emit('join', organizerId);
+        socket.on('unread_count_update', () => {
+            // Re-derive from actual conversation data so it stays accurate
+            fetchUnreadCountFromConversations(organizerId).then(setUnreadMessagesCount);
+        });
+        return () => { socket.off('unread_count_update'); };
     }, [organizerId]);
 
     const fetchEvents = async () => {
         try {
             setLoading(true);
-            console.log('Fetching events for organizer:', organizerId);
             const response = await axios.get(`${API_URL}/organizer/${organizerId}`);
-            console.log('Events fetched:', response.data);
             setEvents(response.data);
         } catch (error) {
-            console.error('Error fetching events:', error);
-            if (error.response?.status === 404) {
-                setEvents([]);
-            } else {
-                showAlert(
-                    'Error',
-                    'Failed to load events. Please try again.',
-                    'error',
-                    'OK',
-                    'bg-red-500 hover:bg-red-600'
-                );
-            }
+            if (error.response?.status !== 404) showAlert('Failed to load events. Please try again.', 'error', 'Error');
+            setEvents([]);
         } finally {
             setLoading(false);
         }
@@ -156,647 +289,323 @@ const OrganizerDashboard = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async () => {
-        // Required fields validation
         const requiredFields = ['eventName', 'description', 'startdate', 'enddate', 'location', 'volunteersNeeded', 'category', 'startTime', 'endTime'];
         for (const f of requiredFields) {
-            const v = formData[f];
-            if (v === undefined || v === null || String(v).trim() === '') {
-                showAlert(
-                    'Incomplete Form',
-                    'Please fill in all required fields.',
-                    'warning',
-                    'OK',
-                    'bg-orange-500 hover:bg-orange-600'
-                );
-                return;
+            if (!String(formData[f] ?? '').trim()) {
+                showAlert('Please fill in all required fields.', 'warning', 'Incomplete Form'); return;
             }
         }
-
         if (isNaN(Number(formData.volunteersNeeded)) || Number(formData.volunteersNeeded) <= 0) {
-            showAlert(
-                'Invalid Input',
-                'Please enter a valid number of volunteers needed.',
-                'warning',
-                'OK',
-                'bg-orange-500 hover:bg-orange-600'
-            );
-            return;
+            showAlert('Please enter a valid number of volunteers needed.', 'warning', 'Invalid Input'); return;
         }
-
-        // Date validation
-        if (!formData.startdate || !formData.enddate) {
-            showAlert(
-                'Invalid Date',
-                'Please provide both start and end dates.',
-                'warning',
-                'OK',
-                'bg-orange-500 hover:bg-orange-600'
-            );
-            return;
+        const startDateTime = new Date(`${formData.startdate}T${formData.startTime || '00:00'}`);
+        const endDateTime   = new Date(`${formData.enddate}T${formData.endTime || '00:00'}`);
+        if (endDateTime < startDateTime) { showAlert('The event end must come after the start.', 'warning', 'Invalid Date Range'); return; }
+        if (formData.startdate === formData.enddate && (endDateTime - startDateTime) / 60000 < 15) {
+            showAlert('End time must be at least 15 minutes after start time on the same day.', 'warning', 'Invalid Time Range'); return;
         }
-
-        const startTimePart = formData.startTime || '00:00';
-        const endTimePart = formData.endTime || '00:00';
-        const startDateTime = new Date(`${formData.startdate}T${startTimePart}`);
-        const endDateTime = new Date(`${formData.enddate}T${endTimePart}`);
-
-        if (endDateTime < startDateTime) {
-            showAlert(
-                'Invalid Date Range',
-                'The event end must come after the start.',
-                'warning',
-                'OK',
-                'bg-orange-500 hover:bg-orange-600'
-            );
-            return;
-        }
-
-        if (formData.startdate === formData.enddate) {
-            const diffMinutes = (endDateTime - startDateTime) / 60000;
-            if (diffMinutes < 15) {
-                showAlert(
-                    'Invalid Time Range',
-                    'When start and end date are the same, end time must be at least 15 minutes after start time.',
-                    'warning',
-                    'OK',
-                    'bg-orange-500 hover:bg-orange-600'
-                );
-                return;
-            }
-        }
-
         try {
-            const newEvent = {
-                organizerId: organizerId,
-                ...formData,
-            };
-
-            console.log('Creating event:', newEvent);
-            const response = await axios.post(API_URL, newEvent);
-            console.log('Event created:', response.data);
-
-            // Refresh events list
+            await axios.post(API_URL, { organizerId, ...formData });
             await fetchEvents();
-
             setShowCreateModal(false);
-            setFormData({
-                eventName: '',
-                description: '',
-                startdate: '',
-                enddate: '',
-                location: '',
-                volunteersNeeded: '',
-                category: '',
-                startTime: '',
-                endTime: '',
-                requirements: ''
-            });
-
-            // Show success alert with slight delay
-            setTimeout(() => {
-                showAlert(
-                    'Success!',
-                    'Event created successfully!',
-                    'success',
-                    'Got it',
-                    'bg-green-500 hover:bg-green-600'
-                );
-            }, 300);
+            setFormData({ eventName: '', description: '', startdate: '', enddate: '', location: '', volunteersNeeded: '', category: '', startTime: '', endTime: '', requirements: '' });
+            setTimeout(() => showAlert('Event created successfully!', 'success', 'Success!'), 300);
         } catch (error) {
-            console.error('Error creating event:', error);
-            showAlert(
-                'Error',
-                error.response?.data?.message || 'Failed to create event. Please try again.',
-                'error',
-                'OK',
-                'bg-red-500 hover:bg-red-600'
-            );
+            showAlert(error.response?.data?.message || 'Failed to create event.', 'error', 'Error');
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('loggedInUser');
-        navigate('/login');
-    };
-
-    const handleAnnouncements = () => {
-        navigate('/announcements');
-    };
-
-    const handleMessages = () => {
-        setShowMessagesModal(true);
-    };
-
-    const formatDate = (dateStr) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    };
-
-    const getFilteredEvents = () => {
-        return events.filter(event => event.status === activeTab);
-    };
-
-    const getStats = () => {
-        const activeEvents = events.filter(e => e.status === 'active').length;
-        const totalVolunteers = events.reduce((sum, e) => sum + (e.volunteersRegistered || 0), 0);
-        const totalEvents = events.length;
-
-        return { activeEvents, totalVolunteers, totalEvents };
-    };
-
-    const getEmptyStateContent = () => {
-        switch (activeTab) {
-            case 'pending':
-                return {
-                    title: 'No events pending approval',
-                    description: 'Events you create will appear here while awaiting admin approval'
-                };
-            case 'completed':
-                return {
-                    title: 'No completed events yet',
-                    description: 'Events that have finished will appear here for your records'
-                };
-            default:
-                return {
-                    title: 'No active events yet',
-                    description: 'Create your first volunteer event and start making an impact in your community'
-                };
-        }
-    };
-
-    const handleViewDetails = (eventId) => {
-        navigate(`/event-details/${eventId}`);
+    const handleLogout = () => { localStorage.removeItem('loggedInUser'); navigate('/login'); };
+    const handleAnnouncements = () => navigate('/announcements');
+    const handleViewDetails = (eventId) => navigate(`/event-details/${eventId}`);
+    const getFilteredEvents = () => events.filter(e => e.status === activeTab);
+    const getStats = () => ({
+        activeEvents:    events.filter(e => e.status === 'active').length,
+        totalVolunteers: events.reduce((sum, e) => sum + (e.registrations || []).filter(r => r.status === 'approved').length, 0),
+        totalEvents:     events.length,
+    });
+    const getEmptyState = () => {
+        if (activeTab === 'pending')   return { title: 'No events pending approval', desc: 'Events you create will appear here while awaiting admin approval' };
+        if (activeTab === 'completed') return { title: 'No completed events yet',    desc: 'Events that have finished will appear here for your records' };
+        return { title: 'No active events yet', desc: 'Create your first volunteer event and start making an impact in your community' };
     };
 
     if (loading || !organizerId) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-xl text-gray-600">Loading...</div>
+            <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: '1.125rem', color: '#6b7280' }}>Loading...</p>
             </div>
         );
     }
 
     const stats = getStats();
     const filteredEvents = getFilteredEvents();
-    const emptyState = getEmptyStateContent();
+    const emptyState = getEmptyState();
+
+    const statCards = [
+        { id: 'active-events',    title: 'Active Events',    value: String(stats.activeEvents),    subtitle: 'Currently recruiting',  icon: Calendar,   iconColor: '#3b82f6', iconBg: '#dbeafe', modal: <ActiveEventsOrganizerModal events={events} /> },
+        { id: 'total-volunteers', title: 'Total Volunteers', value: String(stats.totalVolunteers), subtitle: 'Across all events',     icon: Users,      iconColor: '#10b981', iconBg: '#d1fae5', modal: <TotalVolunteersOrganizerModal events={events} /> },
+        { id: 'events-created',   title: 'Events Created',   value: String(stats.totalEvents),     subtitle: 'Lifetime total',        icon: TrendingUp, iconColor: '#06b6d4', iconBg: '#cffafe', modal: <EventsCreatedModal events={events} /> },
+    ];
+
+    const tabStyle = (tab) => ({
+        padding: '0.75rem 1.5rem', borderRadius: '0.75rem', fontWeight: '600', border: 'none', cursor: 'pointer', transition: 'all 0.3s',
+        background: activeTab === tab ? 'white' : 'transparent',
+        color: activeTab === tab ? '#111827' : '#4b5563',
+        boxShadow: activeTab === tab ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+    });
+
+    const inputStyle = {
+        width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb',
+        borderRadius: '0.75rem', fontSize: '0.95rem', outline: 'none',
+        transition: 'all 0.2s', boxSizing: 'border-box',
+    };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200 h-24 flex items-center" style={{ paddingLeft: '80px', paddingRight: '80px' }}>
-                <div className="w-full flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-white-100 flex items-center justify-center">
-                            <img
-                                src={logo}
-                                alt="Organization Logo"
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Organization Dashboard</h1>
-                            <p className="text-base text-gray-500 mt-0.5">{organizerName}</p>
-                        </div>
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+            <CustomAlert alert={alertState} onClose={handleAlertClose} />
+
+            {/* ── Navbar ── */}
+            <nav style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '0 2rem', height: '4.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '3rem', height: '3rem', borderRadius: '0.75rem', overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-sm font-medium">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Active
-                        </div>
-
-                        <button onClick={handleMessages} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                            <MessageCircle className="w-5 h-5 text-gray-600" />
-                        </button>
-                        <span onClick={handleMessages} className="text-sm text-gray-700 font-medium cursor-pointer hover:text-gray-900">Messages</span>
-
-                        <button onClick={handleAnnouncements} className="p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                            <Megaphone className="w-5 h-5 text-gray-600" />
-                        </button>
-                        <span onClick={handleAnnouncements} className="text-sm text-gray-700 font-medium cursor-pointer hover:text-gray-900">Announcements</span>
-
-                        <button onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 hover:text-gray-900 transition-colors">
-                            <LogOut className="w-4 h-4" />
-                            <span className="font-medium">Logout</span>
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="w-full py-12" style={{ paddingLeft: '110px', paddingRight: '110px' }}>
-                {/* Stats Cards */}
-                <div className="grid grid-cols-3 gap-6" style={{ marginBottom: '32px', paddingTop: '24px' }}>
-                    <div
-                        className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
-                        style={{ borderLeft: '4px solid #3b82f6' }}
-                        onClick={() => setModalOpen('active-events')}
-                    >
-                        <div className="flex items-start justify-between" style={{ marginBottom: '32px' }}>
-                            <span className="text-base font-medium text-gray-600">Active Events</span>
-                            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <Calendar className="w-5 h-5 text-blue-500" />
-                            </div>
-                        </div>
-                        <div className="text-4xl font-bold text-blue-900 mb-2">{stats.activeEvents}</div>
-                        <p className="text-sm text-gray-500">Currently Recruiting Volunteers</p>
-                    </div>
-
-                    <div
-                        className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
-                        style={{ borderLeft: '4px solid #00AF44' }}
-                        onClick={() => setModalOpen('total-volunteers')}
-                    >
-                        <div className="flex items-start justify-between" style={{ marginBottom: '32px' }}>
-                            <span className="text-sm font-medium text-gray-600">Total Volunteers</span>
-                            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <Users className="w-5 h-5 text-green-500" />
-                            </div>
-                        </div>
-                        <div className="text-4xl font-bold text-green-600 mb-2">{stats.totalVolunteers}</div>
-                        <p className="text-sm text-gray-500">Across all events</p>
-                    </div>
-
-                    <div
-                        className="bg-white rounded-xl p-6 shadow-md border border-gray-200 cursor-pointer"
-                        style={{ borderLeft: '4px solid #00AF44' }}
-                        onClick={() => setModalOpen('events-created')}
-                    >
-                        <div className="flex items-start justify-between" style={{ marginBottom: '32px' }}>
-                            <span className="text-sm font-medium text-gray-600">Events Created</span>
-                            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <TrendingUp className="w-5 h-5 text-green-500" />
-                            </div>
-                        </div>
-                        <div className="text-4xl font-bold text-green-600 mb-2">{stats.totalEvents}</div>
-                        <p className="text-sm text-gray-500">Lifetime Total</p>
-                    </div>
-                </div>
-
-                <Modal
-                    isOpen={modalOpen === 'active-events'}
-                    onClose={() => setModalOpen(null)}
-                    title="Active Events"
-                >
-                    <ActiveEventsOrganizerModal events={events} />
-                </Modal>
-
-                <Modal
-                    isOpen={modalOpen === 'total-volunteers'}
-                    onClose={() => setModalOpen(null)}
-                    title="Total Volunteers"
-                >
-                    <TotalVolunteersOrganizerModal events={events} />
-                </Modal>
-
-                <Modal
-                    isOpen={modalOpen === 'events-created'}
-                    onClose={() => setModalOpen(null)}
-                    title="Events Created"
-                >
-                    <EventsCreatedModal events={events} />
-                </Modal>
-
-                {/* Manage Events Section */}
-                <div className="px-8 py-6 flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900" style={{ marginBottom: '2px' }}>Manage Events</h2>
-                        <p className="text-sm text-gray-500" style={{ marginBottom: '32px' }}>Create and track your volunteer opportunities</p>
+                        <p style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Organization Dashboard</p>
+                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>{organizerName}</p>
                     </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.9rem', background: '#d1fae5', color: '#059669', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '600', marginRight: '0.75rem' }}>
+                        <span style={{ width: '7px', height: '7px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }} />
+                        Active
+                    </div>
+
+                    {/* ── Messages button with red badge ── */}
                     <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setShowCreateModal(true);
-                        }}
-                        className="flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold leading-none shadow-md"
+                        onClick={() => setShowMessagesTab(prev => !prev)}
+                        style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: '0.5rem', color: '#4b5563', fontWeight: '500', fontSize: '0.875rem', transition: 'background 0.2s' }}
+                        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.6)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                     >
-                        <Plus className="w-6 h-6" />
-                        Create Event
+                        <MessageCircle size={18} />
+                        <span>Messages</span>
+                        {unreadMessagesCount > 0 && (
+                            <span style={{
+                                position: 'absolute', top: '0.2rem', right: '0.2rem',
+                                minWidth: '1.25rem', height: '1.25rem',
+                                background: '#ef4444', color: 'white',
+                                fontSize: '0.7rem', fontWeight: '700',
+                                borderRadius: '9999px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: '0 0.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', pointerEvents: 'none',
+                            }}>
+                                {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                            </span>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={handleAnnouncements}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: '0.5rem', color: '#4b5563', fontWeight: '500', fontSize: '0.875rem', transition: 'background 0.2s' }}
+                        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.6)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                        <Megaphone size={18} />
+                        <span>Announcements</span>
+                    </button>
+
+                    <button
+                        onClick={handleLogout}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 0.9rem', background: 'transparent', border: 'none', cursor: 'pointer', borderRadius: '0.5rem', color: '#4b5563', fontWeight: '500', fontSize: '0.875rem', transition: 'background 0.2s' }}
+                        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.6)'}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                        <LogOut size={18} />
+                        <span>Logout</span>
                     </button>
                 </div>
+            </nav>
 
-                {/* Tabs */}
-                <div className="flex gap-8 px-8" style={{ paddingLeft: '48px', marginTop: '32px', marginBottom: '12px' }}>
-                    <div className="inline-flex gap-5 p-1 bg-gray-100 rounded-lg border border-gray-200">
-                        {['active', 'pending', 'completed'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`h-9 px-6 cursor-pointer text-base font-semibold transition-colors rounded-lg border ${activeTab === tab
-                                    ? 'bg-white text-black-900 border-white'
-                                    : 'bg-gray text-gray border-white'
-                                }`}
+            {/* ── Main Content ── */}
+            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
+
+                {/* Stat Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                    {statCards.map(sc => (
+                        <StatCard key={sc.id} title={sc.title} value={sc.value} subtitle={sc.subtitle} icon={sc.icon} iconColor={sc.iconColor} iconBg={sc.iconBg} onClick={() => setModalOpen(sc.id)} />
+                    ))}
+                </div>
+
+                {/* Modals */}
+                {statCards.map(sc => (
+                    <Modal key={sc.id} isOpen={modalOpen === sc.id} onClose={() => setModalOpen(null)} title={sc.title}>
+                        {sc.modal}
+                    </Modal>
+                ))}
+
+                {/* Tabs + Create Button */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {['active', 'pending', 'completed'].map(tab => (
+                            <button key={tab} onClick={() => setActiveTab(tab)} style={tabStyle(tab)}
+                                    onMouseOver={e => { if (activeTab !== tab) e.currentTarget.style.background = 'rgba(255,255,255,0.5)'; }}
+                                    onMouseOut={e => { if (activeTab !== tab) e.currentTarget.style.background = 'transparent'; }}
                             >
-                                {tab === 'active' ? 'Active' : tab === 'pending' ? 'Pending Approval' : 'Completed'}
+                                {tab === 'active' ? 'Active Events' : tab === 'pending' ? 'Pending Approval' : 'Completed'}
                             </button>
                         ))}
                     </div>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: 'linear-gradient(to right, #3b82f6, #10b981)', color: 'white', fontWeight: '600', fontSize: '0.95rem', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'all 0.3s' }}
+                        onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        <Plus size={20} /> Create Event
+                    </button>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                    <div className="h-80 px-8 py-8">
-                        {filteredEvents.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredEvents.map((event) => {
+                {/* ── Messages inline panel ── */}
+                {showMessagesTab && (
+                    <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Messages</h2>
+                            <button onClick={() => setShowMessagesTab(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+                                <X size={22} />
+                            </button>
+                        </div>
+                        {/*
+                            onUnreadCountChange: MessagesTab calls this whenever the unread
+                            count changes (conversation clicked → count drops by 1, etc.)
+                        */}
+                        <MessagesTab
+                            currentUser={{ email: organizerId, role: 'organizer', fullName: organizerName }}
+                            onUnreadCountChange={setUnreadMessagesCount}
+                        />
+                    </div>
+                )}
 
-                                    const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
-
-                                    return (
-                                    <div key={event._id} className="bg-white rounded-xl border-2 border-blue-400 hover:shadow-md transition-shadow" style={{ padding: '24px' }}>
-                                        <div className="flex items-start justify-between" style={{ marginBottom: '16px', paddingLeft: '4px', paddingRight: '4px' }}>
-                                            <h3 className="text-xl font-bold text-gray-900">{event.eventName}</h3>
-                                            <span className={`px-4 py-1.5 rounded-full text-sm font-medium ${event.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                                event.status === 'active' ? 'bg-green-100 text-green-700' :
-                                                    'bg-gray-100 text-gray-700'
-                                            }`}>
-                                                {event.status}
-                                            </span>
-                                        </div>
-
-                                        <div style={{ marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px' }}>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                    <Users className="w-4 h-4" />
-                                                    <span>Volunteers</span>
-                                                </div>
-                                                <span className="text-sm font-semibold text-gray-900">
-                                                    {approvedCount || 0} / {event.volunteersNeeded}
-                                                </span>
-                                            </div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div
-                                                    className="bg-blue-500 h-2 rounded-full transition-all"
-                                                    style={{ width: `${((approvedCount || 0) / event.volunteersNeeded) * 100}%` }}
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2" style={{ marginBottom: '12px', paddingLeft: '4px', paddingRight: '4px' }}>
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <Calendar className="w-4 h-4 text-blue-500" />
-                                                <span> {`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span>
-                                                    {`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
-                                                        hour: 'numeric',
-                                                        minute: '2-digit',
-                                                        hour12: true
-                                                    })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
-                                                        hour: 'numeric',
-                                                        minute: '2-digit',
-                                                        hour12: true
-                                                    })}`}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                                <span className="truncate">{event.location}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-center" style={{ paddingLeft: '4px', paddingRight: '4px' }}>
-                                            <button
-                                                onClick={() => handleViewDetails(event._id)}
-                                                className="w-3/4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 mx-auto"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                </svg>
-                                                View Details & Manage
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-center py-6">
-                                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center" style={{ marginBottom: '24px' }}>
-                                    <Calendar className="w-7 h-7 text-blue-500" />
-                                </div>
-                                <h3 className="text-base font-semibold text-gray-900">
-                                    {emptyState.title}
-                                </h3>
-                                <p className="text-sm text-gray-500 mb-5 max-w-sm" style={{ marginBottom: '12px' }}>
-                                    {emptyState.description}
-                                </p>
-                                {activeTab === 'active' && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setShowCreateModal(true);
-                                        }}
-                                        className="flex items-center gap-2 px-5 py-5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-base font-medium shadow-sm"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Create Event
-                                    </button>
-                                )}
-                            </div>
+                {/* Event Cards */}
+                {filteredEvents.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                        {filteredEvents.map(event => (
+                            <OrganizerEventCard key={event._id} event={event} onViewDetails={handleViewDetails} />
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{ background: 'white', borderRadius: '1rem', padding: '4rem 2rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                        <div style={{ width: '3.5rem', height: '3.5rem', background: '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                            <Calendar size={28} style={{ color: '#3b82f6' }} />
+                        </div>
+                        <p style={{ fontSize: '1rem', fontWeight: '600', color: '#111827', margin: '0 0 0.5rem 0' }}>{emptyState.title}</p>
+                        <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0 0 1.5rem 0', maxWidth: '24rem' }}>{emptyState.desc}</p>
+                        {activeTab === 'active' && (
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: 'linear-gradient(to right, #3b82f6, #10b981)', color: 'white', fontWeight: '600', fontSize: '0.875rem', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                            >
+                                <Plus size={18} /> Create Event
+                            </button>
                         )}
                     </div>
-                </div>
-            </main>
+                )}
+            </div>
 
-            {/* Create Event Modal */}
+            {/* ── Create Event Modal ── */}
             {showCreateModal && (
-                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
-                    if (e.target === e.currentTarget) setShowCreateModal(false);
-                }}>
-                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[95vh] overflow-y-auto" style={{paddingLeft: '15px', paddingRight: '15px', marginBottom: '20px'}} onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-8 border-b border-gray-200 sticky top-0 bg-white" style={{marginBottom: '20px'}}>
-                            <div className="flex items-center gap-2">
-                                <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <Calendar className="w-12 h-12 text-blue-500" />
+                <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', padding: '1rem' }}
+                     onClick={e => { if (e.target === e.currentTarget) setShowCreateModal(false); }}
+                >
+                    <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', maxWidth: '720px', width: '100%', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '2.75rem', height: '2.75rem', background: '#dbeafe', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Calendar size={22} style={{ color: '#3b82f6' }} />
                                 </div>
-                                <div className="flex flex-col">
-                                    <h2 className="text-2xl font-bold text-gray-900 leading-tight">
-                                        Create New Event
-                                    </h2>
-                                    <p className="text-sm text-gray-500">
-                                        Post a new volunteer opportunity for your organization
-                                    </p>
+                                <div>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Create New Event</h2>
+                                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>Post a new volunteer opportunity</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                <X className="w-6 h-6 text-gray-500" />
+                            <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}>
+                                <X size={22} />
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-6">
+                        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2" style={{marginTop: '12px'}}>
-                                    Event Title *
-                                </label>
-                                <input
-                                    type="text"
-                                    name="eventName"
-                                    value={formData.eventName}
-                                    onChange={handleInputChange}
-                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    style={{marginBottom: '16px'}}
-                                    placeholder="Enter event name"
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Event Title *</label>
+                                <input type="text" name="eventName" value={formData.eventName} onChange={handleInputChange} placeholder="Enter event name" style={inputStyle}
+                                       onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                       onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Description *</label>
+                                <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Describe your volunteer event" rows={3} style={{ ...inputStyle, resize: 'vertical' }}
+                                          onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                          onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">
-                                    Description *
-                                </label>
-                                <textarea
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    rows="4"
-                                    className="w-full px-6 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    style={{marginBottom: '16px'}}
-                                    placeholder="Describe your volunteer event"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        Start Date *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        name="startdate"
-                                        value={formData.startdate}
-                                        onChange={handleInputChange}
-                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        style={{marginBottom: '16px'}}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        Start Time *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            id="startTimeInput"
-                                            type="time"
-                                            name="startTime"
-                                            value={formData.startTime}
-                                            onChange={handleInputChange}
-                                            className="w-full h-10 px-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            style={{marginBottom: '16px'}}
+                            {/* Date + Time Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                {[
+                                    { label: 'Start Date *', name: 'startdate', type: 'date' },
+                                    { label: 'End Date *',   name: 'enddate',   type: 'date' },
+                                ].map(field => (
+                                    <div key={field.name}>
+                                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{field.label}</label>
+                                        <input type={field.type} name={field.name} value={formData[field.name]} onChange={handleInputChange} style={inputStyle}
+                                               onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                               onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const input = document.getElementById('startTimeInput');
-                                                if (input.showPicker) {
-                                                    input.showPicker();
-                                                } else {
-                                                    input.focus();
-                                                }
-                                            }}
-                                            className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
-                                        >
-                                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
                                     </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        End Date *
-                                    </label>
-                                    <input
-                                        type="date"
-                                        name="enddate"
-                                        value={formData.enddate}
-                                        onChange={handleInputChange}
-                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        style={{marginBottom: '16px'}}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        End Time *
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            id="endTimeInput"
-                                            type="time"
-                                            name="endTime"
-                                            value={formData.endTime}
-                                            onChange={handleInputChange}
-                                            className="w-full h-10 px-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            style={{marginBottom: '16px'}}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                const input = document.getElementById('endTimeInput');
-                                                if (input.showPicker) {
-                                                    input.showPicker();
-                                                } else {
-                                                    input.focus();
-                                                }
-                                            }}
-                                            className="absolute right-2 top-2 p-1 hover:bg-gray-100 rounded transition-colors"
-                                        >
-                                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                        </button>
+                                ))}
+                                {[
+                                    { label: 'Start Time *', name: 'startTime', id: 'startTimeInput' },
+                                    { label: 'End Time *',   name: 'endTime',   id: 'endTimeInput'   },
+                                ].map(field => (
+                                    <div key={field.name}>
+                                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>{field.label}</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input id={field.id} type="time" name={field.name} value={formData[field.name]} onChange={handleInputChange}
+                                                   style={{ ...inputStyle, paddingRight: '2.5rem' }}
+                                                   onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                                   onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                                            />
+                                            <button type="button"
+                                                    onClick={() => { const input = document.getElementById(field.id); if (input.showPicker) input.showPicker(); else input.focus(); }}
+                                                    style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280' }}
+                                            >
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
                             </div>
 
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">
-                                    Location *
-                                </label>
-                                <input
-                                    type="text"
-                                    name="location"
-                                    value={formData.location}
-                                    onChange={handleInputChange}
-                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    style={{marginBottom: '16px'}}
-                                    placeholder="Event location"
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Location *</label>
+                                <input type="text" name="location" value={formData.location} onChange={handleInputChange} placeholder="Event location" style={inputStyle}
+                                       onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                       onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        Category *
-                                    </label>
-                                    <select
-                                        name="category"
-                                        value={formData.category}
-                                        onChange={handleInputChange}
-                                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        style={{marginBottom: '16px'}}
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Category *</label>
+                                    <select name="category" value={formData.category} onChange={handleInputChange} style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }}
+                                            onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                            onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                     >
                                         <option value="">Select category</option>
                                         <option value="education">Education</option>
@@ -807,49 +616,33 @@ const OrganizerDashboard = () => {
                                         <option value="other">Other</option>
                                     </select>
                                 </div>
-
                                 <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">
-                                        Volunteers Needed *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="volunteersNeeded"
-                                        value={formData.volunteersNeeded}
-                                        onChange={handleInputChange}
-                                        min="1"
-                                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        style={{marginBottom: '16px'}}
-                                        placeholder="Number of volunteers"
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Volunteers Needed *</label>
+                                    <input type="number" name="volunteersNeeded" value={formData.volunteersNeeded} onChange={handleInputChange} min="1" placeholder="Number of volunteers" style={inputStyle}
+                                           onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                           onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                     />
                                 </div>
                             </div>
-
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">
-                                    Requirements
-                                </label>
-                                <textarea
-                                    name="requirements"
-                                    value={formData.requirements}
-                                    onChange={handleInputChange}
-                                    rows="2"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    style={{marginBottom: '16px'}}
-                                    placeholder="Any specific requirements or skills needed"
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Requirements</label>
+                                <textarea name="requirements" value={formData.requirements} onChange={handleInputChange} placeholder="Any specific requirements or skills needed" rows={2} style={{ ...inputStyle, resize: 'vertical' }}
+                                          onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                          onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
-
-                            <div className="flex justify-center gap-3 pt-4">
-                                <button
-                                    onClick={() => setShowCreateModal(false)}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.5rem' }}>
+                                <button onClick={() => setShowCreateModal(false)}
+                                        style={{ padding: '0.65rem 1.5rem', background: 'white', border: '1px solid #d1d5db', borderRadius: '0.75rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontSize: '0.875rem' }}
+                                        onMouseOver={e => e.currentTarget.style.background = '#f9fafb'}
+                                        onMouseOut={e => e.currentTarget.style.background = 'white'}
                                 >
                                     Cancel
                                 </button>
-                                <button
-                                    onClick={handleSubmit}
-                                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                <button onClick={handleSubmit}
+                                        style={{ padding: '0.65rem 1.75rem', background: 'linear-gradient(to right, #3b82f6, #10b981)', color: 'white', fontWeight: '600', fontSize: '0.875rem', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', transition: 'all 0.3s' }}
+                                        onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                                        onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
                                 >
                                     Create Event
                                 </button>
@@ -858,42 +651,6 @@ const OrganizerDashboard = () => {
                     </div>
                 </div>
             )}
-
-            {/* Messages Modal */}
-            {showMessagesModal && (
-                <div className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4" onClick={(e) => {
-                    if (e.target === e.currentTarget) setShowMessagesModal(false);
-                }}>
-                    <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
-                            <h2 className="text-2xl font-bold text-gray-900">Messages</h2>
-                            <button
-                                onClick={() => setShowMessagesModal(false)}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                <X className="w-6 h-6 text-gray-500" />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <MessagesTab currentUser={{ email: organizerId, role: "organizer", fullName: organizerName }} />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Alert Modal - positioned top-right like toast notification */}
-            <div className="fixed top-4 right-4 z-[100]">
-                <AlertModal
-                    isOpen={alertConfig.isOpen}
-                    onClose={closeAlert}
-                    title={alertConfig.title}
-                    message={alertConfig.message}
-                    icon={alertConfig.icon}
-                    buttonText={alertConfig.buttonText}
-                    buttonColor={alertConfig.buttonColor}
-                    onCloseRedirect={alertConfig.onCloseRedirect}
-                />
-            </div>
         </div>
     );
 };

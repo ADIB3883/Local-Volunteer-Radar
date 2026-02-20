@@ -359,6 +359,8 @@ const VolunteerDashboard = () => {
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
     const [filteredEvents, setFilteredEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    // ─── Track event IDs the user has already registered for ─────────────────
+    const [registeredEventIds, setRegisteredEventIds] = useState(new Set());
 
     // ─── Custom alert state ───────────────────────────────────────────────────
     const [alertState, setAlertState] = useState(null);
@@ -447,9 +449,14 @@ const VolunteerDashboard = () => {
                 const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
                 const data = await res.json();
                 if (data.success) {
+                    // const count = data.registrations.filter(
+                    //     reg => reg.event.status === 'active' &&
+                    //         (reg.registrationStatus === 'approved' || reg.registrationStatus === 'pending')
+                    // ).length;
                     const count = data.registrations.filter(
-                        reg => reg.event.status === 'active' &&
-                            (reg.registrationStatus === 'approved' || reg.registrationStatus === 'pending')
+                        reg => reg.registrationStatus === 'approved' &&
+                            reg.event.status !== 'completed' &&
+                            reg.event.status !== 'cancelled'
                     ).length;
                     setActiveRegistrationsCount(count);
                 }
@@ -549,7 +556,27 @@ const VolunteerDashboard = () => {
         }
     ];
 
-    // Load events from backend API on mount
+    // ─── Fetch the volunteer's existing registrations on mount ────────────────
+    // This seeds registeredEventIds so that events the user already registered
+    // for (in previous sessions) are hidden from the Discover tab immediately.
+    React.useEffect(() => {
+        const fetchUserRegistrations = async () => {
+            try {
+                if (!loggedInUser?.email) return;
+                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const data = await res.json();
+                if (data.success) {
+                    const ids = new Set(data.registrations.map(r => r.event._id));
+                    setRegisteredEventIds(ids);
+                }
+            } catch (err) {
+                console.error('Error fetching user registrations:', err);
+            }
+        };
+        fetchUserRegistrations();
+    }, []);
+
+    // Load all events from backend API on mount
     React.useEffect(() => {
         const fetchEvents = async () => {
             try {
@@ -580,8 +607,10 @@ const VolunteerDashboard = () => {
         fetchEvents();
     }, []);
 
+    // ─── Filter: exclude registered events + apply search/category ───────────
     const handleFilter = () => {
-        let filtered = [...allEvents];
+        // First exclude events the volunteer has already registered for
+        let filtered = allEvents.filter(event => !registeredEventIds.has(event._id));
 
         if (searchQuery.trim() !== '') {
             filtered = filtered.filter(event =>
@@ -603,7 +632,20 @@ const VolunteerDashboard = () => {
 
     React.useEffect(() => {
         handleFilter();
-    }, [searchQuery, selectedCategory, allEvents]);
+    }, [searchQuery, selectedCategory, allEvents, registeredEventIds]);
+
+    // ─── Called by EventCard after a successful registration ─────────────────
+    // Immediately removes the event from the Discover list without waiting for
+    // a full network round-trip.
+    const handleEventRegistered = (eventId) => {
+        setRegisteredEventIds(prev => {
+            const updated = new Set(prev);
+            updated.add(eventId);
+            return updated;
+        });
+        // Also refresh the full events list in the background to stay in sync
+        refreshEvents();
+    };
 
     const refreshEvents = async () => {
         try {
@@ -615,7 +657,7 @@ const VolunteerDashboard = () => {
                 );
                 setAllEvents(approvedEvents);
                 setRecommendedEvents(approvedEvents.slice(0, 2));
-                setFilteredEvents(approvedEvents);
+                // filteredEvents will be recalculated by the useEffect above
             }
         } catch (error) {
             console.error('Error refreshing events:', error);
@@ -914,7 +956,7 @@ const VolunteerDashboard = () => {
                                             })}`}
                                             location={event.location}
                                             requirements={event.requirements || 'No specific requirements'}
-                                            onRegister={refreshEvents}
+                                            onRegister={handleEventRegistered}
                                         />
                                     ))}
 
