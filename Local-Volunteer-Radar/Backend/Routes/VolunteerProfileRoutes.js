@@ -1,4 +1,5 @@
 const express = require('express');
+const { cloudinary, upload } = require('../services/cloudinary');
 const router = express.Router();
 const Volunteer = require('../Models/Volunteer');
 const User = require('../Models/User');
@@ -105,6 +106,26 @@ router.put('/profile/:email', async (req, res) => {
             success: false,
             message: 'Server error'
         });
+    }
+});
+
+// POST /api/profile/upload-picture
+router.post('/profile/upload-picture', upload.single('profilePicture'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        // Cloudinary URL is automatically available
+        const imageUrl = req.file.path;
+
+        res.json({
+            success: true,
+            imageUrl,
+        });
+    } catch (error) {
+        console.error('Image upload error:', error);
+        res.status(500).json({ success: false, message: 'Image upload failed' });
     }
 });
 

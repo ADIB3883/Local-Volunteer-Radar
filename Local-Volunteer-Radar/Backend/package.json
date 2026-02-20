@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
@@ -19,6 +20,8 @@
     "googleapis": "^171.4.0",
     "mongodb": "^7.1.0",
     "mongoose": "^9.1.6",
+    "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
     "socket.io": "^4.8.3"

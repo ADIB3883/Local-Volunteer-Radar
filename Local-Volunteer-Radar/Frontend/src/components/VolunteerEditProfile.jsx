@@ -228,15 +228,49 @@ const VolunteerEditProfile = () => {
         setAvailabilitySlots(availabilitySlots.filter(slot => slot.id !== id));
     };
 
-    const handleFileChange = (e) => {
+    // const handleFileChange = (e) => {
+    //     const file = e.target.files[0];
+    //     if (file) {
+    //         const reader = new FileReader();
+    //         reader.onloadend = () => {
+    //             setProfilePicture(file);
+    //             setProfilePicturePreview(reader.result);
+    //         };
+    //         reader.readAsDataURL(file);
+    //     }
+    // };
+
+    const handleFileChange = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfilePicture(file);
-                setProfilePicturePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        // Show local preview immediately (good UX)
+        const reader = new FileReader();
+        reader.onloadend = () => setProfilePicturePreview(reader.result);
+        reader.readAsDataURL(file);
+
+        // Upload to Cloudinary via your backend
+        try {
+            const formData = new FormData();
+            formData.append('profilePicture', file);
+
+            const response = await fetch('http://localhost:5000/api/profile/upload-picture', {
+                method: 'POST',
+                body: formData,  // Don't set Content-Type header — browser sets it with boundary
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Store the Cloudinary URL instead of base64
+                setProfilePicturePreview(data.imageUrl);
+                console.log('Image uploaded successfully:', data.imageUrl);
+            } else {
+                showAlert('Failed to upload image. Please try again.', 'error', 'Upload Failed');
+            }
+        } catch (error) {
+            console.error('Image upload error:', error);
+            showAlert('Error uploading image. Please try again.', 'error', 'Error');
         }
     };
 
@@ -268,7 +302,7 @@ const VolunteerEditProfile = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'user-data': JSON.stringify(loggedInUser)
+                    //'user-data': JSON.stringify(loggedInUser)
                 },
                 body: JSON.stringify(updateData)
             });
