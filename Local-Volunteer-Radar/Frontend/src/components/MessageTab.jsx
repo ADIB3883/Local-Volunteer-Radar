@@ -2,28 +2,54 @@ import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
 import ChatInterface from './ChatInterface';
 
-const MessagesTab = ({ currentUser }) => {
+// ─── Helpers: localStorage-backed "last seen" map ────────────────────────────
+const STORAGE_KEY = 'msgLastSeen'; // { conversationId: isoString }
+
+const getLastSeenMap = () => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch { return {}; }
+};
+
+const markConversationSeen = (conversationId, timeStr) => {
+    const map = getLastSeenMap();
+    map[conversationId] = timeStr || new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+};
+
+const isConversationUnread = (conv) => {
+    if (!conv.lastMessageTime) return false;
+    const map = getLastSeenMap();
+    const lastSeen = map[conv.conversationId];
+    if (!lastSeen) return true; // never opened
+    return new Date(conv.lastMessageTime) > new Date(lastSeen);
+};
+
+// ─── MessagesTab ──────────────────────────────────────────────────────────────
+const MessagesTab = ({ currentUser, onUnreadCountChange }) => {
     const [conversations, setConversations] = useState([]);
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const userType = currentUser.role || currentUser.type;
     const isVolunteer = userType === 'volunteer';
-
-    // currentUser.email must be the actual email for both volunteer and organizer
     const currentEmail = currentUser.email;
+
+    // Recalculate + bubble up unread count whenever conversations change
+    useEffect(() => {
+        const count = conversations.filter(isConversationUnread).length;
+        if (onUnreadCountChange) onUnreadCountChange(count);
+    }, [conversations]);
 
     useEffect(() => {
         fetchConversations();
 
-        // Check for pending conversation to open (set by EventCard)
         const pendingChat = localStorage.getItem('openChatConversation');
         if (pendingChat) {
             try {
                 const conversation = JSON.parse(pendingChat);
                 localStorage.removeItem('openChatConversation');
                 createConversation(conversation).then(() => {
-                    setSelectedConversation(conversation);
+                    openConversation(conversation);
                     fetchConversations();
                 });
             } catch (error) {
@@ -56,6 +82,14 @@ const MessagesTab = ({ currentUser }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Mark a conversation as read locally and open it
+    const openConversation = (conv) => {
+        markConversationSeen(conv.conversationId, conv.lastMessageTime || new Date().toISOString());
+        // Update local list so badge recalculates immediately
+        setConversations(prev => [...prev]); // trigger useEffect re-run via new array ref
+        setSelectedConversation(conv);
     };
 
     const formatTime = (date) => {
@@ -113,52 +147,105 @@ const MessagesTab = ({ currentUser }) => {
                         const otherParticipant = conv.participants?.find(p => p.userId !== currentEmail);
                         if (!otherParticipant) return null;
 
+                        const unread = isConversationUnread(conv);
+
                         return (
                             <div
                                 key={conv.conversationId}
-                                onClick={() => setSelectedConversation(conv)}
+                                onClick={() => openConversation(conv)}
                                 style={{
                                     padding: '1rem',
-                                    border: '1px solid #e5e7eb',
+                                    border: unread ? '2px solid #93c5fd' : '1px solid #e5e7eb',
                                     borderRadius: '0.75rem',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
-                                    background: '#fafafa'
+                                    background: unread
+                                        ? 'linear-gradient(to right, #eff6ff, #f0f9ff)'
+                                        : '#fafafa',
+                                    position: 'relative',
                                 }}
                                 onMouseOver={(e) => {
                                     e.currentTarget.style.borderColor = '#3b82f6';
-                                    e.currentTarget.style.background = '#eff6ff';
                                     e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59,130,246,0.15)';
                                 }}
                                 onMouseOut={(e) => {
-                                    e.currentTarget.style.borderColor = '#e5e7eb';
-                                    e.currentTarget.style.background = '#fafafa';
+                                    e.currentTarget.style.borderColor = unread ? '#93c5fd' : '#e5e7eb';
                                     e.currentTarget.style.transform = 'translateY(0)';
                                     e.currentTarget.style.boxShadow = 'none';
                                 }}
                             >
-                                <div style={{ display: 'flex', alignItems: 'start', gap: '1rem' }}>
-                                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '1.25rem', flexShrink: 0 }}>
+                                {/* Unread blue dot */}
+                                {unread && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '1rem',
+                                        right: '1rem',
+                                        width: '10px',
+                                        height: '10px',
+                                        background: '#3b82f6',
+                                        borderRadius: '50%',
+                                        flexShrink: 0,
+                                    }} />
+                                )}
+
+                                <div style={{ display: 'flex', alignItems: 'start', gap: '1rem', paddingRight: unread ? '1.25rem' : '0' }}>
+                                    {/* Avatar */}
+                                    <div style={{
+                                        width: '48px', height: '48px', borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        color: 'white', fontWeight: 'bold', fontSize: '1.25rem', flexShrink: 0
+                                    }}>
                                         {(otherParticipant.userName || '?').charAt(0).toUpperCase()}
                                     </div>
+
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.25rem' }}>
-                                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600', color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                            <h3 style={{
+                                                margin: 0,
+                                                fontSize: '1rem',
+                                                fontWeight: unread ? '700' : '600',
+                                                color: '#111827',
+                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                                            }}>
                                                 {otherParticipant.userName}
                                             </h3>
-                                            <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0, marginLeft: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', color: unread ? '#3b82f6' : '#9ca3af', flexShrink: 0, marginLeft: '0.5rem', fontWeight: unread ? '600' : '400' }}>
                                                 {formatTime(conv.lastMessageTime)}
                                             </span>
                                         </div>
+
                                         {conv.eventName && (
                                             <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.75rem', color: '#6b7280' }}>
                                                 📍 {conv.eventName}
                                             </p>
                                         )}
-                                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {conv.lastMessage || 'No messages yet'}
-                                        </p>
+
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <p style={{
+                                                margin: 0,
+                                                fontSize: '0.875rem',
+                                                color: unread ? '#374151' : '#6b7280',
+                                                fontWeight: unread ? '500' : '400',
+                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                flex: 1,
+                                            }}>
+                                                {conv.lastMessage || 'No messages yet'}
+                                            </p>
+                                            {unread && (
+                                                <span style={{
+                                                    marginLeft: '0.5rem',
+                                                    fontSize: '0.7rem',
+                                                    color: '#3b82f6',
+                                                    fontWeight: '600',
+                                                    whiteSpace: 'nowrap',
+                                                    flexShrink: 0,
+                                                }}>
+                                                    New
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

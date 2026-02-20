@@ -75,7 +75,7 @@ const EventCard = ({
                        time,
                        location,
                        requirements,
-                       onRegister
+                       onRegister   // Called with (eventId) after successful registration
                    }) => {
     const navigate = useNavigate();
     const [registrationStatus, setRegistrationStatus] = useState(null);
@@ -162,15 +162,19 @@ const EventCard = ({
             const data = await response.json();
 
             if (data.success) {
+                setRegistrationStatus('pending');
+                // Show the success alert; after the user clicks OK, notify the
+                // parent to remove this card from the Discover list.
                 showAlert(
                     'Successfully registered for the event! Your registration is pending organizer approval.',
                     'success',
-                    'Registration Successful'
+                    'Registration Successful',
+                    () => {
+                        if (onRegister) {
+                            onRegister(eventId);
+                        }
+                    }
                 );
-                setRegistrationStatus('pending');
-                if (onRegister) {
-                    onRegister();
-                }
             } else {
                 showAlert(
                     data.message || 'Failed to register for event',
