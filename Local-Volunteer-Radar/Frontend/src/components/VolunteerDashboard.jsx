@@ -12,6 +12,7 @@ import HoursVolunteeredModal from './HoursVolunteeredModal';
 import ActiveRegistrationModal from './ActiveRegistrationModal';
 import SkillsUtilizedModal from './SkillsUtilizedModal';
 import MessagesTab from './MessageTab';
+import CopilotPanel from '../components/CopilotPanel';
 import io from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
@@ -665,6 +666,7 @@ const VolunteerDashboard = () => {
     };
 
     return (
+        <>
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Custom Alert Popup */}
             <CustomAlert alert={alertState} onClose={handleAlertClose} />
@@ -982,6 +984,8 @@ const VolunteerDashboard = () => {
                 )}
             </div>
         </div>
+    <CopilotPanel />
+</>
     );
 };
 
