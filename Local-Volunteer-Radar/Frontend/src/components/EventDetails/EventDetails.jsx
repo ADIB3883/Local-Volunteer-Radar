@@ -34,17 +34,51 @@ function EventDetails() {
             // Fetch enriched volunteers
             const volunteersResponse = await axios.get(`${API_URL}/${eventId}/volunteers`);
 
-            const volunteersData = volunteersResponse.data.map(reg => ({
-                id: reg._id,
-                pic: reg.volunteerDetails?.profilePicture || '',
-                name: reg.volunteerDetails?.name || 'Unknown',
-                registerDate: new Date(reg.registeredAt).toLocaleDateString('en-GB'),
-                volunteerStatus: reg.status.charAt(0).toUpperCase() + reg.status.slice(1),
-                actionTaken: reg.status !== 'pending',
-                email: reg.volunteerDetails?.email || '',
-                phone: reg.volunteerDetails?.phoneNumber || '',
-                skills: reg.volunteerDetails?.skills || [],
-                availability: reg.volunteerDetails?.availability || []
+            const volunteersData = await Promise.all(volunteersResponse.data.map(async (reg) => {
+
+                // Fetch this volunteer's full registration history
+                const registrationsRes = await axios.get(
+                    `http://localhost:5000/api/events/volunteer/${reg.volunteerDetails?.email}/registrations`
+                );
+
+                const allRegs = registrationsRes.data.success ? registrationsRes.data.registrations : [];
+
+                // Calculate events completed
+                const eventsCompleted = allRegs.filter(
+                    r => r.registrationStatus === 'approved' && r.event.status === 'completed'
+                ).length;
+
+                // Calculate hours volunteered
+                const hoursVolunteered = allRegs
+                    .filter(r => r.registrationStatus === 'approved' && r.event.status === 'completed')
+                    .reduce((sum, { event }) => {
+                        if (!event.startTime || !event.endTime) return sum;
+                        const [sh, sm] = event.startTime.split(':').map(Number);
+                        const [eh, em] = event.endTime.split(':').map(Number);
+                        const dailyMins = (eh * 60 + em) - (sh * 60 + sm);
+                        if (dailyMins <= 0) return sum;
+                        const start = new Date(event.startdate);
+                        const end = new Date(event.enddate || event.startdate);
+                        const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                        return sum + (dailyMins / 60) * days;
+                    }, 0);
+
+                return {
+                    id: reg._id,
+                    pic: reg.volunteerDetails?.profilePicture || '',
+                    name: reg.volunteerDetails?.name || 'Unknown',
+                    registerDate: new Date(reg.registeredAt).toLocaleDateString('en-GB'),
+                    volunteerStatus: reg.status.charAt(0).toUpperCase() + reg.status.slice(1),
+                    actionTaken: reg.status !== 'pending',
+                    email: reg.volunteerDetails?.email || '',
+                    phone: reg.volunteerDetails?.phoneNumber || '',
+                    skills: reg.volunteerDetails?.skills
+                        ? Object.keys(reg.volunteerDetails.skills)
+                        : [],
+                    availability: reg.volunteerDetails?.availability || [],
+                    eventsCompleted,
+                    hoursVolunteered: Math.round(hoursVolunteered * 10) / 10
+                };
             }));
 
             setVolunteers(volunteersData);
