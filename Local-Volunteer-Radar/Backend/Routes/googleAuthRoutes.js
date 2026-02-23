@@ -52,5 +52,51 @@ router.get('/google/callback', async (req, res) => {
     }
 });
 
+router.get('/google-tokens/:email', async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.params.email });
+
+        if (!user) {
+            return res.status(404).json({
+                googleAccessToken: null,
+                googleRefreshToken: null
+            });
+        }
+
+        res.json({
+            googleAccessToken: user.googleAccessToken,
+            googleRefreshToken: user.googleRefreshToken
+        });
+    } catch (error) {
+        console.error('Error fetching Google tokens:', error);
+        res.status(500).json({
+            googleAccessToken: null,
+            googleRefreshToken: null
+        });
+    }
+});
+
+
+router.post('/google/disconnect/:email', async (req, res) => {
+    try {
+        const user = await User.findOneAndUpdate(
+            { email: req.params.email },
+            {
+                googleAccessToken: null,
+                googleRefreshToken: null
+            },
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.json({ success: true, message: 'Google Calendar disconnected successfully' });
+    } catch (error) {
+        console.error('Error disconnecting calendar:', error);
+        res.status(500).json({ success: false, message: 'Failed to disconnect calendar' });
+    }
+});
 
 module.exports = router;
