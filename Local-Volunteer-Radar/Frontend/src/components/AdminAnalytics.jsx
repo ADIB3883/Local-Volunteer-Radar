@@ -7,6 +7,9 @@ const getTrendInfo = (statement) => {
     if (statement.toLowerCase().includes("unavailable")) {
         return { color: "#9ca3af", icon: Minus, bg: "#f3f4f6" };
     }
+    if (statement.toLowerCase().includes("no past data")) {
+        return { color: "#9ca3af", icon: Minus, bg: "#f3f4f6" };
+    }
     if (statement.toLowerCase().includes("no change") || statement.toLowerCase().includes("unchanged")) {
         return { color: "#3b82f6", icon: Minus, bg: "#dbeafe" };
     } else if (statement.includes("-") || statement.toLowerCase().includes("decrease")) {
@@ -29,7 +32,7 @@ const AnalyticsCard = ({ title, value, statement, data }) => {
                 boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
                 transition: "box-shadow 0.3s",
                 borderLeft: `4px solid ${trend.color}`,
-                width: "620px"
+                width: "100%"
             }}
             onMouseOver={(e) =>
                 (e.currentTarget.style.boxShadow =
@@ -70,32 +73,48 @@ export default function AdminAnalytics({ analytics }) {
         return <LoadingSpinner message="Loading analytics..." />;
     }
 
+    // Check if all data arrays are empty (no data points in current year window)
+    const hasNoData = analytics.analytics.hoursWorked.every(v => v === 0) &&
+                     analytics.analytics.volunteers.every(v => v === 0) &&
+                     analytics.analytics.organizer.every(v => v === 0) &&
+                     analytics.analytics.activeEvents.every(v => v === 0);
+
+    // Create trend statements with "No past data" when there's no current data
+    const trendStatements = hasNoData ? {
+        hoursWorked: "No past data",
+        volunteers: "No past data", 
+        organizer: "No past data",
+        activeEvents: "No past data"
+    } : analytics.trendStatement;
+
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))", gap: "1.5rem" }}>
-            <AnalyticsCard
-                title="Hours Worked (Yearly)"
-                value={`${analytics.analytics.hoursWorked.reduce((a, b) => a + b, 0)} hrs`}
-                statement={analytics.trendStatement.hoursWorked}
-                data={analytics.analytics.hoursWorked}
-            />
-            <AnalyticsCard
-                title="Volunteer Enrollment (Yearly)"
-                value={analytics.analytics.volunteers.reduce((a, b) => a + b, 0)}
-                statement={analytics.trendStatement.volunteers}
-                data={analytics.analytics.volunteers}
-            />
-            <AnalyticsCard
-                title="Organizer Enrollment (Yearly)"
-                value={analytics.analytics.organizer.reduce((a, b) => a + b, 0)}
-                statement={analytics.trendStatement.organizer}
-                data={analytics.analytics.organizer}
-            />
-            <AnalyticsCard
-                title="Active Events (Yearly)"
-                value={analytics.analytics.activeEvents.reduce((a, b) => a + b, 0)}
-                statement={analytics.trendStatement.activeEvents}
-                data={analytics.analytics.activeEvents}
-            />
+        <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1.5rem" }}>
+                <AnalyticsCard
+                    title="Hours Worked (Yearly)"
+                    value={`${analytics.analytics.hoursWorked.reduce((a, b) => a + b, 0)} hrs`}
+                    statement={trendStatements.hoursWorked}
+                    data={analytics.analytics.hoursWorked}
+                />
+                <AnalyticsCard
+                    title="Volunteer Enrollment (Yearly)"
+                    value={analytics.analytics.volunteers.reduce((a, b) => a + b, 0)}
+                    statement={trendStatements.volunteers}
+                    data={analytics.analytics.volunteers}
+                />
+                <AnalyticsCard
+                    title="Organizer Enrollment (Yearly)"
+                    value={analytics.analytics.organizer.reduce((a, b) => a + b, 0)}
+                    statement={trendStatements.organizer}
+                    data={analytics.analytics.organizer}
+                />
+                <AnalyticsCard
+                    title="Active Events (Yearly)"
+                    value={analytics.analytics.activeEvents.reduce((a, b) => a + b, 0)}
+                    statement={trendStatements.activeEvents}
+                    data={analytics.analytics.activeEvents}
+                />
+            </div>
         </div>
     );
 }
