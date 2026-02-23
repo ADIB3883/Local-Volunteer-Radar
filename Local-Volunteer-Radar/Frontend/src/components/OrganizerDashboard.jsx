@@ -9,6 +9,7 @@ import EventsCreatedModal from './EventsCreatedModal';
 import MessagesTab from './MessageTab';
 import axios from "axios";
 import io from 'socket.io-client';
+import LogoutPopup from './LogoutPopup';
 
 const API_URL = 'http://localhost:5000/api/events';
 const socket = io('http://localhost:5000');
@@ -219,6 +220,7 @@ const OrganizerDashboard = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showMessagesTab, setShowMessagesTab] = useState(false);
     const [alertState, setAlertState] = useState(null);
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     // Badge count — driven by MessagesTab via onUnreadCountChange
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -319,7 +321,14 @@ const OrganizerDashboard = () => {
         }
     };
 
-    const handleLogout = () => { localStorage.removeItem('loggedInUser'); navigate('/login'); };
+    const handleLogout = () => {
+        setShowLogoutPopup(true);
+        setTimeout(() => {
+            setShowLogoutPopup(false);
+            localStorage.removeItem('loggedInUser');
+            navigate('/login');
+        }, 1500);
+    };
     const handleAnnouncements = () => navigate('/announcements');
     const handleViewDetails = (eventId) => navigate(`/event-details/${eventId}`);
     const getFilteredEvents = () => events.filter(e => e.status === activeTab);
@@ -368,7 +377,7 @@ const OrganizerDashboard = () => {
     return (
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             <CustomAlert alert={alertState} onClose={handleAlertClose} />
-
+            <LogoutPopup showLogout={showLogoutPopup} />
             {/* ── Navbar ── */}
             <nav style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '0 2rem', height: '4.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
