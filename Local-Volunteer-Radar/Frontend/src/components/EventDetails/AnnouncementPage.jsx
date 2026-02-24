@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import MainNav from './MainNav';
 
-const API_URL = 'http://localhost:5000/api/events';
+const API_URL = 'https://local-volunteer-radar.onrender.com/api/events';
 
 const Announcements = () => {
     const navigate = useNavigate();

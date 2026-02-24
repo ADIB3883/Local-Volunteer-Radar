@@ -21,7 +21,7 @@ const EventsCompletedModal = () => {
             }
 
             const response = await fetch(
-                `http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`
+                `https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`
             );
             const data = await response.json();
 

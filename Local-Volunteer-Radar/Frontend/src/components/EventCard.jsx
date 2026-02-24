@@ -112,7 +112,7 @@ const EventCard = ({
 
                     try {
                         // Fetch organizer data from Organizers collection
-                        const organizerResponse = await fetch(`http://localhost:5000/api/organizers/email/${organizerEmail}`);
+                        const organizerResponse = await fetch(`https://local-volunteer-radar.onrender.com/api/organizers/email/${organizerEmail}`);
 
                         if (organizerResponse.ok) {
                             const organizerInfo = await organizerResponse.json();
@@ -136,7 +136,7 @@ const EventCard = ({
 
                 // Then fetch event data for registration status
                 console.log('Fetching event data from API...');
-                const response = await fetch(`http://localhost:5000/api/events/${eventId}`);
+                const response = await fetch(`https://local-volunteer-radar.onrender.com/api/events/${eventId}`);
 
                 if (response.ok) {
                     const eventData = await response.json();
@@ -181,7 +181,7 @@ const EventCard = ({
         setLoading(true);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/events/${eventId}/register`, {
+            const response = await fetch(`https://local-volunteer-radar.onrender.com/api/events/${eventId}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -261,7 +261,7 @@ const EventCard = ({
         };
 
         try {
-            const response = await fetch('http://localhost:5000/api/conversations', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/conversations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

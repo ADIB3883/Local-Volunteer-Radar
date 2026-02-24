@@ -12,7 +12,7 @@ import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
 import ActiveEventsModal from './ActiveEventsModal';
 import PartnerModal from './PartnerModal.jsx';
-import LogoutPopup from './LogoutPopup';
+import LogoutPopup from './LogoutPopup.jsx';
 
 // Loading spinner component
 const LoadingSpinner = ({ message = "Loading..." }) => (
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
 
     const fetchUsers = async (endpoint, setter) => {
         try {
-            const res = await fetch(`http://localhost:5000/api${endpoint}`);
+            const res = await fetch(`https://local-volunteer-radar.onrender.com/api${endpoint}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             setter(data.data || data.users || []);
@@ -85,7 +85,7 @@ const AdminDashboard = () => {
     };
 
     useEffect(() => {
-        fetch("http://localhost:5000/api/admin/analytics")
+        fetch("https://local-volunteer-radar.onrender.com/api/admin/analytics")
             .then((res) => res.json())
             .then((data) => {
                 console.log("Fetched analytics:", data);
@@ -100,7 +100,7 @@ const AdminDashboard = () => {
         const fetchPendingEvents = async () => {
             try {
                 setLoading(true);
-                const res = await fetch("http://localhost:5000/api/admin/events/admin-pending");
+                const res = await fetch("https://local-volunteer-radar.onrender.com/api/admin/events/admin-pending");
                 const data = await res.json();
                 setPendingEvents(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -115,7 +115,7 @@ const AdminDashboard = () => {
 
     const refetchPendingEvents = async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/admin/events/admin-pending");
+            const res = await fetch("https://local-volunteer-radar.onrender.com/api/admin/events/admin-pending");
             const data = await res.json();
             
             // Ensure we only have unapproved events
@@ -310,7 +310,7 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchActiveEvents = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/events/active');
+                const res = await fetch('https://local-volunteer-radar.onrender.com/api/events/active');
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 setActiveEvents(Array.isArray(data) ? data : data.events || []);
@@ -332,7 +332,7 @@ const AdminDashboard = () => {
     const fetchPendingUsers = async () => {
         setLoadingPending(true);
         try {
-            const res = await fetch('http://localhost:5000/api/users/pending');
+            const res = await fetch('https://local-volunteer-radar.onrender.com/api/users/pending');
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
 
@@ -397,7 +397,7 @@ const AdminDashboard = () => {
                 throw new Error(`Invalid user type: ${userType}`);
             }
 
-            const res = await fetch(`http://localhost:5000/api/users/reject/${userType}/${userId}`, {
+            const res = await fetch(`https://local-volunteer-radar.onrender.com/api/users/reject/${userType}/${userId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });

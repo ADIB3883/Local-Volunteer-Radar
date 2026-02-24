@@ -131,7 +131,7 @@ const VolunteerEditProfile = () => {
 
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/profile/${loggedInUser.email}`
+                    `https://local-volunteer-radar.onrender.com/api/profile/${loggedInUser.email}`
                 );
                 const data = await response.json();
 
@@ -254,7 +254,7 @@ const VolunteerEditProfile = () => {
             const formData = new FormData();
             formData.append('profilePicture', file);
 
-            const response = await fetch('http://localhost:5000/api/profile/upload-picture', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/profile/upload-picture', {
                 method: 'POST',
                 body: formData,  // Don't set Content-Type header — browser sets it with boundary
             });
@@ -298,7 +298,7 @@ const VolunteerEditProfile = () => {
                 profilePicture: profilePicturePreview || ''
             };
 
-            const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`, {
+            const response = await fetch(`https://local-volunteer-radar.onrender.com/api/profile/${loggedInUser.email}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
