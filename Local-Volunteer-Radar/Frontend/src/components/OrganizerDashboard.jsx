@@ -9,7 +9,7 @@ import EventsCreatedModal from './EventsCreatedModal';
 import MessagesTab from './MessageTab';
 import axios from "axios";
 import io from 'socket.io-client';
-import LogoutPopup from './LogoutPopup';
+import LogoutPopup from './LogoutPopup.jsx';
 
 const API_URL = 'https://local-volunteer-radar.onrender.com/api/events';
 const socket = io('https://local-volunteer-radar.onrender.com');

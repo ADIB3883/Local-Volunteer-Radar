@@ -14,7 +14,7 @@ import SkillsUtilizedModal from './SkillsUtilizedModal';
 import MessagesTab from './MessageTab';
 import CopilotPanel from '../components/CopilotPanel';
 import io from 'socket.io-client';
-import LogoutPopup from './LogoutPopup';
+import LogoutPopup from './LogoutPopup.jsx';
 const socket = io('https://local-volunteer-radar.onrender.com');
 
 // ─── Custom Alert Popup ───────────────────────────────────────────────────────
