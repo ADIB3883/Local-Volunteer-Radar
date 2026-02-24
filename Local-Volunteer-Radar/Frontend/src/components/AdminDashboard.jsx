@@ -56,6 +56,7 @@ const AdminDashboard = () => {
     const [deleteConfirm, setDeleteConfirm] = useState({ show: false, userId: null, userName: '' });
     const [isDeleting, setIsDeleting] = useState(false);
     const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+    const [allEvents, setAllEvents] = useState([]);
 
     const fetchUsers = async (endpoint, setter) => {
         try {
@@ -313,13 +314,33 @@ const AdminDashboard = () => {
                 const res = await fetch('https://local-volunteer-radar.onrender.com/api/events/active');
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                setActiveEvents(Array.isArray(data) ? data : data.events || []);
+                // Ensure we get the full event data with registrations
+                const events = Array.isArray(data) ? data : data.events || [];
+                console.log('Fetched active events:', events);
+                setActiveEvents(events);
             } catch (err) {
                 console.error('Error fetching active events:', err);
                 setActiveEvents([]);
             }
         };
+
+        // Fetch all events for volunteer and organizer statistics
+        const fetchAllEvents = async () => {
+            try {
+                const res = await fetch('https://local-volunteer-radar.onrender.com/api/events');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const events = Array.isArray(data) ? data : data.events || [];
+                console.log('Fetched all events:', events);
+                setAllEvents(events);
+            } catch (err) {
+                console.error('Error fetching all events:', err);
+                setAllEvents([]);
+            }
+        };
+
         fetchActiveEvents();
+        fetchAllEvents();
     }, []);
 
     // Fetch pending users when the tab changes to pendingRegistrations
@@ -449,36 +470,75 @@ const AdminDashboard = () => {
 
     // Format volunteer data for modal
     const volunteerData = useMemo(() => {
-        return (users || []).filter(u => u.type === 'volunteer').map(v => ({
-            id: v._id?.$oid || v._id || v.id,
-            name: v.name || 'Unknown',
-            email: v.email || '',
-            location: v.address || v.location || 'Unknown',
-            joinedDate: formatDate(v.createdAt || v.joinedDate),
-            eventsCompleted: 0,
-            hoursContributed: 0,
-            skills: getSkillsDisplay(v.skills) || [],
-            profilePicture: v.profilePicture || ''
-        }));
-    }, [users]);
+        return (users || []).filter(u => u.type === 'volunteer').map(v => {
+            // Calculate events completed and hours contributed from event registrations
+            let eventsCompleted = 0;
+            let hoursContributed = 0;
+
+            // Count completed events where volunteer was approved
+            allEvents.forEach(event => {
+                const registration = event.registrations?.find(r => r.volunteerEmail === v.email);
+                if (registration && registration.status === 'approved' && event.isCompleted) {
+                    eventsCompleted++;
+                    // Estimate hours based on event duration (simple calculation)
+                    const startDate = new Date(`${event.startdate}T${event.startTime}`);
+                    const endDate = new Date(`${event.enddate}T${event.endTime}`);
+                    const hours = Math.max(1, Math.ceil((endDate - startDate) / (1000 * 60 * 60)));
+                    hoursContributed += hours;
+                }
+            });
+
+            return {
+                id: v._id?.$oid || v._id || v.id,
+                name: v.name || 'Unknown',
+                email: v.email || '',
+                location: v.address || v.location || 'Unknown',
+                joinedDate: formatDate(v.createdAt || v.joinedDate),
+                eventsCompleted,
+                hoursContributed,
+                skills: getSkillsDisplay(v.skills) || [],
+                profilePicture: v.profilePicture || ''
+            };
+        });
+    }, [users, allEvents]);
 
     // Format organizer data for modal
     const organizerData = useMemo(() => {
-        return (users || []).filter(u => u.type === 'organizer').map(o => ({
-            id: o._id?.$oid || o._id || o.id,
-            name: o.name || 'Unknown',
-            email: o.email || '',
-            location: o.address || o.location || 'Unknown',
-            joinedDate: formatDate(o.createdAt || o.joinedDate),
-            eventsCreated: 0,
-            totalVolunteers: 0,
-            category: o.category || 'General',
-            status: o.isVerified ? 'verified' : 'pending',
-            profilePicture: o.profilePicture || ''
-        }));
-    }, [users]);
+        return (users || []).filter(u => u.type === 'organizer').map(o => {
+            // Calculate events created and total volunteers engaged
+            let eventsCreated = 0;
+            let totalVolunteers = 0;
 
-    // Format active events data for modal
+            // Count events created by this organizer and sum approved registrations
+            allEvents.forEach(event => {
+                // Check if event organizerId matches this organizer
+                const eventOrganizerId = event.organizerId?.$oid || event.organizerId || '';
+                const organizerId = o._id?.$oid || o._id || '';
+                
+                if (eventOrganizerId === organizerId) {
+                    eventsCreated++;
+                    // Count approved registrations for this event
+                    const approvedRegistrations = event.registrations?.filter(r => r.status === 'approved').length || 0;
+                    totalVolunteers += approvedRegistrations;
+                }
+            });
+
+            return {
+                id: o._id?.$oid || o._id || o.id,
+                name: o.name || 'Unknown',
+                email: o.email || '',
+                location: o.address || o.location || 'Unknown',
+                joinedDate: formatDate(o.createdAt || o.joinedDate),
+                eventsCreated,
+                totalVolunteers,
+                category: o.category || 'General',
+                status: o.isVerified ? 'verified' : 'pending',
+                profilePicture: o.profilePicture || ''
+            };
+        });
+    }, [users, allEvents]);
+
+    // Format active events data for modal - keep full event data for accurate progress bar
     const formattedActiveEvents = useMemo(() => {
         return (activeEvents || []).map(e => ({
             id: e._id?.$oid || e._id || e.id,
@@ -490,7 +550,9 @@ const AdminDashboard = () => {
             category: e.category || 'General',
             volunteersRegistered: e.volunteersRegistered || 0,
             volunteersNeeded: e.volunteersNeeded || 0,
-            status: 'active'
+            status: 'active',
+            // Include full registrations array for accurate progress bar calculation
+            registrations: e.registrations || []
         }));
     }, [activeEvents]);
 
