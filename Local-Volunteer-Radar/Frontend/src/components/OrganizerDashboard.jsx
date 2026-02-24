@@ -11,8 +11,8 @@ import axios from "axios";
 import io from 'socket.io-client';
 import LogoutPopup from './LogoutPopup';
 
-const API_URL = 'http://localhost:5000/api/events';
-const socket = io('http://localhost:5000');
+const API_URL = 'https://local-volunteer-radar.onrender.com/api/events';
+const socket = io('https://local-volunteer-radar.onrender.com');
 
 // ─── Helpers: same localStorage key MessagesTab uses ─────────────────────────
 const STORAGE_KEY = 'msgLastSeen';
@@ -33,7 +33,7 @@ const isConversationUnread = (conv) => {
 // Fetch conversations and compute unread count from localStorage
 const fetchUnreadCountFromConversations = async (email) => {
     try {
-        const res = await fetch(`http://localhost:5000/api/conversations/${email}`);
+        const res = await fetch(`https://local-volunteer-radar.onrender.com/api/conversations/${email}`);
         const data = await res.json();
         if (!Array.isArray(data)) return 0;
         return data.filter(isConversationUnread).length;

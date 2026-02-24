@@ -10,7 +10,7 @@ import LocationIcon from "../../assets/icons/location.png";
 import VolunteerIcon from "../../assets/icons/user.png";
 import { X, Calendar } from "lucide-react";
 
-const API_URL = 'http://localhost:5000/api/events';
+const API_URL = 'https://local-volunteer-radar.onrender.com/api/events';
 
 // ─── Custom Alert Popup ───────────────────────────────────────────────────────
 const CustomAlert = ({ alert, onClose }) => {

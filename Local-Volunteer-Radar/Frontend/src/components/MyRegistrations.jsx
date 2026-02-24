@@ -261,7 +261,7 @@ const MyRegistrations = () => {
         if (!loggedInUser) { setLoading(false); return; }
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+            const response = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`);
             if (!response.ok) throw new Error('Failed to fetch registrations');
             const data = await response.json();
             //if (data.success) setRegistrations(data.registrations);
@@ -306,7 +306,7 @@ const MyRegistrations = () => {
         };
 
         try {
-            const response = await fetch('http://localhost:5000/api/conversations', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/conversations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(conversation),

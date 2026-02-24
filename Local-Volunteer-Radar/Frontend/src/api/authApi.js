@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://local-volunteer-radar.onrender.com/api';
 
 // Login function
 export const loginUser = async (email, password, userType) => {

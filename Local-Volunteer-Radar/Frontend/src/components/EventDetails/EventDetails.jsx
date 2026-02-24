@@ -10,8 +10,8 @@ import EventInfo from "./EventInfo.jsx";
 import EventVolunteerInfo from "./EventVolunteerInfo.jsx";
 import QuickAction from "./QuickAction.jsx";
 
-const API_URL = 'http://localhost:5000/api/events';
-const VOLUNTEER_API_URL = 'http://localhost:5000/api/profile';
+const API_URL = 'https://local-volunteer-radar.onrender.com/api/events';
+const VOLUNTEER_API_URL = 'https://local-volunteer-radar.onrender.com/api/profile';
 
 function EventDetails() {
     const { eventId } = useParams();
@@ -38,7 +38,7 @@ function EventDetails() {
 
                 // Fetch this volunteer's full registration history
                 const registrationsRes = await axios.get(
-                    `http://localhost:5000/api/events/volunteer/${reg.volunteerDetails?.email}/registrations`
+                    `https://local-volunteer-radar.onrender.com/api/events/volunteer/${reg.volunteerDetails?.email}/registrations`
                 );
 
                 const allRegs = registrationsRes.data.success ? registrationsRes.data.registrations : [];

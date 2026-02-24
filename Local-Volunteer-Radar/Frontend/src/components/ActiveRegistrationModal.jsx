@@ -18,7 +18,7 @@ const ActiveRegistrationModal = () => {
                 return;
             }
 
-            const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+            const res = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`);
             const data = await res.json();
 
             if (!data.success) {

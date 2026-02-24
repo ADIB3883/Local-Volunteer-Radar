@@ -15,7 +15,7 @@ import MessagesTab from './MessageTab';
 import CopilotPanel from '../components/CopilotPanel';
 import io from 'socket.io-client';
 import LogoutPopup from './LogoutPopup';
-const socket = io('http://localhost:5000');
+const socket = io('https://local-volunteer-radar.onrender.com');
 
 // ─── Custom Alert Popup ───────────────────────────────────────────────────────
 const CustomAlert = ({ alert, onClose }) => {
@@ -82,7 +82,7 @@ const CustomAlert = ({ alert, onClose }) => {
 const fetchUnreadAnnouncementsCount = async (userEmail) => {
     try {
         if (!userEmail) return 0;
-        const regRes = await fetch(`http://localhost:5000/api/events/volunteer/${userEmail}/registrations`);
+        const regRes = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${userEmail}/registrations`);
         const regData = await regRes.json();
         if (!regData.success) return 0;
 
@@ -97,7 +97,7 @@ const fetchUnreadAnnouncementsCount = async (userEmail) => {
         let unread = 0;
         for (const eventId of approvedEventIds) {
             try {
-                const res = await fetch(`http://localhost:5000/api/events/${eventId}/announcements`);
+                const res = await fetch(`https://local-volunteer-radar.onrender.com/api/events/${eventId}/announcements`);
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     data.forEach(a => {
@@ -119,7 +119,7 @@ const fetchUnreadConversationsCount = async (userEmail) => {
         if (!userEmail) return 0;
 
         // Fetch conversations
-        const response = await fetch(`http://localhost:5000/api/conversations/${userEmail}`);
+        const response = await fetch(`https://local-volunteer-radar.onrender.com/api/conversations/${userEmail}`);
         const conversations = await response.json();
 
         if (!Array.isArray(conversations)) return 0;
@@ -248,7 +248,7 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
             if (!loggedInUser?.email) return;
 
             const registrationsResponse = await fetch(
-                `http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`
+                `https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`
             );
 
             const registrationsData = await registrationsResponse.json();
@@ -263,7 +263,7 @@ const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
                 for (const eventId of approvedEventIds) {
                     try {
                         const announcementsResponse = await fetch(
-                            `http://localhost:5000/api/events/${eventId}/announcements`
+                            `https://local-volunteer-radar.onrender.com/api/events/${eventId}/announcements`
                         );
                         const announcementsData = await announcementsResponse.json();
                         const event = registrationsData.registrations.find(r => r.event._id === eventId)?.event;
@@ -501,7 +501,7 @@ const VolunteerDashboard = () => {
         const fetchCompletedCount = async () => {
             try {
                 if (!loggedInUser?.email) return;
-                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const res = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`);
                 const data = await res.json();
                 if (data.success) {
                     const count = data.registrations.filter(
@@ -523,7 +523,7 @@ const VolunteerDashboard = () => {
         const fetchTotalHours = async () => {
             try {
                 if (!loggedInUser?.email) return;
-                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const res = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`);
                 const data = await res.json();
                 if (data.success) {
                     const total = data.registrations
@@ -555,7 +555,7 @@ const VolunteerDashboard = () => {
         const fetchActiveCount = async () => {
             try {
                 if (!loggedInUser?.email) return;
-                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const res = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`);
                 const data = await res.json();
                 if (data.success) {
                     const count = data.registrations.filter(
@@ -676,7 +676,7 @@ const VolunteerDashboard = () => {
             try {
                 if (!loggedInUser?.email) return;
                 // Try fetching the volunteer's full profile — adjust the endpoint to match your API
-                const res = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`);
+                const res = await fetch(`https://local-volunteer-radar.onrender.com/api/profile/${loggedInUser.email}`);
                 if (res.ok) {
                     const data = await res.json();
                     // Merge profile data with what's already stored in loggedInUser
@@ -698,7 +698,7 @@ const VolunteerDashboard = () => {
         const fetchUserRegistrations = async () => {
             try {
                 if (!loggedInUser?.email) return;
-                const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
+                const res = await fetch(`https://local-volunteer-radar.onrender.com/api/events/volunteer/${loggedInUser.email}/registrations`);
                 const data = await res.json();
                 if (data.success) {
                     const ids = new Set(data.registrations.map(r => r.event._id));
@@ -716,7 +716,7 @@ const VolunteerDashboard = () => {
         const fetchEvents = async () => {
             try {
                 setLoading(true);
-                const response = await fetch('http://localhost:5000/api/events');
+                const response = await fetch('https://local-volunteer-radar.onrender.com/api/events');
 
                 if (!response.ok) {
                     throw new Error('Failed to fetch events');
@@ -785,7 +785,7 @@ const VolunteerDashboard = () => {
 
     const refreshEvents = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/events');
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/events');
             if (response.ok) {
                 const events = await response.json();
                 const approvedEvents = events.filter(event =>

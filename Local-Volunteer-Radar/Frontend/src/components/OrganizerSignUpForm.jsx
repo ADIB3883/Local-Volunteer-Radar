@@ -73,7 +73,7 @@ const OrganizerSignUpForm = () => {
             if (error.response && error.response.data && error.response.data.message) {
                 errorMessage = error.response.data.message;
             } else if (error.request) {
-                errorMessage = 'Cannot connect to server. Make sure backend is running on http://localhost:5000';
+                errorMessage = 'Cannot connect to server. Make sure backend is running on https://local-volunteer-radar.onrender.com';
             } else if (error.message) {
                 errorMessage = error.message;
             }

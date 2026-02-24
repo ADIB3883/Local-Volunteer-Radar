@@ -99,11 +99,11 @@ const VolunteerProfile = () => {
             }
 
             try {
-                const response = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`);
+                const response = await fetch(`https://local-volunteer-radar.onrender.com/api/profile/${loggedInUser.email}`);
                 const data = await response.json();
 
                 if (data.success) {
-                    const authResponse = await fetch(`http://localhost:5000/auth/google-tokens/${loggedInUser.email}`);
+                    const authResponse = await fetch(`https://local-volunteer-radar.onrender.com/auth/google-tokens/${loggedInUser.email}`);
                     const authData = await authResponse.json();
 
                     const hasGoogleAccess = !!(authData.googleAccessToken || authData.googleRefreshToken);
@@ -189,7 +189,7 @@ const VolunteerProfile = () => {
         if (isCalendarConnected) {
             // Disconnect calendar
             try {
-                const response = await fetch(`http://localhost:5000/auth/google/disconnect/${volunteer.email}`, {
+                const response = await fetch(`https://local-volunteer-radar.onrender.com/auth/google/disconnect/${volunteer.email}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -219,7 +219,7 @@ const VolunteerProfile = () => {
         } else {
             // Connect calendar - get auth URL
             try {
-                const response = await fetch('http://localhost:5000/auth/google/auth-url');
+                const response = await fetch('https://local-volunteer-radar.onrender.com/auth/google/auth-url');
                 const data = await response.json();
 
                 const width = 500;
@@ -237,7 +237,7 @@ const VolunteerProfile = () => {
                 const messageHandler = async (event) => {
                     if (event.data === 'calendar-connected') {
                         // Re-fetch tokens to update state
-                        const authResponse = await fetch(`http://localhost:5000/auth/google-tokens/${volunteer.email}`);
+                        const authResponse = await fetch(`https://local-volunteer-radar.onrender.com/auth/google-tokens/${volunteer.email}`);
                         const authData = await authResponse.json();
 
                         const updatedUser = {

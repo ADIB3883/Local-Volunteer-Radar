@@ -17,7 +17,7 @@ export default function PendingEventsCard({ event, onActionComplete }) {
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/admin/events/${eventId}`,
+                `https://local-volunteer-radar.onrender.com/api/admin/events/${eventId}`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
@@ -48,7 +48,7 @@ export default function PendingEventsCard({ event, onActionComplete }) {
         setLoading(true);
         try {
             const res = await fetch(
-                `http://localhost:5000/api/admin/events/${eventId}`,
+                `https://local-volunteer-radar.onrender.com/api/admin/events/${eventId}`,
                 {
                     method: "PUT",
                     headers: { 'Content-Type': 'application/json' },
