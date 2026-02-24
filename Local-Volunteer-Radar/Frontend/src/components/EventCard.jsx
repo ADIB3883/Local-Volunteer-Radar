@@ -81,6 +81,9 @@ const EventCard = ({
     const [registrationStatus, setRegistrationStatus] = useState(null);
     const [loading, setLoading] = useState(false);
     const [mapOpen, setMapOpen] = useState(false);
+    const [organizerData, setOrganizerData] = useState(
+        typeof organizerId === 'object' ? organizerId : null
+    );
 
     // ─── Custom alert state ───────────────────────────────────────────────────
     const [alertState, setAlertState] = useState(null);
@@ -97,38 +100,69 @@ const EventCard = ({
     // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
-        const checkRegistrationStatus = async () => {
+        const fetchOrganizerAndEventData = async () => {
             const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-            if (!loggedInUser) return;
 
             try {
+                // First, fetch organizer details using email
+                const organizerEmail = typeof organizerId === 'object' ? organizerId.email : null;
+
+                if (organizerEmail) {
+                    console.log('Fetching organizer details for email:', organizerEmail);
+
+                    try {
+                        // Fetch organizer data from Organizers collection
+                        const organizerResponse = await fetch(`http://localhost:5000/api/organizers/email/${organizerEmail}`);
+
+                        if (organizerResponse.ok) {
+                            const organizerInfo = await organizerResponse.json();
+                            console.log('✓ Organizer info fetched:', organizerInfo);
+
+                            // Merge user ID with organizer details
+                            setOrganizerData({
+                                _id: organizerId._id,
+                                email: organizerEmail,
+                                name: organizerInfo.name,
+                                organizationType: organizerInfo.organizationType,
+                                description: organizerInfo.description
+                            });
+                        } else {
+                            console.warn('⚠ Could not fetch organizer details, using email as fallback');
+                        }
+                    } catch (orgError) {
+                        console.error('Error fetching organizer details:', orgError);
+                    }
+                }
+
+                // Then fetch event data for registration status
+                console.log('Fetching event data from API...');
                 const response = await fetch(`http://localhost:5000/api/events/${eventId}`);
+
                 if (response.ok) {
                     const eventData = await response.json();
+                    console.log('Event data fetched successfully');
 
-                    console.log('Checking registration for event:', eventId);
-                    console.log('User email:', loggedInUser.email);
-                    console.log('Event registrations:', eventData.registrations);
+                    // Check registration status if user is logged in
+                    if (loggedInUser) {
+                        const userRegistration = eventData.registrations?.find(
+                            reg => reg.volunteerEmail === loggedInUser.email
+                        );
 
-                    const userRegistration = eventData.registrations?.find(
-                        reg => reg.volunteerEmail === loggedInUser.email
-                    );
-
-                    console.log('Found registration:', userRegistration);
-
-                    if (userRegistration) {
-                        setRegistrationStatus(userRegistration.status);
-                    } else {
-                        setRegistrationStatus(null);
+                        if (userRegistration) {
+                            setRegistrationStatus(userRegistration.status);
+                            console.log('Registration status:', userRegistration.status);
+                        } else {
+                            setRegistrationStatus(null);
+                        }
                     }
                 }
             } catch (error) {
-                console.error('Error checking registration status:', error);
+                console.error('Error in fetchOrganizerAndEventData:', error);
             }
         };
 
-        checkRegistrationStatus();
-    }, [eventId]);
+        fetchOrganizerAndEventData();
+    }, [eventId, organizerId]);
 
     const handleRegister = async () => {
         const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -163,8 +197,6 @@ const EventCard = ({
 
             if (data.success) {
                 setRegistrationStatus('pending');
-                // Show the success alert; after the user clicks OK, notify the
-                // parent to remove this card from the Discover list.
                 showAlert(
                     'Successfully registered for the event! Your registration is pending organizer approval.',
                     'success',
@@ -209,8 +241,11 @@ const EventCard = ({
             return;
         }
 
-        const actualOrganizerId = organizerId || 'org_123';
-        const organizerName = 'Swapno Organization';
+        // Use the fetched organizer data
+        const actualOrganizerId = organizerData?._id || (typeof organizerId === 'object' ? organizerId._id : organizerId) || 'org_123';
+        const organizerName = organizerData?.name || organizerData?.email || 'Organizer';
+
+        console.log('Creating conversation with:', { actualOrganizerId, organizerName });
 
         const conversationId = `${loggedInUser.email}_${actualOrganizerId}_${eventId}`;
         const conversation = {
@@ -289,13 +324,22 @@ const EventCard = ({
                 onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
                 onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
             >
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.5rem 0' }}>
+                {/* Title */}
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: '0 0 0.25rem 0' }}>
                     {title}
                 </h3>
+
+                {/* Organizer */}
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
+                    Organized by: {organizerData?.name || organizerData?.email || 'Unknown'}
+                </p>
+
+                {/* Description */}
                 <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: '0 0 1rem 0' }}>
                     {description}
                 </p>
 
+                {/* Tags */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                     {tags.map((tag, index) => (
                         <span
@@ -316,6 +360,7 @@ const EventCard = ({
                     ))}
                 </div>
 
+                {/* Date / Time / Location */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#374151' }}>
                         <Calendar size={16} style={{ color: '#3b82f6' }} />
@@ -351,10 +396,12 @@ const EventCard = ({
                     </div>
                 </div>
 
+                {/* Requirements */}
                 <div style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
                     <span style={{ fontWeight: '600' }}>Requirements:</span> {requirements}
                 </div>
 
+                {/* Buttons row */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                         onClick={registrationStatus || loading ? null : handleRegister}
