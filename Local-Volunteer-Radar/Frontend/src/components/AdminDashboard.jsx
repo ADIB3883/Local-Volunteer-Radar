@@ -12,7 +12,7 @@ import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
 import ActiveEventsModal from './ActiveEventsModal';
 import PartnerModal from './PartnerModal.jsx';
-import LogoutPopup from './LogoutPopup';
+import LogoutPopup from './LogoutPopup.jsx';
 
 // Loading spinner component
 const LoadingSpinner = ({ message = "Loading..." }) => (
