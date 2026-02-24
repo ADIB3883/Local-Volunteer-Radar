@@ -113,6 +113,44 @@ const fetchUnreadAnnouncementsCount = async (userEmail) => {
     }
 };
 
+// ─── Helper: fetch unread CONVERSATIONS count (not messages) ─────────────────
+const fetchUnreadConversationsCount = async (userEmail) => {
+    try {
+        if (!userEmail) return 0;
+
+        // Fetch conversations
+        const response = await fetch(`http://localhost:5000/api/conversations/${userEmail}`);
+        const conversations = await response.json();
+
+        if (!Array.isArray(conversations)) return 0;
+
+        // Get last seen map from localStorage (same as MessagesTab)
+        const STORAGE_KEY = 'msgLastSeen';
+        const getLastSeenMap = () => {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            } catch {
+                return {};
+            }
+        };
+
+        const lastSeenMap = getLastSeenMap();
+
+        // Count conversations with new messages
+        const unreadCount = conversations.filter(conv => {
+            if (!conv.lastMessageTime) return false;
+            const lastSeen = lastSeenMap[conv.conversationId];
+            if (!lastSeen) return true; // never opened
+            return new Date(conv.lastMessageTime) > new Date(lastSeen);
+        }).length;
+
+        return unreadCount;
+    } catch (err) {
+        console.error('fetchUnreadConversationsCount error:', err);
+        return 0;
+    }
+};
+
 // ─── Helper: compute recommended events based on volunteer profile ─────────
 // Matches events by skills/requirements keywords and location.
 // Returns scored & sorted list, capped at `maxCount`.
@@ -534,11 +572,11 @@ const VolunteerDashboard = () => {
         fetchActiveCount();
     }, []);
 
+    // ─── Fetch unread CONVERSATIONS count (not individual messages) ──────────
     const fetchUnreadCount = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/unread-count/${loggedInUser.email}`);
-            const data = await response.json();
-            setUnreadMessagesCount(data.count);
+            const count = await fetchUnreadConversationsCount(loggedInUser.email);
+            setUnreadMessagesCount(count);
         } catch (error) {
             console.error('Error fetching unread count:', error);
         }
@@ -549,11 +587,17 @@ const VolunteerDashboard = () => {
             socket.emit('join', loggedInUser.email);
             fetchUnreadCount();
 
-            socket.on('unread_count_update', (data) => {
-                setUnreadMessagesCount(data.count);
+            // When new message arrives, recalculate unread conversations
+            socket.on('new_message', () => {
+                fetchUnreadCount();
+            });
+
+            socket.on('unread_count_update', () => {
+                fetchUnreadCount();
             });
 
             return () => {
+                socket.off('new_message');
                 socket.off('unread_count_update');
             };
         }
@@ -947,7 +991,10 @@ const VolunteerDashboard = () => {
                     )}
 
                     {activeTab === 'messages' && (
-                        <MessagesTab currentUser={loggedInUser} />
+                        <MessagesTab
+                            currentUser={loggedInUser}
+                            onUnreadCountChange={(count) => setUnreadMessagesCount(count)}
+                        />
                     )}
 
                     {/* Show events only on Discover tab */}

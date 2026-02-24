@@ -29,6 +29,22 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// GET organizer by email
+router.get('/email/:email', async (req, res) => {
+    try {
+        const organizer = await Organizer.findOne({ email: req.params.email });
+
+        if (!organizer) {
+            return res.status(404).json({ message: 'Organizer not found' });
+        }
+
+        res.json(organizer);
+    } catch (error) {
+        console.error('Error fetching organizer by email:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // UPDATE organizer by ID
 router.put('/:id', async (req, res) => {
     try {
