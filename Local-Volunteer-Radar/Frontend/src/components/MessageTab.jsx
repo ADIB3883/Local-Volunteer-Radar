@@ -61,7 +61,7 @@ const MessagesTab = ({ currentUser, onUnreadCountChange }) => {
 
     const createConversation = async (conversation) => {
         try {
-            const response = await fetch('http://localhost:5000/api/conversations', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/conversations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(conversation)
@@ -74,7 +74,7 @@ const MessagesTab = ({ currentUser, onUnreadCountChange }) => {
 
     const fetchConversations = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/conversations/${currentEmail}`);
+            const response = await fetch(`https://local-volunteer-radar.onrender.com/api/conversations/${currentEmail}`);
             const data = await response.json();
             setConversations(Array.isArray(data) ? data : []);
         } catch (error) {

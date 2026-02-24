@@ -19,7 +19,7 @@ const ForgotPassword = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/forgot-password/send-otp', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/forgot-password/send-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ const ForgotPassword = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/forgot-password/verify-otp', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/forgot-password/verify-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const ForgotPassword = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/forgot-password/send-otp', {
+            const response = await fetch('https://local-volunteer-radar.onrender.com/api/forgot-password/send-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

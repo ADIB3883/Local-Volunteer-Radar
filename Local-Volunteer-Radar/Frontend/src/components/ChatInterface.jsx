@@ -7,7 +7,7 @@ let socket = null;
 
 const getSocket = () => {
     if (!socket) {
-        socket = io('http://localhost:5000', {
+        socket = io('https://local-volunteer-radar.onrender.com', {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
@@ -125,7 +125,7 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
     const fetchMessages = async () => {
         try {
             console.log('📥 Fetching messages for:', conversation.conversationId);
-            const response = await fetch(`http://localhost:5000/api/messages/${conversation.conversationId}`);
+            const response = await fetch(`https://local-volunteer-radar.onrender.com/api/messages/${conversation.conversationId}`);
             const data = await response.json();
             console.log('📥 Fetched messages:', data.length);
             setMessages(data);
@@ -136,7 +136,7 @@ const ChatInterface = ({ conversation, onBack, currentUser }) => {
 
     const markAsRead = async () => {
         try {
-            await fetch('http://localhost:5000/api/messages/mark-read', {
+            await fetch('https://local-volunteer-radar.onrender.com/api/messages/mark-read', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -38,7 +38,7 @@ export default function CopilotPanel() {
                 .filter((m, i) => !(i === 0 && m.role === "assistant"))
                 .map((m) => ({ role: m.role, content: m.content }));
 
-            const res = await fetch("http://localhost:5000/api/copilot", {
+            const res = await fetch("https://local-volunteer-radar.onrender.com/api/copilot", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include", // include if you use sessions/cookies for auth
