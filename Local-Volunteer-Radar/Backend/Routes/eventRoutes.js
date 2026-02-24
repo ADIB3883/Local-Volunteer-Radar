@@ -467,7 +467,11 @@ router.post("/:eventId/register", async (req, res) => {
             });
         }
 
-        if (event.volunteersRegistered >= event.volunteersNeeded) {
+        const approvedCount = event.registrations.filter(
+            r => r.status === 'approved'
+        ).length;
+
+        if (approvedCount >= event.volunteersNeeded) {
             return res.status(400).json({
                 success: false,
                 message: "Event is already full."
@@ -663,7 +667,7 @@ router.get("/:eventId/volunteers", async (req, res) => {
                         skills: volunteer.skills || {},
                         bio: volunteer.bio || '',
                         availability: volunteer.availability || [],
-                        profilePicture: volunteer.profilePicture || '',  // ✅ this was the main missing piece
+                        profilePicture: volunteer.profilePicture || '',
                     } : {
                         name: reg.volunteerEmail,
                         email: reg.volunteerEmail,

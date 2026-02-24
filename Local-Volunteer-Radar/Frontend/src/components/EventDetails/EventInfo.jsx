@@ -115,6 +115,40 @@ const EventInfo = () => {
     };
 
     const handleUpdateEvent = async () => {
+        // Required fields check
+        const requiredFields = ['eventName', 'startdate', 'enddate', 'startTime', 'endTime', 'location', 'category', 'volunteersNeeded'];
+        for (const f of requiredFields) {
+            if (!String(editData[f] ?? '').trim()) {
+                showAlert('Please fill in all required fields.', 'warning', 'Incomplete Form');
+                return;
+            }
+        }
+
+        // Volunteers must be a positive number
+        if (isNaN(Number(editData.volunteersNeeded)) || Number(editData.volunteersNeeded) <= 0) {
+            showAlert('Please enter a valid number of volunteers needed.', 'warning', 'Invalid Input');
+            return;
+        }
+
+        // Normalize date strings (handles both "YYYY-MM-DD" and full ISO format)
+        const toDateStr = (d) => (d ? d.toString().slice(0, 10) : '');
+
+        // End must be after start
+        const startDateTime = new Date(`${toDateStr(editData.startdate)}T${editData.startTime || '00:00'}`);
+        const endDateTime   = new Date(`${toDateStr(editData.enddate)}T${editData.endTime || '00:00'}`);
+
+        if (endDateTime < startDateTime) {
+            showAlert('The event end must come after the start.', 'warning', 'Invalid Date Range');
+            return;
+        }
+
+        // Same day → must be at least 15 mins apart
+        if (toDateStr(editData.startdate) === toDateStr(editData.enddate) && (endDateTime - startDateTime) / 60000 < 15) {
+            showAlert('End time must be at least 15 minutes after start time on the same day.', 'warning', 'Invalid Time Range');
+            return;
+        }
+
+
         try {
             const response = await axios.put(`${API_URL}/${eventId}`, editData);
             setEvent(response.data);
