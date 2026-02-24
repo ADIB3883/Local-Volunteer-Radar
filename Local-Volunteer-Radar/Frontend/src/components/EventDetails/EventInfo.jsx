@@ -8,7 +8,7 @@ import CalendarWhite from "../../assets/icons/calendarWhite.png";
 import ClockIcon from "../../assets/icons/clock.png";
 import LocationIcon from "../../assets/icons/location.png";
 import VolunteerIcon from "../../assets/icons/user.png";
-import { X } from "lucide-react";
+import { X, Calendar } from "lucide-react";
 
 const API_URL = 'http://localhost:5000/api/events';
 
@@ -150,13 +150,19 @@ const EventInfo = () => {
     const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
     const capacityPercentage = (approvedCount / event.volunteersNeeded) * 100;
 
+    const inputStyle = {
+        width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb',
+        borderRadius: '0.75rem', fontSize: '0.95rem', outline: 'none',
+        transition: 'all 0.2s', boxSizing: 'border-box',
+    };
+
     return (
         <>
             {/* Custom Alert Popup */}
             <CustomAlert alert={alertState} onClose={handleAlertClose} />
 
-            <div className="relative top-[15vh] left-[5vw] h-[411px] max-w-[90vw] bg-[#0065E0] rounded-[20px]">
-                <div className="absolute left-[4px] h-[411px] min-h-[300px] w-[90vw] bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)]">
+            <div className="relative top-[15vh] left-[5vw] h-[520px] max-w-[90vw] bg-[#0065E0] rounded-[20px]">
+                <div className="absolute left-[4px] h-[520px] min-h-[300px] w-[90vw] bg-white border border-[#C5C5C5] rounded-[20px] shadow-[0px_2px_4px_rgba(0,0,0,0.25)]">
                     {/* Header */}
                     <div className="relative flex w-full h-[15%] rounded-tl-[20px] rounded-tr-[20px] bg-[linear-gradient(180deg,#FFFFFF_9.43%,#EEF5FE_85.44%)] items-center py-0 px-2">
                         <span className="relative left-[.5%] font-bold">{event.eventName}</span>
@@ -219,6 +225,25 @@ const EventInfo = () => {
                                     <span className="text-[#000000] font-sans font-normal text-[16px] leading-[16px]">{event.location}</span>
                                 </div>
                             </div>
+
+                            {/* Description */}
+                            <div className="relative w-[90%] h-[20%] top-[15%] left-[2%] flex gap-4">
+                                <div className="relative w-[40px] h-[40px] rounded-[10px] bg-[#0065E0]/14 flex items-center justify-center flex-shrink-0">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0065E0" strokeWidth="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                        <polyline points="10 9 9 9 8 9"/>
+                                    </svg>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[#686868] font-sans font-normal text-[11px]">Description</span>
+                                    <span className="text-[#000000] font-sans font-normal text-[14px] leading-[18px] line-clamp-3">
+                                        {event.description || "No description provided"}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Right side */}
@@ -268,155 +293,219 @@ const EventInfo = () => {
                 </div>
             </div>
 
-            {/* Edit Modal */}
+            {/* ── Edit Modal ── */}
             {isEditOpen && (
                 <div
-                    className="fixed top-0 bottom-0 left-0 right-0 bg-[#000000]/40 flex items-center justify-center z-50 p-4"
-                    onClick={(e) => e.target === e.currentTarget && setIsEditOpen(false)}
+                    style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', padding: '1rem' }}
+                    onClick={e => { if (e.target === e.currentTarget) setIsEditOpen(false); }}
                 >
                     <div
-                        className="bg-white w-[50%] rounded-xl shadow-2xl max-w-4xl h-[95vh] overflow-y-auto p-4"
-                        onClick={(e) => e.stopPropagation()}
+                        style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 25px 50px rgba(0,0,0,0.2)', maxWidth: '720px', width: '100%', maxHeight: '92vh', overflowY: 'auto' }}
+                        onClick={e => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-8 border-b border-gray-200 sticky top-0 bg-white">
-                            <div className="flex items-center gap-2">
-                                <div className="w-14 h-14 bg-[linear-gradient(131.73deg,#0067DD_5.55%,#00AD4B_71.83%)] rounded-xl flex items-center justify-center flex-shrink-0">
-                                    <img src={CalendarWhite} alt="Calendar icon" className="w-[35px] h-[35px]" />
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.5rem 2rem', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: 'white', zIndex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '2.75rem', height: '2.75rem', background: '#dbeafe', borderRadius: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Calendar size={22} style={{ color: '#3b82f6' }} />
                                 </div>
-                                <div className="flex flex-col">
-                                    <h2 className="text-2xl font-bold text-gray-900 leading-tight">Edit Event</h2>
-                                    <p className="text-sm text-gray-500">Update your volunteer event details</p>
+                                <div>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>Edit Event</h2>
+                                    <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0 }}>Update your volunteer event details</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsEditOpen(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                                <X className="w-6 h-6 text-gray-500" />
+                            <button onClick={() => setIsEditOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}>
+                                <X size={22} />
                             </button>
                         </div>
 
                         {/* Form */}
-                        <div className="p-8 space-y-6">
+                        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
                             {/* Event Name */}
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">Event Name *</label>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Event Title *</label>
                                 <input
                                     type="text"
-                                    name="eventName"
-                                    value={editData.eventName || ""}
-                                    onChange={(e) => setEditData({ ...editData, eventName: e.target.value })}
-                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    value={editData.eventName || ''}
+                                    onChange={e => setEditData({ ...editData, eventName: e.target.value })}
                                     placeholder="Enter event name"
+                                    style={inputStyle}
+                                    onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                    onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
                             {/* Description */}
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">Description</label>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Description</label>
                                 <textarea
-                                    name="description"
-                                    value={editData.description || ""}
-                                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                                    rows="4"
-                                    className="w-full px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    value={editData.description || ''}
+                                    onChange={e => setEditData({ ...editData, description: e.target.value })}
                                     placeholder="Describe your volunteer event"
+                                    rows={3}
+                                    style={{ ...inputStyle, resize: 'vertical' }}
+                                    onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                    onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
-                            {/* Date & Time */}
-                            <div className="grid grid-cols-2 gap-4">
+                            {/* Date + Time Grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                {/* Start Date */}
                                 <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">Start Date *</label>
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Start Date *</label>
                                     <input
                                         type="date"
-                                        name="startdate"
-                                        value={editData.startdate || ""}
-                                        onChange={(e) => setEditData({ ...editData, startdate: e.target.value })}
-                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        value={editData.startdate || ''}
+                                        onChange={e => setEditData({ ...editData, startdate: e.target.value })}
+                                        style={inputStyle}
+                                        onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                        onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                     />
                                 </div>
+                                {/* End Date */}
                                 <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">Start Time *</label>
-                                    <input
-                                        type="time"
-                                        name="startTime"
-                                        value={editData.startTime || ""}
-                                        onChange={(e) => setEditData({ ...editData, startTime: e.target.value })}
-                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">End Date *</label>
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>End Date *</label>
                                     <input
                                         type="date"
-                                        name="enddate"
-                                        value={editData.enddate || ""}
-                                        onChange={(e) => setEditData({ ...editData, enddate: e.target.value })}
-                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        value={editData.enddate || ''}
+                                        onChange={e => setEditData({ ...editData, enddate: e.target.value })}
+                                        style={inputStyle}
+                                        onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                        onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                     />
                                 </div>
+                                {/* Start Time */}
                                 <div>
-                                    <label className="block text-base font-semibold text-gray-700 mb-2">End Time *</label>
-                                    <input
-                                        type="time"
-                                        name="endTime"
-                                        value={editData.endTime || ""}
-                                        onChange={(e) => setEditData({ ...editData, endTime: e.target.value })}
-                                        className="w-full h-10 px-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Start Time *</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            id="editStartTimeInput"
+                                            type="time"
+                                            value={editData.startTime || ''}
+                                            onChange={e => setEditData({ ...editData, startTime: e.target.value })}
+                                            style={{ ...inputStyle, paddingRight: '2.5rem' }}
+                                            onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                            onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => { const input = document.getElementById('editStartTimeInput'); if (input.showPicker) input.showPicker(); else input.focus(); }}
+                                            style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280' }}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                {/* End Time */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>End Time *</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            id="editEndTimeInput"
+                                            type="time"
+                                            value={editData.endTime || ''}
+                                            onChange={e => setEditData({ ...editData, endTime: e.target.value })}
+                                            style={{ ...inputStyle, paddingRight: '2.5rem' }}
+                                            onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                            onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => { const input = document.getElementById('editEndTimeInput'); if (input.showPicker) input.showPicker(); else input.focus(); }}
+                                            style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280' }}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Location */}
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">Location *</label>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Location *</label>
                                 <input
                                     type="text"
-                                    name="location"
-                                    value={editData.location || ""}
-                                    onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    value={editData.location || ''}
+                                    onChange={e => setEditData({ ...editData, location: e.target.value })}
                                     placeholder="Event location"
+                                    style={inputStyle}
+                                    onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                    onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
-                            {/* Volunteers Needed */}
-                            <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">Volunteers Needed *</label>
-                                <input
-                                    type="number"
-                                    name="volunteersNeeded"
-                                    min="1"
-                                    value={editData.volunteersNeeded || ""}
-                                    onChange={(e) => setEditData({ ...editData, volunteersNeeded: Number(e.target.value) })}
-                                    className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Number of volunteers"
-                                />
+                            {/* Category + Volunteers Needed */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Category *</label>
+                                    <select
+                                        value={editData.category || ''}
+                                        onChange={e => setEditData({ ...editData, category: e.target.value })}
+                                        style={{ ...inputStyle, cursor: 'pointer', appearance: 'none' }}
+                                        onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                        onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                                    >
+                                        <option value="">Select category</option>
+                                        <option value="teaching">Teaching</option>
+                                        <option value="firstAid">First Aid/Medical</option>
+                                        <option value="mediaPhotography">Media/Photography</option>
+                                        <option value="technicalSupport">Technical Support</option>
+                                        <option value="animalRescue">Animal Rescue/Care</option>
+                                        <option value="distribution">Distribution</option>
+                                        <option value="eventLogistics">Event Logistics</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Volunteers Needed *</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={editData.volunteersNeeded || ''}
+                                        onChange={e => setEditData({ ...editData, volunteersNeeded: Number(e.target.value) })}
+                                        placeholder="Number of volunteers"
+                                        style={inputStyle}
+                                        onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                        onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
+                                    />
+                                </div>
                             </div>
 
                             {/* Requirements */}
                             <div>
-                                <label className="block text-base font-semibold text-gray-700 mb-2">Requirements</label>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.4rem' }}>Requirements</label>
                                 <textarea
-                                    name="requirements"
-                                    value={editData.requirements || ""}
-                                    onChange={(e) => setEditData({ ...editData, requirements: e.target.value })}
-                                    rows="2"
-                                    className="w-full pt-2 px-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    value={editData.requirements || ''}
+                                    onChange={e => setEditData({ ...editData, requirements: e.target.value })}
                                     placeholder="Any specific requirements or skills needed"
+                                    rows={2}
+                                    style={{ ...inputStyle, resize: 'vertical' }}
+                                    onFocus={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
+                                    onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                 />
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex justify-end gap-3 pt-4">
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.5rem' }}>
                                 <button
                                     onClick={() => setIsEditOpen(false)}
-                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                    style={{ padding: '0.65rem 1.5rem', background: 'white', border: '1px solid #d1d5db', borderRadius: '0.75rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontSize: '0.875rem' }}
+                                    onMouseOver={e => e.currentTarget.style.background = '#f9fafb'}
+                                    onMouseOut={e => e.currentTarget.style.background = 'white'}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleUpdateEvent}
-                                    className="px-6 py-3 bg-[linear-gradient(131.73deg,#0067DD_5.55%,#00AD4B_71.83%)] text-white rounded-lg hover:opacity-90 transition-colors font-medium"
+                                    style={{ padding: '0.65rem 1.75rem', background: 'linear-gradient(to right, #3b82f6, #10b981)', color: 'white', fontWeight: '600', fontSize: '0.875rem', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', transition: 'all 0.3s' }}
+                                    onMouseOver={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                                    onMouseOut={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
                                 >
                                     Save Changes
                                 </button>
