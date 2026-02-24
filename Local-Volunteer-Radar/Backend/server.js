@@ -22,7 +22,7 @@ const User = require('./Models/User');
 const eventRoutes = require("./Routes/eventRoutes");
 const forgotPasswordRoutes = require('./Routes/forgotPasswordRoutes');
 const googleAuthRoutes = require('./Routes/googleAuthRoutes');
-const copilotRoute = require('./routes/CopilotRoute');
+const copilotRoute = require('./Routes/CopilotRoute');
 
 
 const app = express();
@@ -55,13 +55,9 @@ mongoose.connect(process.env.MONGODB_URI, { dbName: 'TestingDB' })
                     type: 'admin'
                 });
                 await admin.save();
-                console.log('🔐 Default admin created:');
-                console.log('   Email: admin@volunteer.com');
-                console.log('   Password: admin123');
+
             } else {
-                console.log('🔐 Admin credentials:');
-                console.log('   Email:', adminExists.email);
-                console.log('   Password:', adminExists.password);
+
             }
         } catch (error) {
             console.error('❌ Error checking/creating admin:', error);
