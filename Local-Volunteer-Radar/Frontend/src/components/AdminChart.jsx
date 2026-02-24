@@ -1,5 +1,5 @@
 const AdminChart = ({ data }) => {
-    const width = 500;
+    const width = 610;
     const height = 160;
     const padding = { top: 20, right: 20, bottom: 30, left: 40 };
     const chartWidth = width - padding.left - padding.right;
