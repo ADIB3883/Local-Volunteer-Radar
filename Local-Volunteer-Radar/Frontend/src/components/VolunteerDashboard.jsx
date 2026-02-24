@@ -113,6 +113,73 @@ const fetchUnreadAnnouncementsCount = async (userEmail) => {
     }
 };
 
+// ─── Helper: compute recommended events based on volunteer profile ─────────
+// Matches events by skills/requirements keywords and location.
+// Returns scored & sorted list, capped at `maxCount`.
+const getRecommendedEvents = (events, volunteerProfile, registeredEventIds, maxCount = 4) => {
+    if (!events || events.length === 0) return [];
+
+    // Extract volunteer skills and location from profile
+    // Profile fields may vary; we normalise to lowercase strings for matching.
+    const profileSkills = Object.keys(volunteerProfile?.skills || {})
+        .join(' ')
+        .toLowerCase()
+        .split(/[\s,;]+/)
+        .filter(Boolean);
+
+    const profileLocation = (volunteerProfile?.address || '').toLowerCase();
+
+    const scoredEvents = events
+        .filter(event => !registeredEventIds.has(event._id)) // exclude already-registered
+        .map(event => {
+            let score = 0;
+            const reasons = [];
+
+            // ── Location match ──────────────────────────────────────────
+            const eventLocation = (event.location || '').toLowerCase();
+            if (profileLocation && eventLocation) {
+                // Check if any word from the volunteer's location appears in event location
+                const locationWords = profileLocation.split(/[\s,]+/).filter(w => w.length > 2);
+                const locationMatch = locationWords.some(word => eventLocation.includes(word));
+                if (locationMatch) {
+                    score += 3;
+                    reasons.push('Near you');
+                }
+            }
+
+            // ── Skills / requirements match ────────────────────────────
+            const eventText = [
+                event.requirements || '',
+                event.category || '',
+                event.description || '',
+                event.eventName || '',
+            ].join(' ').toLowerCase();
+
+            let skillMatchCount = 0;
+            profileSkills.forEach(skill => {
+                if (skill.length > 2 && eventText.includes(skill)) {
+                    skillMatchCount++;
+                }
+            });
+
+            if (skillMatchCount > 0) {
+                score += Math.min(skillMatchCount * 2, 6); // cap skill score at 6
+                reasons.push('Matches your skills');
+            }
+
+            // ── Category preference (based on past registrations handled externally) ─
+            // Small base score so events still surface even with no profile data
+            score += 0.5;
+
+            return { event, score, reasons };
+        })
+        .filter(item => item.score > 0.5) // only include events with at least one real match
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxCount);
+
+    return scoredEvents;
+};
+
 
 // ─── Announcements Tab Component ──────────────────────────────────────────
 const VolunteerAnnouncements = ({ onUnreadCountChange }) => {
@@ -362,6 +429,8 @@ const VolunteerDashboard = () => {
     const [loading, setLoading] = useState(true);
     // ─── Track event IDs the user has already registered for ─────────────────
     const [registeredEventIds, setRegisteredEventIds] = useState(new Set());
+    // ─── Volunteer profile for recommendations ────────────────────────────────
+    const [volunteerProfile, setVolunteerProfile] = useState(null);
 
     // ─── Custom alert state ───────────────────────────────────────────────────
     const [alertState, setAlertState] = useState(null);
@@ -451,10 +520,6 @@ const VolunteerDashboard = () => {
                 const res = await fetch(`http://localhost:5000/api/events/volunteer/${loggedInUser.email}/registrations`);
                 const data = await res.json();
                 if (data.success) {
-                    // const count = data.registrations.filter(
-                    //     reg => reg.event.status === 'active' &&
-                    //         (reg.registrationStatus === 'approved' || reg.registrationStatus === 'pending')
-                    // ).length;
                     const count = data.registrations.filter(
                         reg => reg.registrationStatus === 'approved' &&
                             reg.event.status !== 'completed' &&
@@ -561,9 +626,30 @@ const VolunteerDashboard = () => {
         }
     ];
 
+    // ─── Fetch volunteer profile for recommendations ───────────────────────────
+    React.useEffect(() => {
+        const fetchVolunteerProfile = async () => {
+            try {
+                if (!loggedInUser?.email) return;
+                // Try fetching the volunteer's full profile — adjust the endpoint to match your API
+                const res = await fetch(`http://localhost:5000/api/profile/${loggedInUser.email}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    // Merge profile data with what's already stored in loggedInUser
+                    setVolunteerProfile({ ...loggedInUser, ...data });
+                } else {
+                    // Fallback: use loggedInUser fields directly (name, location, skills, etc.)
+                    setVolunteerProfile(loggedInUser);
+                }
+            } catch (err) {
+                // Fallback gracefully — still use loggedInUser
+                setVolunteerProfile(loggedInUser);
+            }
+        };
+        fetchVolunteerProfile();
+    }, []);
+
     // ─── Fetch the volunteer's existing registrations on mount ────────────────
-    // This seeds registeredEventIds so that events the user already registered
-    // for (in previous sessions) are hidden from the Discover tab immediately.
     React.useEffect(() => {
         const fetchUserRegistrations = async () => {
             try {
@@ -599,8 +685,6 @@ const VolunteerDashboard = () => {
                 );
 
                 setAllEvents(approvedEvents);
-                setRecommendedEvents(approvedEvents.slice(0, 2));
-                setFilteredEvents(approvedEvents);
             } catch (error) {
                 console.error('Error fetching events:', error);
                 showAlert('Failed to load events. Please try refreshing the page.', 'error', 'Load Error');
@@ -612,9 +696,15 @@ const VolunteerDashboard = () => {
         fetchEvents();
     }, []);
 
+    // ─── Recompute recommended events whenever events, profile, or registrations change ──
+    React.useEffect(() => {
+        if (allEvents.length === 0) return;
+        const scored = getRecommendedEvents(allEvents, volunteerProfile, registeredEventIds, 4);
+        setRecommendedEvents(scored);
+    }, [allEvents, volunteerProfile, registeredEventIds]);
+
     // ─── Filter: exclude registered events + apply search/category ───────────
     const handleFilter = () => {
-        // First exclude events the volunteer has already registered for
         let filtered = allEvents.filter(event => !registeredEventIds.has(event._id));
 
         if (searchQuery.trim() !== '') {
@@ -640,15 +730,12 @@ const VolunteerDashboard = () => {
     }, [searchQuery, selectedCategory, allEvents, registeredEventIds]);
 
     // ─── Called by EventCard after a successful registration ─────────────────
-    // Immediately removes the event from the Discover list without waiting for
-    // a full network round-trip.
     const handleEventRegistered = (eventId) => {
         setRegisteredEventIds(prev => {
             const updated = new Set(prev);
             updated.add(eventId);
             return updated;
         });
-        // Also refresh the full events list in the background to stay in sync
         refreshEvents();
     };
 
@@ -661,8 +748,6 @@ const VolunteerDashboard = () => {
                     event.isApproved === true && event.status === 'active'
                 );
                 setAllEvents(approvedEvents);
-                setRecommendedEvents(approvedEvents.slice(0, 2));
-                // filteredEvents will be recalculated by the useEffect above
             }
         } catch (error) {
             console.error('Error refreshing events:', error);
@@ -671,325 +756,440 @@ const VolunteerDashboard = () => {
 
     return (
         <>
-        <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
-            {/* Custom Alert Popup */}
-            <CustomAlert alert={alertState} onClose={handleAlertClose} />
-            <LogoutPopup showLogout={showLogoutPopup} />
-            {/* Navbar */}
-            <Navbar
-                userName={loggedInUser?.name || "Volunteer"}
-                onProfileClick={handleProfileClick}
-                onLogoutClick={handleLogoutClick}
-            />
+            <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
+                {/* Custom Alert Popup */}
+                <CustomAlert alert={alertState} onClose={handleAlertClose} />
+                <LogoutPopup showLogout={showLogoutPopup} />
+                {/* Navbar */}
+                <Navbar
+                    userName={loggedInUser?.name || "Volunteer"}
+                    onProfileClick={handleProfileClick}
+                    onLogoutClick={handleLogoutClick}
+                />
 
-            {/* Main Content */}
-            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
-                {/* Stats Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                {/* Main Content */}
+                <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '2rem 1rem' }}>
+                    {/* Stats Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                        {stats.map((stat) => (
+                            <StatCard
+                                key={stat.id}
+                                title={stat.title}
+                                value={stat.value}
+                                subtitle={stat.subtitle}
+                                icon={stat.icon}
+                                iconColor={stat.iconColor}
+                                iconBg={stat.iconBg}
+                                onClick={() => setModalOpen(stat.id)}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Modals */}
                     {stats.map((stat) => (
-                        <StatCard
+                        <Modal
                             key={stat.id}
-                            title={stat.title}
-                            value={stat.value}
-                            subtitle={stat.subtitle}
-                            icon={stat.icon}
-                            iconColor={stat.iconColor}
-                            iconBg={stat.iconBg}
-                            onClick={() => setModalOpen(stat.id)}
-                        />
+                            isOpen={modalOpen === stat.id}
+                            onClose={() => setModalOpen(null)}
+                            title={stat.modalTitle}
+                        >
+                            {stat.modalContent}
+                        </Modal>
                     ))}
-                </div>
 
-                {/* Modals */}
-                {stats.map((stat) => (
-                    <Modal
-                        key={stat.id}
-                        isOpen={modalOpen === stat.id}
-                        onClose={() => setModalOpen(null)}
-                        title={stat.modalTitle}
-                    >
-                        {stat.modalContent}
-                    </Modal>
-                ))}
+                    {/* Tabs */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => setActiveTab('discover')}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s',
+                                background: activeTab === 'discover' ? 'white' : 'transparent',
+                                color: activeTab === 'discover' ? '#111827' : '#4b5563',
+                                boxShadow: activeTab === 'discover' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                            }}
+                            onMouseOver={(e) => { if (activeTab !== 'discover') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
+                            onMouseOut={(e) => { if (activeTab !== 'discover') e.currentTarget.style.background = 'transparent' }}
+                        >
+                            Discover Events
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('registrations')}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s',
+                                background: activeTab === 'registrations' ? 'white' : 'transparent',
+                                color: activeTab === 'registrations' ? '#111827' : '#4b5563',
+                                boxShadow: activeTab === 'registrations' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
+                            }}
+                            onMouseOver={(e) => { if (activeTab !== 'registrations') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
+                            onMouseOut={(e) => { if (activeTab !== 'registrations') e.currentTarget.style.background = 'transparent' }}
+                        >
+                            My Registrations
+                        </button>
 
-                {/* Tabs */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                    <button
-                        onClick={() => setActiveTab('discover')}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '0.75rem',
-                            fontWeight: '600',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            background: activeTab === 'discover' ? 'white' : 'transparent',
-                            color: activeTab === 'discover' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'discover' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
-                        }}
-                        onMouseOver={(e) => { if (activeTab !== 'discover') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
-                        onMouseOut={(e) => { if (activeTab !== 'discover') e.currentTarget.style.background = 'transparent' }}
-                    >
-                        Discover Events
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('registrations')}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '0.75rem',
-                            fontWeight: '600',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            background: activeTab === 'registrations' ? 'white' : 'transparent',
-                            color: activeTab === 'registrations' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'registrations' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none'
-                        }}
-                        onMouseOver={(e) => { if (activeTab !== 'registrations') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
-                        onMouseOut={(e) => { if (activeTab !== 'registrations') e.currentTarget.style.background = 'transparent' }}
-                    >
-                        My Registrations
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('announcements')}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '0.75rem',
-                            fontWeight: '600',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            background: activeTab === 'announcements' ? 'white' : 'transparent',
-                            color: activeTab === 'announcements' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'announcements' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
-                            position: 'relative'
-                        }}
-                        onMouseOver={(e) => { if (activeTab !== 'announcements') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
-                        onMouseOut={(e) => { if (activeTab !== 'announcements') e.currentTarget.style.background = 'transparent' }}
-                    >
-                        Announcements
-                        {unreadAnnouncementsCount > 0 && (
-                            <span style={{
-                                position: 'absolute',
-                                top: '0.25rem',
-                                right: '0.25rem',
-                                minWidth: '1.25rem',
-                                height: '1.25rem',
-                                background: '#ef4444',
-                                color: 'white',
-                                fontSize: '0.75rem',
-                                fontWeight: '700',
-                                borderRadius: '9999px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '0 0.25rem',
-                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                            }}>
+                        <button
+                            onClick={() => setActiveTab('announcements')}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s',
+                                background: activeTab === 'announcements' ? 'white' : 'transparent',
+                                color: activeTab === 'announcements' ? '#111827' : '#4b5563',
+                                boxShadow: activeTab === 'announcements' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                                position: 'relative'
+                            }}
+                            onMouseOver={(e) => { if (activeTab !== 'announcements') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
+                            onMouseOut={(e) => { if (activeTab !== 'announcements') e.currentTarget.style.background = 'transparent' }}
+                        >
+                            Announcements
+                            {unreadAnnouncementsCount > 0 && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '0.25rem',
+                                    right: '0.25rem',
+                                    minWidth: '1.25rem',
+                                    height: '1.25rem',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700',
+                                    borderRadius: '9999px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0 0.25rem',
+                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                }}>
                                 {unreadAnnouncementsCount > 9 ? '9+' : unreadAnnouncementsCount}
                             </span>
-                        )}
-                    </button>
+                            )}
+                        </button>
 
-                    <button
-                        onClick={() => setActiveTab('messages')}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '0.75rem',
-                            fontWeight: '600',
-                            border: 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            background: activeTab === 'messages' ? 'white' : 'transparent',
-                            color: activeTab === 'messages' ? '#111827' : '#4b5563',
-                            boxShadow: activeTab === 'messages' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
-                            position: 'relative'
-                        }}
-                        onMouseOver={(e) => { if (activeTab !== 'messages') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
-                        onMouseOut={(e) => { if (activeTab !== 'messages') e.currentTarget.style.background = 'transparent' }}
-                    >
-                        Messages
-                        {unreadMessagesCount > 0 && (
-                            <span style={{
-                                position: 'absolute',
-                                top: '0.25rem',
-                                right: '0.25rem',
-                                minWidth: '1.25rem',
-                                height: '1.25rem',
-                                background: '#ef4444',
-                                color: 'white',
-                                fontSize: '0.75rem',
-                                fontWeight: '700',
-                                borderRadius: '9999px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '0 0.25rem',
-                                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
-                            }}>
+                        <button
+                            onClick={() => setActiveTab('messages')}
+                            style={{
+                                padding: '0.75rem 1.5rem',
+                                borderRadius: '0.75rem',
+                                fontWeight: '600',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s',
+                                background: activeTab === 'messages' ? 'white' : 'transparent',
+                                color: activeTab === 'messages' ? '#111827' : '#4b5563',
+                                boxShadow: activeTab === 'messages' ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : 'none',
+                                position: 'relative'
+                            }}
+                            onMouseOver={(e) => { if (activeTab !== 'messages') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)' }}
+                            onMouseOut={(e) => { if (activeTab !== 'messages') e.currentTarget.style.background = 'transparent' }}
+                        >
+                            Messages
+                            {unreadMessagesCount > 0 && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '0.25rem',
+                                    right: '0.25rem',
+                                    minWidth: '1.25rem',
+                                    height: '1.25rem',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700',
+                                    borderRadius: '9999px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: '0 0.25rem',
+                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)'
+                                }}>
                                 {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
                             </span>
-                        )}
-                    </button>
-                </div>
-
-                {/* Tab Content */}
-                {activeTab === 'registrations' && (
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '1rem',
-                        padding: '2rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                        marginBottom: '2rem'
-                    }}>
-                        <h2 style={{
-                            fontSize: '1.5rem',
-                            fontWeight: 'bold',
-                            color: '#111827',
-                            margin: '0 0 1.5rem 0'
-                        }}>
-                            My Registrations
-                        </h2>
-                        <MyRegistrations />
+                            )}
+                        </button>
                     </div>
-                )}
 
-                {activeTab === 'announcements' && (
-                    <VolunteerAnnouncements
-                        onUnreadCountChange={(count) => setUnreadAnnouncementsCount(count)}
-                    />
-                )}
-
-                {activeTab === 'messages' && (
-                    <MessagesTab currentUser={loggedInUser} />
-                )}
-
-                {/* Show events only on Discover tab */}
-                {activeTab === 'discover' && (
-                    <>
-                        {loading ? (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                padding: '4rem',
-                                color: '#6b7280'
+                    {/* Tab Content */}
+                    {activeTab === 'registrations' && (
+                        <div style={{
+                            background: 'white',
+                            borderRadius: '1rem',
+                            padding: '2rem',
+                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                            marginBottom: '2rem'
+                        }}>
+                            <h2 style={{
+                                fontSize: '1.5rem',
+                                fontWeight: 'bold',
+                                color: '#111827',
+                                margin: '0 0 1.5rem 0'
                             }}>
-                                <p style={{ fontSize: '1.125rem' }}>Loading events...</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Search and Filter Section */}
-                                <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', alignItems: 'center' }}>
-                                        <div style={{ flex: 1, position: 'relative' }}>
-                                            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={20} />
-                                            <input
-                                                type="text"
-                                                placeholder="Search events"
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 3rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', transition: 'all 0.2s' }}
-                                                onFocus={(e) => {
-                                                    e.currentTarget.style.borderColor = '#3b82f6';
-                                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                                                }}
-                                                onBlur={(e) => {
-                                                    e.currentTarget.style.borderColor = '#e5e7eb';
-                                                    e.currentTarget.style.boxShadow = 'none';
-                                                }}
-                                            />
-                                        </div>
+                                My Registrations
+                            </h2>
+                            <MyRegistrations />
+                        </div>
+                    )}
 
-                                        <div style={{ position: 'relative', width: '200px', minWidth: '200px' }}>
-                                            <select
-                                                value={selectedCategory}
-                                                onChange={(e) => setSelectedCategory(e.target.value)}
-                                                style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '1rem', background: 'white', cursor: 'pointer', appearance: 'none', outline: 'none', transition: 'all 0.2s' }}
-                                                onFocus={(e) => {
-                                                    e.currentTarget.style.borderColor = '#3b82f6';
-                                                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                                                }}
-                                                onBlur={(e) => {
-                                                    e.currentTarget.style.borderColor = '#e5e7eb';
-                                                    e.currentTarget.style.boxShadow = 'none';
-                                                }}
-                                            >
-                                                <option>All Category</option>
-                                                <option>education</option>
-                                                <option>environment</option>
-                                                <option>health</option>
-                                                <option>community</option>
-                                                <option>distribution</option>
-                                                <option>other</option>
-                                            </select>
-                                            <ChevronDown style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} size={20} />
-                                        </div>
-                                    </div>
+                    {activeTab === 'announcements' && (
+                        <VolunteerAnnouncements
+                            onUnreadCountChange={(count) => setUnreadAnnouncementsCount(count)}
+                        />
+                    )}
+
+                    {activeTab === 'messages' && (
+                        <MessagesTab currentUser={loggedInUser} />
+                    )}
+
+                    {/* Show events only on Discover tab */}
+                    {activeTab === 'discover' && (
+                        <>
+                            {loading ? (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    padding: '4rem',
+                                    color: '#6b7280'
+                                }}>
+                                    <p style={{ fontSize: '1.125rem' }}>Loading events...</p>
                                 </div>
-
-                                {/* All Events Section */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>All Events</h2>
-                                    <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>
-                                        {filteredEvents.length} {filteredEvents.length === 1 ? 'opportunity' : 'opportunities'}
-                                    </span>
-                                </div>
-
-                                {/* Event Cards */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', maxWidth: '100%' }}>
-                                    {filteredEvents.map((event) => (
-                                        <EventCard
-                                            key={event._id}
-                                            eventId={event._id}
-                                            organizerId={event.organizerId}
-                                            title={event.eventName}
-                                            description={event.description}
-                                            tags={[
-                                                { name: event.category || 'general', type: 'skill' },
-                                                { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
-                                            ]}
-                                            date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
-                                            time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            })}`}
-                                            location={event.location}
-                                            requirements={event.requirements || 'No specific requirements'}
-                                            onRegister={handleEventRegistered}
-                                        />
-                                    ))}
-
-                                    {filteredEvents.length === 0 && (
-                                        <div style={{
-                                            gridColumn: '1 / -1',
-                                            textAlign: 'center',
-                                            padding: '3rem',
-                                            color: '#6b7280'
-                                        }}>
-                                            <p style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem', margin: 0 }}>
-                                                No events found
-                                            </p>
-                                            <p style={{ fontSize: '0.875rem', margin: '0.5rem 0 0 0' }}>
-                                                Try adjusting your search or filter criteria
-                                            </p>
+                            ) : (
+                                <>
+                                    {/* ── Recommended For You Section ──────────────────────────── */}
+                                    {recommendedEvents.length > 0 && (
+                                        <div style={{ marginBottom: '2rem' }}>
+                                            {/* Section header */}
+                                            <div style={{
+                                                background: 'linear-gradient(to right, #eff6ff, #eef2ff)',
+                                                borderRadius: '1rem',
+                                                padding: '1.5rem',
+                                                marginBottom: '1.5rem',
+                                                border: '1px solid #dbeafe',
+                                                boxShadow: '0 10px 20px -3px rgba(0, 0, 0, 0.15)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                flexWrap: 'wrap',
+                                                gap: '0.5rem'
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Sparkles size={20} style={{ color: '#3b82f6' }} />
+                                                    <div>
+                                                        <h2 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                                                            Recommended For You
+                                                        </h2>
+                                                        <p style={{ fontSize: '0.875rem', color: '#4b5563', margin: 0 }}>
+                                                            Events matching your skills and location
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '0.75rem',
+                                                    color: '#3b82f6',
+                                                    fontWeight: '600',
+                                                    background: 'white',
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '9999px',
+                                                    border: '1px solid #bfdbfe',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+                                                }}>
+                                                    {recommendedEvents.length} match{recommendedEvents.length !== 1 ? 'es' : ''}
+                                                </span>
+                                            </div>
+                                            {/* Recommended event cards */}
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                                gap: '1.5rem',
+                                                maxWidth: '100%'
+                                            }}>
+                                                {recommendedEvents.map(({ event, reasons }) => (
+                                                    <div key={event._id} style={{ position: 'relative' }}>
+                                                        {/* Match reason badge */}
+                                                        {reasons && reasons.length > 0 && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                top: '-0.5rem',
+                                                                left: '1rem',
+                                                                zIndex: 10,
+                                                                display: 'flex',
+                                                                gap: '0.375rem',
+                                                                flexWrap: 'wrap'
+                                                            }}>
+                                                                {reasons.map((reason, i) => (
+                                                                    <span key={i} style={{
+                                                                        background: 'linear-gradient(135deg, #6366f1, #3b82f6)',
+                                                                        color: 'white',
+                                                                        fontSize: '0.65rem',
+                                                                        fontWeight: '700',
+                                                                        padding: '0.2rem 0.55rem',
+                                                                        borderRadius: '9999px',
+                                                                        boxShadow: '0 2px 6px rgba(99, 102, 241, 0.4)',
+                                                                        letterSpacing: '0.02em',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '0.25rem'
+                                                                    }}>
+                                                                    <Sparkles size={8} />
+                                                                        {reason}
+                                                                </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <div style={{ paddingTop: reasons && reasons.length > 0 ? '0.75rem' : '0' }}>
+                                                            <EventCard
+                                                                key={event._id}
+                                                                eventId={event._id}
+                                                                organizerId={event.organizerId}
+                                                                title={event.eventName}
+                                                                description={event.description}
+                                                                tags={[
+                                                                    { name: event.category || 'general', type: 'skill' },
+                                                                    { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
+                                                                ]}
+                                                                date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
+                                                                time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                                                    hour: 'numeric',
+                                                                    minute: '2-digit',
+                                                                    hour12: true
+                                                                })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                                                    hour: 'numeric',
+                                                                    minute: '2-digit',
+                                                                    hour12: true
+                                                                })}`}
+                                                                location={event.location}
+                                                                requirements={event.requirements || 'No specific requirements'}
+                                                                onRegister={handleEventRegistered}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
-                                </div>
-                            </>
-                        )}
-                    </>
-                )}
+
+                                    {/* Search and Filter Section */}
+                                    <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', marginBottom: '1.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', alignItems: 'center' }}>
+                                            <div style={{ flex: 1, position: 'relative' }}>
+                                                <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={20} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search events"
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 3rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '1rem', outline: 'none', transition: 'all 0.2s' }}
+                                                    onFocus={(e) => {
+                                                        e.currentTarget.style.borderColor = '#3b82f6';
+                                                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        e.currentTarget.style.borderColor = '#e5e7eb';
+                                                        e.currentTarget.style.boxShadow = 'none';
+                                                    }}
+                                                />
+                                            </div>
+
+                                            <div style={{ position: 'relative', width: '200px', minWidth: '200px' }}>
+                                                <select
+                                                    value={selectedCategory}
+                                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                                    style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '1rem', background: 'white', cursor: 'pointer', appearance: 'none', outline: 'none', transition: 'all 0.2s' }}
+                                                    onFocus={(e) => {
+                                                        e.currentTarget.style.borderColor = '#3b82f6';
+                                                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        e.currentTarget.style.borderColor = '#e5e7eb';
+                                                        e.currentTarget.style.boxShadow = 'none';
+                                                    }}
+                                                >
+                                                    <option>All Category</option>
+                                                    <option>Teaching</option>
+                                                    <option>First Aid/Medical</option>
+                                                    <option>Media/Photography</option>
+                                                    <option>Technical Support</option>
+                                                    <option>Animal Rescue/Care</option>
+                                                    <option>Distribution</option>
+                                                    <option>Event Logistics</option>
+                                                    <option>Other</option>
+                                                </select>
+                                                <ChevronDown style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* All Events Section */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                                        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: 0 }}>All Events</h2>
+                                        <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+                                        {filteredEvents.length} {filteredEvents.length === 1 ? 'opportunity' : 'opportunities'}
+                                    </span>
+                                    </div>
+
+                                    {/* Event Cards */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', maxWidth: '100%' }}>
+                                        {filteredEvents.map((event) => (
+                                            <EventCard
+                                                key={event._id}
+                                                eventId={event._id}
+                                                organizerId={event.organizerId}
+                                                title={event.eventName}
+                                                description={event.description}
+                                                tags={[
+                                                    { name: event.category || 'general', type: 'skill' },
+                                                    { name: `${event.volunteersNeeded - (event.registrations || []).filter(r => r.status === 'approved').length} spots left`, type: 'spots' }
+                                                ]}
+                                                date={`${new Date(event.startdate).toLocaleDateString('en-GB')} - ${new Date(event.enddate).toLocaleDateString('en-GB')}`}
+                                                time={`${new Date(`1970-01-01T${event.startTime}`).toLocaleTimeString('en-US', {
+                                                    hour: 'numeric',
+                                                    minute: '2-digit',
+                                                    hour12: true
+                                                })} - ${new Date(`1970-01-01T${event.endTime}`).toLocaleTimeString('en-US', {
+                                                    hour: 'numeric',
+                                                    minute: '2-digit',
+                                                    hour12: true
+                                                })}`}
+                                                location={event.location}
+                                                requirements={event.requirements || 'No specific requirements'}
+                                                onRegister={handleEventRegistered}
+                                            />
+                                        ))}
+
+                                        {filteredEvents.length === 0 && (
+                                            <div style={{
+                                                gridColumn: '1 / -1',
+                                                textAlign: 'center',
+                                                padding: '3rem',
+                                                color: '#6b7280'
+                                            }}>
+                                                <p style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem', margin: 0 }}>
+                                                    No events found
+                                                </p>
+                                                <p style={{ fontSize: '0.875rem', margin: '0.5rem 0 0 0' }}>
+                                                    Try adjusting your search or filter criteria
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
-    <CopilotPanel />
-</>
+            <CopilotPanel />
+        </>
     );
 };
 

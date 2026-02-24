@@ -134,7 +134,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, iconColor, iconBg, onCli
     </div>
 );
 
-// ─── Organizer Event Card ─────────────────────────────────────────────────────
+// Organizer Event Card
 const OrganizerEventCard = ({ event, onViewDetails }) => {
     const approvedCount = (event.registrations || []).filter(r => r.status === 'approved').length;
     const progressPct = Math.min(((approvedCount || 0) / event.volunteersNeeded) * 100, 100);
@@ -152,12 +152,24 @@ const OrganizerEventCard = ({ event, onViewDetails }) => {
             onMouseOver={e => e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'}
             onMouseOut={e => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'}
         >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#111827', margin: 0, flex: 1, paddingRight: '0.5rem' }}>{event.eventName}</h3>
                 <span style={{ padding: '0.2rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '600', color: sc.color, background: sc.bg, whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {event.status}
                 </span>
             </div>
+
+            {/* Description */}
+            {event.description && (
+                <p style={{
+                    fontSize: '0.8rem', color: '#6b7280', margin: '0 0 0.75rem 0',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden', lineHeight: '1.4'
+                }}>
+                    {event.description}
+                </p>
+            )}
+
             {event.category && (
                 <div style={{ marginBottom: '1rem' }}>
                     <span style={{ padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '500', border: '1px solid #67e8f9', color: '#0891b2', background: '#cffafe' }}>
@@ -617,11 +629,13 @@ const OrganizerDashboard = () => {
                                             onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
                                     >
                                         <option value="">Select category</option>
-                                        <option value="education">Education</option>
-                                        <option value="environment">Environment</option>
-                                        <option value="health">Health</option>
-                                        <option value="community">Community</option>
+                                        <option value="teaching">Teaching</option>
+                                        <option value="firstAid">First Aid/Medical</option>
+                                        <option value="mediaPhotography">Media/Photography</option>
+                                        <option value="technicalSupport">Technical Support</option>
+                                        <option value="animalRescue">Animal Rescue/Care</option>
                                         <option value="distribution">Distribution</option>
+                                        <option value="eventLogistics">Event Logistics</option>
                                         <option value="other">Other</option>
                                     </select>
                                 </div>

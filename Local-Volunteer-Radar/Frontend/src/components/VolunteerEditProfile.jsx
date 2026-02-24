@@ -498,13 +498,14 @@ const VolunteerEditProfile = () => {
                         <select value={newSkill} onChange={(e) => setNewSkill(e.target.value)}
                                 style={{ padding: '0.5rem 1rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', outline: 'none', background: 'white', flex: 0.25 }}>
                             <option value="">Select skill</option>
-                            <option value="firstAid">firstAid</option>
-                            <option value="mediaPhotography">mediaPhotography</option>
-                            <option value="technicalSupport">technicalSupport</option>
-                            <option value="animalRescue">animalRescue</option>
-                            <option value="distribution">distribution</option>
-                            <option value="eventLogistics">eventLogistics</option>
-                            <option value="other">other</option>
+                            <option value="teaching">Teaching</option>
+                            <option value="firstAid">First Aid/Medical</option>
+                            <option value="mediaPhotography">Media/Photography</option>
+                            <option value="technicalSupport">Technical Support</option>
+                            <option value="animalRescue">Animal Rescue/Care</option>
+                            <option value="distribution">Distribution</option>
+                            <option value="eventLogistics">Event Logistics</option>
+                            <option value="other">Other</option>
                         </select>
                         <button onClick={addSkill}
                                 style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' }}>
