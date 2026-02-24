@@ -14,7 +14,7 @@ import SkillsUtilizedModal from './SkillsUtilizedModal';
 import MessagesTab from './MessageTab';
 import CopilotPanel from '../components/CopilotPanel';
 import io from 'socket.io-client';
-
+import LogoutPopup from './LogoutPopup';
 const socket = io('http://localhost:5000');
 
 // ─── Custom Alert Popup ───────────────────────────────────────────────────────
@@ -365,6 +365,7 @@ const VolunteerDashboard = () => {
 
     // ─── Custom alert state ───────────────────────────────────────────────────
     const [alertState, setAlertState] = useState(null);
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     const showAlert = (message, type = 'info', title = '', onClose = null) => {
         setAlertState({ message, type, title, onClose });
@@ -515,10 +516,13 @@ const VolunteerDashboard = () => {
     const handleProfileClick = () => {
         navigate('/volunteer-profile');
     };
-
     const handleLogoutClick = () => {
-        localStorage.removeItem("loggedInUser");
-        navigate('/login');
+        setShowLogoutPopup(true);
+        setTimeout(() => {
+            setShowLogoutPopup(false);
+            localStorage.removeItem("loggedInUser");
+            navigate('/login');
+        }, 1500);
     };
 
     const stats = [
@@ -670,7 +674,7 @@ const VolunteerDashboard = () => {
         <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #eff6ff, #eef2ff, #faf5ff)' }}>
             {/* Custom Alert Popup */}
             <CustomAlert alert={alertState} onClose={handleAlertClose} />
-
+            <LogoutPopup showLogout={showLogoutPopup} />
             {/* Navbar */}
             <Navbar
                 userName={loggedInUser?.name || "Volunteer"}

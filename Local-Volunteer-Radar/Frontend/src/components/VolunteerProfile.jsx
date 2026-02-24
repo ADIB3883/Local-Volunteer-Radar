@@ -103,17 +103,22 @@ const VolunteerProfile = () => {
                 const data = await response.json();
 
                 if (data.success) {
-                    setVolunteer({
-                        ...data.user,
-                        fullName: data.user.name
-                    });
+                    const authResponse = await fetch(`http://localhost:5000/auth/google-tokens/${loggedInUser.email}`);
+                    const authData = await authResponse.json();
 
-                    setIsCalendarConnected(!!data.user.googleAccessToken);
+                    const hasGoogleAccess = !!(authData.googleAccessToken || authData.googleRefreshToken);
+                    setIsCalendarConnected(hasGoogleAccess);
 
-                    localStorage.setItem('loggedInUser', JSON.stringify({
+                    const updatedUser = {
                         ...data.user,
-                        fullName: data.user.name
-                    }));
+                        fullName: data.user.name,
+                        googleAccessToken: authData.googleAccessToken || null,
+                        googleRefreshToken: authData.googleRefreshToken || null
+                    };
+
+                    setVolunteer(updatedUser);
+
+                    localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
@@ -184,21 +189,32 @@ const VolunteerProfile = () => {
         if (isCalendarConnected) {
             // Disconnect calendar
             try {
-                const response = await fetch(`http://localhost:5000/api/profile/${volunteer.email}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        googleAccessToken: null,
-                        googleRefreshToken: null
-                    })
+                const response = await fetch(`http://localhost:5000/auth/google/disconnect/${volunteer.email}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
-                if (response.ok) {
+                const data = await response.json();
+
+                if (data.success) {
                     setIsCalendarConnected(false);
-                    showAlert('Google Calendar disconnected successfully!', 'info', 'Calendar Disconnected');
+
+                    // Update localStorage
+                    const updatedUser = {
+                        ...volunteer,
+                        googleAccessToken: null,
+                        googleRefreshToken: null
+                    };
+                    setVolunteer(updatedUser);
+                    localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
+
+                    showAlert('Google Calendar disconnected successfully!', 'success', 'Calendar Disconnected');
+                } else {
+                    showAlert('Failed to disconnect calendar', 'error', 'Disconnect Failed');
                 }
             } catch (error) {
                 console.error('Error disconnecting calendar:', error);
+                showAlert('Failed to disconnect calendar', 'error', 'Disconnect Failed');
             }
         } else {
             // Connect calendar - get auth URL
@@ -218,12 +234,28 @@ const VolunteerProfile = () => {
                 );
 
                 // Listen for successful connection
-                window.addEventListener('message', (event) => {
+                const messageHandler = async (event) => {
                     if (event.data === 'calendar-connected') {
+                        // Re-fetch tokens to update state
+                        const authResponse = await fetch(`http://localhost:5000/auth/google-tokens/${volunteer.email}`);
+                        const authData = await authResponse.json();
+
+                        const updatedUser = {
+                            ...volunteer,
+                            googleAccessToken: authData.googleAccessToken,
+                            googleRefreshToken: authData.googleRefreshToken
+                        };
+
+                        setVolunteer(updatedUser);
+                        localStorage.setItem('loggedInUser', JSON.stringify(updatedUser));
                         setIsCalendarConnected(true);
                         showAlert('Google Calendar connected successfully!', 'success', 'Calendar Connected');
+
+                        window.removeEventListener('message', messageHandler);
                     }
-                });
+                };
+
+                window.addEventListener('message', messageHandler);
             } catch (error) {
                 console.error('Error getting auth URL:', error);
                 showAlert('Failed to connect to Google Calendar', 'error', 'Connection Failed');

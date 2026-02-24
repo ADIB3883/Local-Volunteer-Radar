@@ -12,6 +12,7 @@ import TotalVolunteerModal from './TotalVolunteerModal';
 import TotalOrganizerModal from './TotalOrganizerModal';
 import ActiveEventsModal from './ActiveEventsModal';
 import PartnerModal from './PartnerModal.jsx';
+import LogoutPopup from './LogoutPopup';
 
 // Loading spinner component
 const LoadingSpinner = ({ message = "Loading..." }) => (
@@ -54,7 +55,7 @@ const AdminDashboard = () => {
     const [eventSortBy, setEventSortBy] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState({ show: false, userId: null, userName: '' });
     const [isDeleting, setIsDeleting] = useState(false);
-
+    const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     const fetchUsers = async (endpoint, setter) => {
         try {
@@ -376,9 +377,12 @@ const AdminDashboard = () => {
         setShowNotification(true);
         setTimeout(() => setShowNotification(false), 3000);
     };
-
     const handleLogoutClick = () => {
-        navigate('/login');
+        setShowLogoutPopup(true);
+        setTimeout(() => {
+            setShowLogoutPopup(false);
+            navigate('/login');
+        }, 1500);
     };
 
     const handleDeleteUser = async (userId) => {
@@ -537,7 +541,7 @@ const AdminDashboard = () => {
                 title="Admin Dashboard"
                 onLogoutClick={handleLogoutClick}
             />
-
+            <LogoutPopup showLogout={showLogoutPopup} />
             {showNotification && (
                 <div
                     className={`fixed top-6 left-6 bg-white rounded-lg shadow-2xl p-4 flex items-center gap-3 border-l-4 ${notificationConfig.borderColor} transform transition-all duration-500 z-50 ${

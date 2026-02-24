@@ -658,11 +658,21 @@ router.get("/:eventId/volunteers", async (req, res) => {
                     volunteerDetails: volunteer ? {
                         name: volunteer.name,
                         email: volunteer.email,
-                        phoneNumber: volunteer.phoneNumber,
-                        skills: volunteer.skills
+                        phoneNumber: volunteer.phoneNumber || '',
+                        address: volunteer.address || '',
+                        skills: volunteer.skills || {},
+                        bio: volunteer.bio || '',
+                        availability: volunteer.availability || [],
+                        profilePicture: volunteer.profilePicture || '',  // ✅ this was the main missing piece
                     } : {
-                        name: reg.volunteerName || 'Unknown',
-                        email: reg.volunteerEmail
+                        name: reg.volunteerEmail,
+                        email: reg.volunteerEmail,
+                        phoneNumber: '',
+                        address: '',
+                        skills: {},
+                        bio: '',
+                        availability: [],
+                        profilePicture: ''
                     }
                 };
             })
