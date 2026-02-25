@@ -1,6 +1,23 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, Users, Building2, Loader2 } from 'lucide-react';
 
+// Helper function to calculate unique approved volunteers
+const calculateUniqueApprovedVolunteers = (events) => {
+    const approvedVolunteerEmails = new Set();
+    
+    events.forEach(event => {
+        if (event.registrations && Array.isArray(event.registrations)) {
+            event.registrations.forEach(registration => {
+                if (registration.status === 'approved' && registration.volunteerEmail) {
+                    approvedVolunteerEmails.add(registration.volunteerEmail);
+                }
+            });
+        }
+    });
+    
+    return approvedVolunteerEmails.size;
+};
+
 const ActiveEventsModal = ({ events }) => {
     const data = events && events.length > 0 ? events : [];
 
@@ -46,7 +63,7 @@ const ActiveEventsModal = ({ events }) => {
                 }}>
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Registered Volunteers</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6', margin: 0 }}>
-                        {data && data.length > 0 ? data.reduce((sum, e) => sum + (e.volunteersRegistered || 0), 0) : 0}
+                        {data && data.length > 0 ? calculateUniqueApprovedVolunteers(data) : 0}
                     </p>
                 </div>
             </div>

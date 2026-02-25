@@ -134,11 +134,6 @@ const TotalOrganizersModal = ({ organizers }) => {
                                         <span>Joined {organizer.joinedDate}</span>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: '#4b5563' }}>
-                                        <strong style={{ color: '#3b82f6' }}>{organizer.totalVolunteers}</strong> volunteers engaged
-                                    </span>
-                                </div>
 
                                 <span
                                     style={{
