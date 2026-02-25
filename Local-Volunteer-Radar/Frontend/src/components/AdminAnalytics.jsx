@@ -89,7 +89,7 @@ export default function AdminAnalytics({ analytics }) {
 
     return (
         <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1.5rem", width: "100%" }}>
                 <AnalyticsCard
                     title="Hours Worked (Yearly)"
                     value={`${analytics.analytics.hoursWorked.reduce((a, b) => a + b, 0)} hrs`}

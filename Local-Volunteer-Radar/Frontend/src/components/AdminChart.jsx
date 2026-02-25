@@ -1,9 +1,11 @@
 const AdminChart = ({ data }) => {
-    const width = 610;
+    const width = "100%";
     const height = 160;
     const padding = { top: 20, right: 20, bottom: 30, left: 40 };
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
+    const viewBoxWidth = 610;
+    const viewBoxHeight = 160;
+    const chartWidth = viewBoxWidth - padding.left - padding.right;
+    const chartHeight = viewBoxHeight - padding.top - padding.bottom;
 
     const max = Math.max(...data);
     const min = Math.min(...data);
@@ -23,7 +25,7 @@ const AdminChart = ({ data }) => {
     const points = data.map((v, i) => `${getX(i)},${getY(v)}`).join(" ");
 
     return (
-        <svg width={width} height={height}>
+        <svg width={width} height={height} viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}>
             <line
                 x1={padding.left}
                 y1={padding.top + chartHeight}
