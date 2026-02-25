@@ -1,5 +1,22 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Users, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Building2, Loader2 } from 'lucide-react';
+
+// Helper function to calculate unique approved volunteers
+const calculateUniqueApprovedVolunteers = (events) => {
+    const approvedVolunteerEmails = new Set();
+    
+    events.forEach(event => {
+        if (event.registrations && Array.isArray(event.registrations)) {
+            event.registrations.forEach(registration => {
+                if (registration.status === 'approved' && registration.volunteerEmail) {
+                    approvedVolunteerEmails.add(registration.volunteerEmail);
+                }
+            });
+        }
+    });
+    
+    return approvedVolunteerEmails.size;
+};
 
 const ActiveEventsModal = ({ events }) => {
     const data = events && events.length > 0 ? events : [];
@@ -19,11 +36,6 @@ const ActiveEventsModal = ({ events }) => {
             </div>
         );
     }
-
-    // Calculate actual approved registrations for progress bar
-    const getApprovedRegistrations = (event) => {
-        return event.registrations?.filter(r => r.status === 'approved').length || 0;
-    };
 
     return (
         <div>
@@ -51,7 +63,7 @@ const ActiveEventsModal = ({ events }) => {
                 }}>
                     <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0 0 0.25rem 0' }}>Registered Volunteers</p>
                     <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6', margin: 0 }}>
-                        {data && data.length > 0 ? data.reduce((sum, e) => sum + getApprovedRegistrations(e), 0) : 0}
+                        {data && data.length > 0 ? calculateUniqueApprovedVolunteers(data) : 0}
                     </p>
                 </div>
             </div>
@@ -62,96 +74,89 @@ const ActiveEventsModal = ({ events }) => {
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
-                {data.map((event) => {
-                    const approvedRegistrations = getApprovedRegistrations(event);
-                    const capacityPercent = event.volunteersNeeded > 0 
-                        ? Math.min((approvedRegistrations / event.volunteersNeeded) * 100, 100) 
-                        : 0;
-
-                    return (
-                        <div
-                            key={event.id}
-                            style={{
-                                background: 'white',
-                                border: '2px solid #a855f7',
-                                borderRadius: '0.75rem',
-                                padding: '1.25rem',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => {
-                                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(168, 85, 247, 0.3)';
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseOut={(e) => {
-                                e.currentTarget.style.boxShadow = 'none';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                            }}
-                        >
-                            <div style={{ marginBottom: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-                                    <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-                                        {event.name}
-                                    </h4>
-                                    <span style={{
-                                        fontSize: '0.75rem',
-                                        padding: '0.25rem 0.5rem',
-                                        background: '#f3e8ff',
-                                        color: '#7c3aed',
-                                        borderRadius: '0.25rem',
-                                        fontWeight: '500'
-                                    }}>
-                                        {event.category}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
-                                    <Calendar size={16} />
-                                    <span>{event.date}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
-                                    <Clock size={16} />
-                                    <span>{event.time}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
-                                    <MapPin size={16} />
-                                    <span>{event.location}</span>
-                                </div>
-                            </div>
-
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                padding: '0.75rem',
-                                background: '#f9fafb',
-                                borderRadius: '0.5rem'
-                            }}>
-                                <Users size={20} color="#6b7280" />
-                                <div style={{ flex: 1 }}>
-                                    <div style={{
-                                        background: '#e5e7eb',
-                                        height: '0.5rem',
-                                        borderRadius: '0.25rem',
-                                        overflow: 'hidden'
-                                    }}>
-                                        <div style={{
-                                            background: '#3b82f6',
-                                            height: '100%',
-                                            width: `${capacityPercent}%`,
-                                            borderRadius: '0.25rem',
-                                            transition: 'width 0.3s'
-                                        }} />
-                                    </div>
-                                </div>
-                                <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>
-                                    {approvedRegistrations}/{event.volunteersNeeded}
+                {data.map((event) => (
+                    <div
+                        key={event.id}
+                        style={{
+                            background: 'white',
+                            border: '2px solid #a855f7',
+                            borderRadius: '0.75rem',
+                            padding: '1.25rem',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(168, 85, 247, 0.3)';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                    >
+                        <div style={{ marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                                <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+                                    {event.name}
+                                </h4>
+                                <span style={{
+                                    fontSize: '0.75rem',
+                                    padding: '0.25rem 0.5rem',
+                                    background: '#f3e8ff',
+                                    color: '#7c3aed',
+                                    borderRadius: '0.25rem',
+                                    fontWeight: '500'
+                                }}>
+                                    {event.category}
                                 </span>
                             </div>
                         </div>
-                    );
-                })}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
+                                <Calendar size={16} />
+                                <span>{event.date}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
+                                <Clock size={16} />
+                                <span>{event.time}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4b5563', fontSize: '0.875rem' }}>
+                                <MapPin size={16} />
+                                <span>{event.location}</span>
+                            </div>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem',
+                            background: '#f9fafb',
+                            borderRadius: '0.5rem'
+                        }}>
+                            <Users size={20} color="#6b7280" />
+                            <div style={{ flex: 1 }}>
+                                <div style={{
+                                    background: '#e5e7eb',
+                                    height: '0.5rem',
+                                    borderRadius: '0.25rem',
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{
+                                        background: '#3b82f6',
+                                        height: '100%',
+                                        width: `${(event.volunteersRegistered / event.volunteersNeeded) * 100}%`,
+                                        borderRadius: '0.25rem',
+                                        transition: 'width 0.3s'
+                                    }} />
+                                </div>
+                            </div>
+                            <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4b5563' }}>
+                                {event.volunteersRegistered}/{event.volunteersNeeded}
+                            </span>
+                        </div>
+                    </div>
+                ))}
 
                 {data.length === 0 && (
                     <div style={{
