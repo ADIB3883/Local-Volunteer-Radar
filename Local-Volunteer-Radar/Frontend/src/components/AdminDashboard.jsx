@@ -56,6 +56,7 @@ const AdminDashboard = () => {
     const [deleteConfirm, setDeleteConfirm] = useState({ show: false, userId: null, userName: '' });
     const [isDeleting, setIsDeleting] = useState(false);
     const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+    const [allEvents, setAllEvents] = useState([]);
 
     const fetchUsers = async (endpoint, setter) => {
         try {
@@ -111,6 +112,13 @@ const AdminDashboard = () => {
             }
         };
         fetchPendingEvents();
+    }, []);
+
+    useEffect(() => {
+        fetch('https://local-volunteer-radar.onrender.com/api/events')
+            .then(res => res.json())
+            .then(data => setAllEvents(Array.isArray(data) ? data : data.events || []))
+            .catch(() => setAllEvents([]));
     }, []);
 
     const refetchPendingEvents = async () => {
@@ -447,20 +455,35 @@ const AdminDashboard = () => {
         [users]
     );
 
-    // Format volunteer data for modal
     const volunteerData = useMemo(() => {
-        return (users || []).filter(u => u.type === 'volunteer').map(v => ({
-            id: v._id?.$oid || v._id || v.id,
-            name: v.name || 'Unknown',
-            email: v.email || '',
-            location: v.address || v.location || 'Unknown',
-            joinedDate: formatDate(v.createdAt || v.joinedDate),
-            eventsCompleted: 0,
-            hoursContributed: 0,
-            skills: getSkillsDisplay(v.skills) || [],
-            profilePicture: v.profilePicture || ''
-        }));
-    }, [users]);
+        const completedEvents = allEvents.filter(e => e.status === 'completed');
+
+        return (users || []).filter(u => u.type === 'volunteer').map(v => {
+            const myCompletedEvents = completedEvents.filter(e =>
+                e.registrations?.some(r =>
+                    r.volunteerEmail === v.email && r.status === 'approved'
+                )
+            );
+
+            const hoursContributed = myCompletedEvents.reduce((sum, e) => {
+                const [startH, startM] = (e.startTime || '00:00').split(':').map(Number);
+                const [endH, endM] = (e.endTime || '00:00').split(':').map(Number);
+                return sum + (endH + endM / 60) - (startH + startM / 60);
+            }, 0);
+
+            return {
+                id: v._id?.$oid || v._id || v.id,
+                name: v.name || 'Unknown',
+                email: v.email || '',
+                location: v.address || v.location || 'Unknown',
+                joinedDate: formatDate(v.createdAt || v.joinedDate),
+                eventsCompleted: myCompletedEvents.length,
+                hoursContributed: Math.round(hoursContributed * 10) / 10,
+                skills: getSkillsDisplay(v.skills) || [],
+                profilePicture: v.profilePicture || ''
+            };
+        });
+    }, [users, allEvents]);
 
     // Format organizer data for modal
     const organizerData = useMemo(() => {
