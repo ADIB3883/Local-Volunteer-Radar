@@ -21,7 +21,7 @@ const getApprovalEmailTemplate = (userName, userType) => ({
             <p>Dear ${userName},</p>
             <p>Great news! Your ${userType} registration has been approved by our admin team.</p>
             <p>You can now log in to your account and start using all features.</p>
-            <a href="http://localhost:5173/login" 
+            <a href="https://local-volunteer-radar-f.onrender.com/login" 
                style="display: inline-block; padding: 12px 24px; background: linear-gradient(to right, #3b82f6, #14b8a6); 
                       color: white; text-decoration: none; border-radius: 8px; margin: 20px 0;">
                 Login Now
