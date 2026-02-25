@@ -63,7 +63,9 @@ const AdminDashboard = () => {
             const res = await fetch(`https://local-volunteer-radar.onrender.com/api${endpoint}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            setter(data.data || data.users || []);
+            const result = data.data || data.users || [];
+            console.log(`/api${endpoint} returned:`, result.map(u => ({ id: u._id, email: u.email, type: u.type })));
+            setter(result);
         } catch (err) {
             console.error(err);
             setter([]);
@@ -485,21 +487,33 @@ const AdminDashboard = () => {
         });
     }, [users, allEvents]);
 
-    // Format organizer data for modal
     const organizerData = useMemo(() => {
-        return (users || []).filter(u => u.type === 'organizer').map(o => ({
-            id: o._id?.$oid || o._id || o.id,
-            name: o.name || 'Unknown',
-            email: o.email || '',
-            location: o.address || o.location || 'Unknown',
-            joinedDate: formatDate(o.createdAt || o.joinedDate),
-            eventsCreated: 0,
-            totalVolunteers: 0,
-            category: o.category || 'General',
-            status: o.isVerified ? 'verified' : 'pending',
-            profilePicture: o.profilePicture || ''
-        }));
-    }, [users]);
+        return (users || []).filter(u => u.type === 'organizer').map(o => {
+            const organizerId = o._id?.$oid || o._id || o.id;
+
+            const orgCompletedEvents = allEvents.filter(e =>
+                e.status === 'completed' &&
+                (e.organizerId?._id || e.organizerId?.$oid || e.organizerId) === organizerId
+            );
+
+            const totalVolunteers = orgCompletedEvents.reduce((sum, e) =>
+                sum + (e.registrations?.filter(r => r.status === 'approved').length || 0), 0
+            );
+
+            return {
+                id: organizerId,
+                name: o.name || 'Unknown',
+                email: o.email || '',
+                location: o.address || o.location || 'Unknown',
+                joinedDate: formatDate(o.createdAt || o.joinedDate),
+                eventsCreated: orgCompletedEvents.length,
+                totalVolunteers,
+                category: o.category || 'General',
+                status: o.isVerified ? 'verified' : 'pending',
+                profilePicture: o.profilePicture || ''
+            };
+        });
+    }, [users, allEvents]);
 
     // Format active events data for modal
     const formattedActiveEvents = useMemo(() => {
